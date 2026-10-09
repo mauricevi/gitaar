@@ -15,7 +15,7 @@
    · Notes due today   → de noten die de Fretboard Trainer vandaag wil herhalen
    Beide lezen de opgeslagen gegevens van de trainers in deze browser (alleen lezen).
    ════════════════════════════════════════════════════════════════════════════ */
-:root{--bg:#07070c;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;
+:root{--bg:#07070c;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;--rose:#ff8fab;
   --wd1:#3e2518;--wfret:rgba(205,198,186,.32);--wnut:#d9d3c7;--wstr:#d6cfc1;--winl:rgba(232,225,210,.32);
   --fr:.9fr .944fr .891fr .841fr .794fr .749fr .707fr .667fr .63fr .595fr .561fr .53fr .5fr .472fr .446fr .42fr;color-scheme:dark}
 *{box-sizing:border-box}
@@ -112,7 +112,7 @@ h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacin
 .calf{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 .callg{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--mut)}
 .callg i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
-.callg i.p{background:var(--violet)}.callg i.f{background:var(--teal)}.callg i.s{background:var(--glow)}.callg i.m{background:#f5efe6}.callg i.r{background:transparent;box-shadow:inset 0 0 0 2px #f5efe6}
+.callg i.p{background:var(--violet)}.callg i.c{background:var(--rose)}.callg i.f{background:var(--teal)}.callg i.s{background:var(--glow)}.callg i.m{background:#f5efe6}.callg i.r{background:transparent;box-shadow:inset 0 0 0 2px #f5efe6}
 .calbtn{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--tx);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
 .calbtn:hover,.calbtn[aria-expanded="true"]{border-color:var(--glow)}
 .calgoals{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.calgoals p{margin:0 0 10px;font-size:13px;color:var(--mut)}
@@ -175,7 +175,7 @@ h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacin
 
 <script>
 
-/* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter) ══════
+/* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter, Chord Moves) ══════
    Exporteren: alle Practice Room-gegevens die deze pagina kan zien → één .json-bestand in je Downloads.
    Importeren: één of meer van die bestanden → samenvoegen met wat er al is → pagina herladen.
      · Instellingen, voortgang en progressies: de geïmporteerde versie vervangt de huidige.
@@ -185,8 +185,8 @@ h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacin
    Knoppen verschijnen in elk element met id="prBackup" (data-app = naam van de pagina, data-btn = knopstijl). */
 var PRB=(function(){
   'use strict';
-  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter)/;
-  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['practiceRoom','Home and shared settings']];
+  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves)/;
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['practiceRoom','Home and shared settings']];
   var LOGS=/(\.log|:log|^practiceRoom\.manual)$/;
   var TXT={exp:'Export backup',imp:'Import backup…',
     saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},
@@ -217,7 +217,7 @@ var PRB=(function(){
     var blob=new Blob([JSON.stringify({type:'practice-room-backup',v:1,created:new Date().toISOString(),from:app,data:data},null,1)],{type:'application/json'});
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},3000);
-    var have=appsIn(keys),miss=APPS.slice(0,3).map(function(x){return x[1];}).filter(function(n){return have.indexOf(n)<0;});
+    var have=appsIn(keys),miss=APPS.slice(0,4).map(function(x){return x[1];}).filter(function(n){return have.indexOf(n)<0;});
     msg(TXT.saved(file,have.join(', '))+(miss.length?TXT.missing(miss.join(', ')):''));}
 
   function doImport(files,msg){
@@ -269,18 +269,19 @@ const CONFIG={
    1. Zet het HTML-bestand in dezelfde map.
    2. Kopieer het laatste blok hieronder (van { tot en met },) en plak het eronder.
    3. Pas file, name en tagline aan. Laat live weg of zet live:'' voor een nieuwe trainer
-      (live:'fretboard' en live:'scales' tonen je actuele voortgang uit die twee trainers). */
+      (live:'fretboard', 'scales', 'prompter' en 'moves' tonen je actuele voortgang uit die trainers). */
 const TOOLS=[
   {file:'fretboard-trainer.html', name:'Fretboard Trainer', tagline:'Find every note, on every string.', live:'fretboard'},
   {file:'toonladder-trainer.html', name:'Scale Trainer', tagline:'Scales, arpeggios and progressions.', live:'scales'},
   {file:'note-prompter.html', name:'Note Prompter', tagline:'Random notes and chords, on your foot pedal.', live:'prompter'},
+  {file:'chord-moves.html', name:'Chord Moves', tagline:'New progressions, one move at a time.', live:'moves'},
 ];
 /* ═════════════════════════ einde van jouw instellingen ═════════════════════ */
 
 /* Overige teksten (kaarten en meldingen). Mag je ook aanpassen. */
 const TEXT={
   cal:{title:'Your practice',streak:n=>n===1?'day streak':'days streak',best:'longest streak',week:'this week',month:'this month',today:'today / goal',rest:'rest day',
-       fret:'Fretboard Trainer',scale:'Scale Trainer',prompt:'Note Prompter',manual:'Without the app',promptT:(m,n)=>`Prompter ${m}`+(n?` (${n} prompts)`:''),goalMet:'Daily goal met',none:'no practice',goal:g=>`goal ${g}`,
+       fret:'Fretboard Trainer',scale:'Scale Trainer',prompt:'Note Prompter',moves:'Chord Moves',manual:'Without the app',promptT:(m,n)=>`Prompter ${m}`+(n?` (${n} prompts)`:''),movesT:(m,l)=>`Chord Moves ${m}`+(l?` (${l})`:''),goalMet:'Daily goal met',none:'no practice',goal:g=>`goal ${g}`,
        fretT:(m,n,p)=>`Fretboard ${m}`+(n?` (${n} notes, ${p}% right)`:''),scaleT:(m,l)=>`Scale ${m}`+(l?` (${l})`:''),manT:m=>`Without the app ${m}`,
        popQ:'Practised without the app?',less:'5 minutes less',more:'5 minutes more',clear:'Clear',
        goalsBtn:'Daily goals',goalsHelp:'Minutes per day of the week. 0 = rest day: it doesn’t count and doesn’t break your streak.',
@@ -295,6 +296,7 @@ const TEXT={
   dueNote:n=>n===1?'1 note on the board':`${n} notes on the board`,
   lgDue:'due today',lgWeak:'weakest notes',lgMastered:n=>`mastered (${n})`,
   progEmpty:'No progression yet. Make one in the Scale Trainer.',
+  movesLast:n=>`Last opened: ${n}`,movesLearned:(n,t)=>`<b>${n}</b> of ${t} moves learned`,movesStarted:n=>`<b>${n}</b> started`,
   chordsBars:(n,b)=>`${n} chords · ${b} bars`,
   exampleNote:'Example: the minor ii–V–i. Make your own in the Scale Trainer.'
 };
@@ -418,6 +420,9 @@ function card(t){
     else meta='<div class="cm"><span>'+esc(TEXT.noFret)+'</span></div>';}
   if(t.live==='prompter'){const L=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},td=L[dKey(new Date())],all=Object.values(L);
     if(all.length)meta='<div class="cm">'+(td&&td.n?'<span>'+TEXT.promptToday(td.n)+'</span>':'')+'<span>'+TEXT.promptEver(all.reduce((a,x)=>a+(x.n||0),0),all.length)+'</span></div>';}
+  if(t.live==='moves'){const m=read('practiceRoom.movesSum')||(CACHE.moves&&CACHE.moves.sum);
+    if(m&&m.total){if(m.last&&m.last.name)body='<div class="ct">'+esc(TEXT.movesLast(m.last.name))+'</div>';
+      meta='<div class="cm"><span>'+TEXT.movesLearned(+m.learned||0,+m.total)+'</span>'+(m.started?'<span>'+TEXT.movesStarted(+m.started)+'</span>':'')+'</div>';}}
   if(t.live==='scales'){const d=scaleData();
     if(d&&d.chords.length){body='<div class="ct">'+esc(d.p.name)+'</div>';
       meta='<div class="chips">'+d.chords.map((c,i)=>'<span data-i="'+i+'">'+esc(c.sym)+'</span>').join('')+'</div>';}}
@@ -432,6 +437,7 @@ function setMode(m){mode=m;try{localStorage.setItem('practiceRoom.home',JSON.str
   if(m==='prog')showProg();else showNotes();}
 /* ══ OEFENKALENDER ══════════════════════════════════════════════════════════════
    Bronnen: logboek van de Fretboard Trainer (fretTrainer.log), van de Scale Trainer (toonladderTrainer:log),
+   van de Note Prompter (notePrompter.log), van Chord Moves (chordMoves.log),
    en wat je zelf invult (practiceRoom.manual, minuten per dag). Dagdoelen per weekdag: practiceRoom.goals (ma…zo, 0 = rustdag).
    Werkt de browser met gescheiden opslag, dan komen de logboeken via de Home-link mee (zie CACHE). */
 const CAL={weeksWide:52,weeksNarrow:26,step:5};                                    /* aanpassen naar smaak */
@@ -441,14 +447,14 @@ const wdIdx=d=>(d.getDay()+6)%7;                                                
 const fmtMin=m=>{m=Math.round(m);return m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'');};
 function calLogs(){
   const fl=read('fretTrainer.log')||(CACHE.fret&&CACHE.fret.log)||{},sl=read('toonladderTrainer:log')||(CACHE.scale&&CACHE.scale.log)||{};
-  const pl=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{};
-  return{fl,sl,pl,man:read('practiceRoom.manual')||{}};}
+  const pl=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},ml=read('chordMoves.log')||(CACHE.moves&&CACHE.moves.log)||{};
+  return{fl,sl,pl,ml,man:read('practiceRoom.manual')||{}};}
 const goals=()=>{const g=read('practiceRoom.goals');return Array.isArray(g)&&g.length===7?g.map(x=>Math.max(0,Math.min(600,+x||0))):[20,20,20,20,20,20,20];};
-function dayInfo(L,k,d,G){const f=(L.fl[k]&&L.fl[k].s||0)/60,sc=(L.sl[k]&&L.sl[k].s||0)/60,p=(L.pl[k]&&L.pl[k].s||0)/60,m=+L.man[k]||0,t=f+sc+p+m,g=G[wdIdx(d)];
-  return{f,sc,p,m,t,g,met:g>0&&t>=g,rest:g===0,fe:L.fl[k],se:L.sl[k],pe:L.pl[k]};}
+function dayInfo(L,k,d,G){const f=(L.fl[k]&&L.fl[k].s||0)/60,sc=(L.sl[k]&&L.sl[k].s||0)/60,p=(L.pl[k]&&L.pl[k].s||0)/60,cm=(L.ml[k]&&L.ml[k].s||0)/60,m=+L.man[k]||0,t=f+sc+p+cm+m,g=G[wdIdx(d)];
+  return{f,sc,p,cm,m,t,g,met:g>0&&t>=g,rest:g===0,fe:L.fl[k],se:L.sl[k],pe:L.pl[k],me:L.ml[k]};}
 /* reeks: dagen met gehaald doel achter elkaar; rustdagen tellen niet mee en breken niets; vandaag (nog bezig) breekt niets */
 function streaks(L,G){const today=new Date();today.setHours(0,0,0,0);
-  const keys=[...Object.keys(L.fl),...Object.keys(L.sl),...Object.keys(L.pl),...Object.keys(L.man)].sort();if(!keys.length)return{cur:0,best:0};
+  const keys=[...Object.keys(L.fl),...Object.keys(L.sl),...Object.keys(L.pl),...Object.keys(L.ml),...Object.keys(L.man)].sort();if(!keys.length)return{cur:0,best:0};
   const [y,mo,da]=keys[0].split('-').map(Number);let d=new Date(y,mo-1,da),run=0,best=0;
   for(;d<=today;d=addDays(d,1)){const i=dayInfo(L,dKey(d),d,G);if(i.rest)continue;
     if(i.met){run++;best=Math.max(best,run);}else if(+d!==+today)run=0;}
@@ -460,7 +466,7 @@ function renderCal(){const T=TEXT.cal,L=calLogs(),G=goals(),today=new Date();tod
     if(ws.getMonth()!==lastM){lastM=ws.getMonth();months+='<span style="grid-column:'+(w+1)+'">'+ws.toLocaleDateString('en-GB',{month:'short'})+'</span>';}
     for(let r=0;r<7;r++){const d=addDays(ws,r),k=dKey(d),fut=d>today,i=dayInfo(L,k,d,G);
       if(fut){cells+='<span class="cd fut"></span>';continue;}
-      let bg='';if(i.t>0){const a=i.f/i.t*360,b=a+i.sc/i.t*360,c=b+i.p/i.t*360;bg='background:conic-gradient(var(--teal) 0 '+a+'deg,var(--glow) '+a+'deg '+b+'deg,var(--violet) '+b+'deg '+c+'deg,#f5efe6 '+c+'deg 360deg);opacity:'+(.35+.65*Math.min(1,i.t/(i.g||20))).toFixed(2)+';';}
+      let bg='';if(i.t>0){const a=i.f/i.t*360,b=a+i.sc/i.t*360,c=b+i.p/i.t*360,e=c+i.cm/i.t*360;bg='background:conic-gradient(var(--teal) 0 '+a+'deg,var(--glow) '+a+'deg '+b+'deg,var(--violet) '+b+'deg '+c+'deg,var(--rose) '+c+'deg '+e+'deg,#f5efe6 '+e+'deg 360deg);opacity:'+(.35+.65*Math.min(1,i.t/(i.g||20))).toFixed(2)+';';}
       cells+='<button type="button" class="cd'+(i.t>0?' on':'')+(i.met?' met':'')+(i.rest?' rest':'')+(+d===+today?' today':'')+'" data-k="'+k+'" style="'+bg+'" aria-label="'+esc(calLabel(i,d))+'"></button>';}}
   $('#calGrid').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';$('#calMonths').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';
   $('#calGrid').innerHTML=cells;$('#calMonths').innerHTML=months;
@@ -472,11 +478,12 @@ function renderCal(){const T=TEXT.cal,L=calLogs(),G=goals(),today=new Date();tod
   const ti=dayInfo(L,dKey(today),today,G);
   $('#calStats').innerHTML=[[st.cur,T.streak(st.cur)],[st.best,T.best],[fmtMin(wk),T.week],[fmtMin(mo),T.month],[ti.rest?T.rest:fmtMin(ti.t)+' / '+fmtMin(ti.g),T.today]]
     .map(([v,l])=>'<div><b>'+esc(String(v))+'</b><small>'+esc(l)+'</small></div>').join('');
-  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');}
+  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],['c',T.moves],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');}
 function calLabel(i,d){const T=TEXT.cal,parts=[];
   if(i.f)parts.push(T.fretT(fmtMin(i.f),i.fe&&i.fe.n,i.fe&&i.fe.n?Math.round(100*i.fe.ok/i.fe.n):null));
   if(i.sc)parts.push(T.scaleT(fmtMin(i.sc),i.se&&i.se.p&&i.se.p.length?i.se.p.join(', '):''));
   if(i.p)parts.push(T.promptT(fmtMin(i.p),i.pe&&i.pe.n));
+  if(i.cm)parts.push(T.movesT(fmtMin(i.cm),i.me&&Array.isArray(i.me.p)&&i.me.p.length?i.me.p.join(', '):''));
   if(i.m)parts.push(T.manT(fmtMin(i.m)));
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+(i.t?fmtMin(i.t):T.none)+(i.rest?' · '+T.rest:' · '+T.goal(fmtMin(i.g)))+(parts.length?'\n'+parts.join('\n'):'');}
 /* zelf invullen: klik op een dag → minuten zonder app (stappen van 5) */
