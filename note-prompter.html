@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Note Prompter</title>
+<style>
+/* ════════════════════════════════════════════════════════════════════════════
+   NOTE PROMPTER (Practice Room)
+   Eén grote, willekeurige opdracht: een noot of een arpeggio, eventueel op een snaar. Pedaal (MIDI of toetsenbord) = volgende.
+   Indeling: zijbalk · kop · podium (de opdracht) · Setup (wat, waar, volgorde, pedaal, bewaarde sets).
+   Opslag: localStorage 'notePrompter.v1' (instellingen) en 'notePrompter.log' (oefentijd per dag, voor de kalender op Home).
+   Zelfde Apple-stijl als de Scale Trainer.
+   ════════════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
+  --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
+  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--err:#c4302b;--ok:#248a3d;--sh:0 1px 2px rgba(0,0,0,.04);
+  --hi:#ff9f0a;--stage1:#1c1c1e;--stage2:#2c2c2e;--stx:#f5f5f7;--smut:#a1a1a6;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
+  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--ok:#30d158;--sh:none;--stage1:#111113;--stage2:#1c1c1e;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
+  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--ok:#30d158;--sh:none;--stage1:#111113;--stage2:#1c1c1e;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--link)}
+button,select,input{font:inherit;color:var(--tx)}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,.tg:focus-within{outline:3px solid var(--ac);outline-offset:2px}
+p{margin:0}
+/* ── app-indeling (gelijk aan de trainers) ── */
+.app{display:flex;min-height:100vh}
+.side{flex:0 0 220px;position:sticky;top:0;height:100vh;padding:22px 12px;border-right:1px solid var(--sep);background:var(--side);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.brand{font-size:13px;font-weight:600;color:var(--mut);padding:0 10px 10px}
+.side nav{display:grid;gap:2px}
+.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
+.side a:hover{background:var(--fill)}
+.side a.cur{font-weight:600;background:rgba(10,99,214,.13);color:var(--link)}
+main{flex:1;min-width:0;padding:20px 28px 56px;display:grid;gap:16px;align-content:start}
+.tb{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.15}
+.sub{color:var(--mut);font-size:14px;margin-top:2px}
+.tr{display:flex;gap:8px;align-items:center}
+.card{background:var(--card);border-radius:18px;padding:20px;box-shadow:var(--sh);min-width:0}
+.cap{font-size:13px;color:var(--mut)}
+h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:0 0 10px}
+.ib{width:36px;height:36px;padding:0;border-radius:9px;border:0;background:var(--fill);display:grid;place-items:center}
+.act{min-height:34px;padding:0 14px;border-radius:9px;border:0;background:var(--fill);font-size:14px;font-weight:600}
+.act.pri{background:var(--ac);color:var(--onac)}
+.act[aria-expanded="true"]{background:rgba(10,99,214,.13);color:var(--link)}
+.seg{display:inline-flex;flex-wrap:wrap;padding:2px;border-radius:9px;background:var(--fill)}
+.seg button{border:0;background:none;border-radius:7px;min-height:30px;padding:0 13px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600}
+.tg{position:relative;flex:none;display:inline-flex;cursor:pointer}
+.tg input{position:absolute;opacity:0;width:1px;height:1px}
+.tg i{width:46px;height:28px;border-radius:14px;background:var(--fill);position:relative;transition:background .15s}
+.tg i::after{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .15s}
+.tg input:checked+i{background:#34c759}.tg input:checked+i::after{transform:translateX(18px)}
+
+/* ── podium: de opdracht ── */
+.stage{position:relative;border-radius:24px;background:radial-gradient(120% 90% at 50% 0%,var(--stage2),var(--stage1));color:var(--stx);
+  min-height:min(58vh,640px);display:grid;grid-template-rows:1fr auto;cursor:pointer;user-select:none;-webkit-user-select:none;overflow:hidden}
+.stage:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
+.pr{display:grid;place-items:center;align-content:center;gap:clamp(8px,2vh,22px);padding:32px 24px 8px;text-align:center}
+.big{font-size:clamp(110px,24vh,340px);font-weight:800;line-height:.95;letter-spacing:-.03em;white-space:nowrap}
+.big .q{font-weight:600;font-size:.56em;letter-spacing:-.02em;margin-left:.06em;color:#ffd38a}
+.big .alt{color:var(--smut);font-weight:700}
+.big.idle{font-size:clamp(40px,7vh,72px);font-weight:700;color:var(--smut);letter-spacing:-.01em}
+.on{font-size:clamp(20px,3.4vh,34px);color:var(--smut);font-weight:500}
+.on b{color:var(--stx);font-weight:700}
+.pop{animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+/* kleine snarenweergave (zoals tab: hoge e boven), de gevraagde snaar licht op */
+.strs{display:grid;gap:9px;width:min(420px,70%);margin-top:6px}
+.strs i{display:block;height:2px;border-radius:2px;background:rgba(245,245,247,.22);position:relative}
+.strs i.hit{height:5px;background:var(--hi);box-shadow:0 0 14px rgba(255,159,10,.7)}
+.sfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;font-size:13px;color:var(--smut);flex-wrap:wrap}
+.sfoot b{color:var(--stx);font-variant-numeric:tabular-nums}
+.sfoot .pd{display:inline-flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mut2);display:inline-block}
+.dot.ok{background:#30d158;box-shadow:0 0 8px rgba(48,209,88,.6)}
+.dot.flash{background:var(--hi);box-shadow:0 0 10px var(--hi)}
+/* volledig scherm: alleen het podium */
+body.fs .side,body.fs .tb,body.fs #setup{display:none}
+body.fs main{padding:0}
+body.fs .stage{border-radius:0;min-height:100vh}
+body.fs .big{font-size:clamp(140px,34vh,460px)}
+
+/* ── setup ── */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:26px 34px}
+.blk{display:grid;gap:10px;align-content:start;min-width:0}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.row>.lb{min-width:92px;font-size:14px;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:0;border-radius:9px;min-height:36px;min-width:44px;padding:0 11px;background:var(--fill);font-size:15px;font-weight:600;color:var(--tx)}
+.chip[aria-pressed="true"]{background:var(--ac);color:var(--onac)}
+.chip small{font-weight:500;opacity:.75;font-size:12px;margin-left:3px}
+.chip.wide{min-width:auto;font-size:13px;font-weight:600}
+.grp{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:start}
+.grp>span{font-size:12px;color:var(--mut);padding-top:9px}
+.lnk{border:0;background:none;color:var(--link);font-size:13px;padding:2px 4px}
+.lrow{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+.lrow small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.note{font-size:13px;color:var(--mut);line-height:1.45}
+.note.warn{color:var(--err)}
+.sets{display:flex;flex-wrap:wrap;gap:6px}
+.set{display:inline-flex;align-items:center;border-radius:9px;background:var(--fill);overflow:hidden}
+.set button{border:0;background:none;min-height:34px;padding:0 10px;font-size:14px}
+.set button.x{padding:0 9px;color:var(--mut);border-left:1px solid var(--sep)}
+.set button:hover{background:var(--fill)}
+.save{display:flex;gap:8px}
+.save input{flex:1;min-width:0;min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 10px}
+.learn[aria-pressed="true"]{background:var(--hi);color:#1c1c1e}
+.mon summary{cursor:pointer;color:var(--link);font-size:13px}
+#midiMon{display:grid;gap:3px;margin-top:8px;font-size:13px;font-variant-numeric:tabular-nums;max-height:190px;overflow:auto}
+#midiMon .res{color:var(--mut)}
+.lrow input[type=range]{width:150px}
+#btnVoice[aria-pressed="true"]{background:rgba(10,99,214,.13);color:var(--link)}
+.lrow select{min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 8px;max-width:60%;font-size:14px}
+@media (max-width:820px){.side{display:none}main{padding:16px}}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}}
+.prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">Practice Room</div>
+    <nav>
+      <a id="lnkHome" href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
+      <a href="fretboard-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14M3 12h18"/></svg><span>Fretboard Trainer</span></a>
+      <a href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Scale Trainer</span></a>
+      <a class="cur" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="tb">
+      <div><h1>Note Prompter</h1><p class="sub" id="sub"></p></div>
+      <div class="tr">
+        <button class="act" id="btnSetup" type="button" aria-expanded="true" aria-controls="setup">Setup</button>
+        <button class="ib" id="btnVoice" type="button" aria-pressed="false"></button>
+        <button class="ib" id="btnFs" type="button" aria-label="Full screen" title="Full screen (F)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button class="ib" id="btnTheme" type="button"></button>
+      </div>
+    </header>
+
+    <!-- het podium: klik, spatie of pedaal = volgende -->
+    <section class="stage" id="stage" tabindex="0" aria-label="Prompt. Press your pedal, Space or click for the next one.">
+      <div class="pr" aria-live="polite">
+        <div class="big idle" id="big"></div>
+        <div class="on" id="on"></div>
+        <div class="strs" id="strs" aria-hidden="true"></div>
+      </div>
+      <div class="sfoot">
+        <span><b id="cnt">0</b> prompts · <b id="tm">0:00</b></span>
+        <span class="pd"><i class="dot" id="pdot"></i><span id="pstat"></span></span>
+        <span id="keysHint"></span>
+      </div>
+    </section>
+
+    <!-- instellingen -->
+    <section class="card" id="setup">
+      <div class="sgrid">
+        <div class="blk">
+          <h3>What</h3>
+          <div class="row"><span class="lb">Practise</span><span class="seg" id="segMode"></span></div>
+          <div class="row" style="align-items:flex-start"><span class="lb" id="lbNotes" style="padding-top:8px"></span>
+            <div style="display:grid;gap:6px;flex:1;min-width:0"><div class="chips" id="notes"></div><div class="row" id="noteQuick"></div></div></div>
+          <div class="row"><span class="lb">Spelling</span><span class="seg" id="segSpell"></span></div>
+          <div id="typesBox" class="blk" style="gap:8px"></div>
+        </div>
+        <div class="blk">
+          <h3>Where</h3>
+          <div class="row" style="align-items:flex-start"><span class="lb" style="padding-top:8px">String</span>
+            <div style="display:grid;gap:6px;flex:1"><div class="chips" id="strings"></div><p class="note" id="strNote"></p></div></div>
+          <h3 style="margin-top:12px">Order</h3>
+          <div class="lrow"><span>Fair shuffle<small>Every combination once before anything repeats. Off: fully random (never the same twice in a row).</small></span>
+            <label class="tg"><input type="checkbox" role="switch" id="fair" aria-label="Fair shuffle"><i></i></label></div>
+          <h3 style="margin-top:12px">Voice</h3>
+          <div class="lrow"><span>Say each prompt out loud<small>So you can keep your eyes on the neck. V switches it on and off, R says it again.</small></span>
+            <label class="tg"><input type="checkbox" role="switch" id="vOn" aria-label="Say each prompt out loud"><i></i></label></div>
+          <div class="lrow"><span>Voice</span><select id="vName" aria-label="Voice"></select></div>
+          <div class="lrow"><span>Speed</span><span class="row"><input type="range" id="vRate" min="0.7" max="1.4" step="0.05" aria-label="Speed"><output class="cap" id="vRateV"></output></span></div>
+          <div class="lrow"><span>Volume</span><span class="row"><input type="range" id="vVol" min="0.2" max="1" step="0.05" aria-label="Volume"><button class="act" type="button" id="vTest">Test</button><button class="act" type="button" id="vAbc" title="Say all note names">A–G</button></span></div>
+          <p class="note" id="vNote"></p>
+          <h3 style="margin-top:12px">Backup (all Practice Room apps)</h3>
+          <div id="prBackup" data-app="Note Prompter" data-btn="act"></div>
+          <h3 style="margin-top:12px">Saved sets</h3>
+          <div class="sets" id="sets"></div>
+          <div class="save"><input id="setName" type="text" maxlength="40" placeholder="Name, e.g. G string naturals" aria-label="Name for this set"><button class="act" type="button" id="btnSave">Save set</button></div>
+        </div>
+        <div class="blk">
+          <h3>Pedal</h3>
+          <p class="note" id="midiNote"></p>
+          <div class="row"><button class="act pri" type="button" id="btnMidi">Connect MIDI</button><span class="cap" id="midiDev"></span></div>
+          <div class="lrow" id="inRow" hidden><span>MIDI input<small>Only this device controls the prompter.</small></span><select id="midiIn" aria-label="MIDI input"></select></div>
+          <div class="lrow"><span>Next<small id="lNext"></small></span><button class="act learn" type="button" data-learn="next" aria-pressed="false">Learn</button></div>
+          <div class="lrow"><span>Back<small id="lBack"></small></span><button class="act learn" type="button" data-learn="back" aria-pressed="false">Learn</button></div>
+          <div class="lrow"><span>Say again<small id="lRep"></small></span><button class="act learn" type="button" data-learn="repeat" aria-pressed="false">Learn</button></div>
+          <div class="row"><button class="lnk" type="button" id="btnForget">Forget learned pedal</button></div>
+          <details class="mon" id="monBox"><summary>MIDI monitor</summary><div id="midiMon"><span class="cap">Press a pedal button: every message your pedal sends shows up here.</span></div></details>
+          <p class="note">Keyboard: Space, Enter, → or Page Down = next · ← or Page Up = back · R = say again · V = voice on/off · F = full screen. Clicking the stage also works.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+/* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter) ══════
+   Exporteren: alle Practice Room-gegevens die deze pagina kan zien → één .json-bestand in je Downloads.
+   Importeren: één of meer van die bestanden → samenvoegen met wat er al is → pagina herladen.
+     · Instellingen, voortgang en progressies: de geïmporteerde versie vervangt de huidige.
+     · Oefenlogboeken en zelf ingevulde minuten (kalender): per dag samengevoegd, de hoogste waarde blijft.
+   Het wegschrijven gebeurt ná het herladen en vóórdat de app zijn gegevens leest, zodat de app ze niet meteen
+   weer overschrijft met wat hij nog in zijn geheugen had.
+   Knoppen verschijnen in elk element met id="prBackup" (data-app = naam van de pagina, data-btn = knopstijl). */
+var PRB=(function(){
+  'use strict';
+  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter)/;
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['practiceRoom','Home and shared settings']];
+  var LOGS=/(\.log|:log|^practiceRoom\.manual)$/;
+  var TXT={exp:'Export backup',imp:'Import backup…',
+    saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},
+    missing:function(list){return ' Not visible from this page: '+list+'. If you used that in this browser, export from there too.';},
+    done:function(list,n){return 'Imported '+n+' item'+(n===1?'':'s')+': '+list+'.';},
+    none:'Nothing to export yet.',bad:function(n){return n+' file'+(n===1?' is':'s are')+' not a Practice Room backup.';},
+    note:'One file with your progress, settings and practice log. Use it to move to another browser or computer.'};
+  var ls=null;try{ls=window.localStorage;}catch(e){}
+
+  /* een vorige import afmaken (na het herladen, vóór de app iets leest) */
+  try{var pend=sessionStorage.getItem('prImport');
+    if(pend&&ls){sessionStorage.removeItem('prImport');var P=JSON.parse(pend);
+      Object.keys(P.data).forEach(function(k){if(RX.test(k))ls.setItem(k,P.data[k]);});
+      sessionStorage.setItem('prImportDone',JSON.stringify({apps:P.apps,n:P.n,bad:P.bad}));}}catch(e){}
+
+  function appsIn(keys){return APPS.filter(function(a){return keys.some(function(k){return k.indexOf(a[0])===0;});}).map(function(a){return a[1];});}
+  function snapshot(){var d={};if(!ls)return d;for(var i=0;i<ls.length;i++){var k=ls.key(i);if(k&&RX.test(k))d[k]=ls.getItem(k);}return d;}
+  /* logboeken per dag samenvoegen: de grootste waarde (seconden of minuten) wint */
+  function mergeLog(a,b){var A,B;try{A=JSON.parse(a)||{};}catch(e){A={};}try{B=JSON.parse(b)||{};}catch(e){return a;}
+    var size=function(v){return typeof v==='number'?v:v&&typeof v==='object'?(+v.s||0):0;};
+    Object.keys(B).forEach(function(day){if(!(day in A)||size(B[day])>size(A[day]))A[day]=B[day];});
+    return JSON.stringify(A);}
+  function stamp(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+
+  function doExport(app,msg){var data=snapshot(),keys=Object.keys(data);
+    if(!keys.length){msg(TXT.none);return;}
+    var file='practice-room-backup-'+stamp()+'.json';
+    var blob=new Blob([JSON.stringify({type:'practice-room-backup',v:1,created:new Date().toISOString(),from:app,data:data},null,1)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},3000);
+    var have=appsIn(keys),miss=APPS.slice(0,3).map(function(x){return x[1];}).filter(function(n){return have.indexOf(n)<0;});
+    msg(TXT.saved(file,have.join(', '))+(miss.length?TXT.missing(miss.join(', ')):''));}
+
+  function doImport(files,msg){
+    Promise.all([].map.call(files,function(f){return f.text();})).then(function(texts){
+      var cur=snapshot(),out={},bad=0;
+      texts.forEach(function(t){var o;try{o=JSON.parse(t);}catch(e){o=null;}
+        if(!o||o.type!=='practice-room-backup'||!o.data||typeof o.data!=='object'){bad++;return;}
+        Object.keys(o.data).forEach(function(k){var v=o.data[k];if(!RX.test(k)||typeof v!=='string')return;
+          var base=k in out?out[k]:cur[k];out[k]=LOGS.test(k)&&base!=null?mergeLog(base,v):v;});});
+      var keys=Object.keys(out);
+      if(!keys.length){msg(TXT.bad(bad||files.length));return;}
+      try{sessionStorage.setItem('prImport',JSON.stringify({data:out,apps:appsIn(keys),n:keys.length,bad:bad}));}catch(e){msg('Could not import: '+e.message);return;}
+      location.reload();});}
+
+  function mount(){var el=document.getElementById('prBackup');if(!el||el.dataset.ready)return;el.dataset.ready='1';
+    var app=el.dataset.app||document.title,cls=el.dataset.btn||'';
+    el.innerHTML='<div class="prb-row"><button type="button" class="'+cls+'" data-prb="exp">'+TXT.exp+'</button>'
+      +'<button type="button" class="'+cls+'" data-prb="imp">'+TXT.imp+'</button>'
+      +'<input type="file" accept=".json,application/json" multiple hidden aria-label="Backup files"></div>'
+      +'<p class="prb-msg" role="status">'+TXT.note+'</p>';
+    var m=el.querySelector('.prb-msg'),inp=el.querySelector('input'),msg=function(t){m.textContent=t;};
+    el.querySelector('[data-prb="exp"]').onclick=function(){doExport(app,msg);};
+    el.querySelector('[data-prb="imp"]').onclick=function(){inp.value='';inp.click();};
+    inp.onchange=function(){if(inp.files&&inp.files.length)doImport(inp.files,msg);};
+    try{var dn=sessionStorage.getItem('prImportDone');if(dn){sessionStorage.removeItem('prImportDone');var D=JSON.parse(dn);
+      msg(TXT.done(D.apps.join(', '),D.n)+(D.bad?' '+TXT.bad(D.bad):''));var dt=el.closest('details');if(dt)dt.open=true;var hs=el.closest('[hidden]');if(hs)hs.hidden=false;if(el.scrollIntoView)setTimeout(function(){el.scrollIntoView({block:'center'});},300);}}catch(e){}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else setTimeout(mount,0);
+  return{mount:mount,mergeLog:mergeLog};
+})();
+/* ════════════════════════════════════════════════════════════════════════════
+   JOUW INSTELLINGEN — teksten en lijsten die je zelf kunt aanpassen
+   ════════════════════════════════════════════════════════════════════════════ */
+/* Akkoordsoorten voor arpeggio's: [id, symbool achter de grondtoon, naam]. Een soort toevoegen = één regel. */
+const TYPE_GROUPS=[
+  ['Triads',[['maj','','major'],['min','m','minor'],['dim','dim','diminished'],['aug','aug','augmented'],['sus2','sus2','sus2'],['sus4','sus4','sus4']]],
+  ['6',[['6','6','6'],['m6','m6','m6']]],
+  ['7th',[['maj7','maj7','maj7'],['m7','m7','m7'],['7','7','dominant 7'],['m7b5','m7♭5','half-diminished'],['dim7','dim7','dim7'],['mMaj7','m(maj7)','minor-major 7'],['7sus4','7sus4','7sus4']]],
+  ['9th',[['maj9','maj9','maj9'],['m9','m9','m9'],['9','9','dominant 9']]],
+  ['Altered',[['7b9','7♭9','7♭9'],['7s9','7♯9','7♯9'],['7alt','7alt','altered']]]];
+/* Snaren van laag naar hoog, met de naam zoals die onder de opdracht staat */
+const STRINGS=[['E','low E'],['A','A'],['D','D'],['G','G'],['B','B'],['e','high e']];
+const DEFAULTS={mode:'notes',pcs:[0,2,4,5,7,9,11],spell:'flat',types:['maj7','m7','7','m7b5'],strings:[],fair:true,
+  setup:true,theme:'auto',sets:[],midiOn:false,midiIn:null,pedal:{next:null,back:null,repeat:null},
+  voice:{on:false,name:'',rate:1,vol:1}};   /* voice: uitspreken aan/uit, stem (naam; leeg = de beste die er is), tempo, volume */   /* midiIn = gekozen MIDI-ingang {id,name}; null = alle */
+const IDLE_SECS=60;            /* langer dan dit niets gedrukt: die tijd telt niet als oefentijd */
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Vanaf hier: de werking.
+   ════════════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SH=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],FL=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const BLACK=[1,3,6,8,10];
+const TYPES=TYPE_GROUPS.flatMap(g=>g[1]);
+const typeOf=id=>TYPES.find(t=>t[0]===id);
+const KEY='notePrompter.v1',LOGKEY='notePrompter.log';
+
+/* ── opslag ── */
+const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
+function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)),read(KEY)||{});
+  s.mode=s.mode==='arps'?'arps':'notes';
+  s.pcs=Array.isArray(s.pcs)?[...new Set(s.pcs.filter(x=>Number.isInteger(x)&&x>=0&&x<12))]:DEFAULTS.pcs.slice();
+  s.spell=['sharp','flat','mix','both'].includes(s.spell)?s.spell:'flat';
+  s.types=Array.isArray(s.types)?s.types.filter(typeOf):DEFAULTS.types.slice();
+  s.strings=Array.isArray(s.strings)?[...new Set(s.strings.filter(x=>Number.isInteger(x)&&x>=0&&x<6))]:[];
+  s.fair=s.fair!==false;s.setup=s.setup!==false;s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
+  s.sets=Array.isArray(s.sets)?s.sets.filter(x=>x&&typeof x.name==='string'&&x.cfg):[];
+  s.midiIn=s.midiIn&&typeof s.midiIn.name==='string'?{id:String(s.midiIn.id||''),name:s.midiIn.name}:null;
+  s.pedal=s.pedal&&typeof s.pedal==='object'?{next:s.pedal.next||null,back:s.pedal.back||null,repeat:s.pedal.repeat||null}:{next:null,back:null,repeat:null};
+  const v=s.voice&&typeof s.voice==='object'?s.voice:{};s.voice={on:v.on===true,name:typeof v.name==='string'?v.name:'',rate:Math.min(1.4,Math.max(.7,+v.rate||1)),vol:Math.min(1,Math.max(.2,+v.vol||1))};
+  return s;}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ── oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden,n:opdrachten}} ── */
+let LOG=read(LOGKEY)||{},lastPress=0,logDirty=false;
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function logPress(){const now=Date.now(),e=LOG[dayKey()]||(LOG[dayKey()]={s:0,n:0});
+  if(lastPress&&now-lastPress<=IDLE_SECS*1000)e.s=Math.round((e.s+(now-lastPress)/1000)*10)/10;   /* tijd tussen twee drukken telt mee */
+  e.n++;lastPress=now;logDirty=true;}
+function logSave(){if(!logDirty)return;logDirty=false;
+  const ks=Object.keys(LOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete LOG[k]);
+  try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}homeLink();}
+/* link naar Home met het logboek erin (voor browsers die de opslag per bestand scheiden) */
+function homeLink(){try{const log=Object.fromEntries(Object.entries(LOG).sort().slice(-200).map(([k,v])=>[k,{s:Math.round(v.s),n:v.n}]));
+  $('#lnkHome').href='index.html#pr='+encodeURIComponent(JSON.stringify({prompt:{log}}));}catch(e){}}
+setInterval(logSave,10000);addEventListener('pagehide',logSave);
+
+/* ── de opdrachten ── */
+/* alle combinaties (grondtoon × akkoordsoort × snaar) volgens de instellingen */
+function pool(){const types=S.mode==='arps'?(S.types.length?S.types:[null]):[null],strs=S.strings.length?S.strings:[null],out=[];
+  S.pcs.forEach(pc=>types.forEach(t=>strs.forEach(s=>out.push({pc,t,s}))));return out;}
+const same=(a,b)=>a&&b&&a.pc===b.pc&&a.t===b.t&&a.s===b.s;
+let bag=[],hist=[],hi=-1,count=0,t0=0;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function draw(){const P=pool();if(!P.length)return null;const last=hist[hist.length-1];
+  if(!S.fair){const c=P.filter(x=>!same(x,last));return c.length?c[Math.floor(Math.random()*c.length)]:P[0];}
+  if(!bag.length){bag=shuffle(P.slice());if(bag.length>1&&same(bag[bag.length-1],last))[bag[0],bag[bag.length-1]]=[bag[bag.length-1],bag[0]];}   /* nieuwe ronde begint niet met de vorige */
+  return bag.pop();}
+/* naam van de grondtoon volgens de spelling; 'both' alleen bij losse noten */
+function spellOf(pc){if(!BLACK.includes(pc))return{main:SH[pc]};
+  const sp=S.spell==='mix'||(S.spell==='both'&&S.mode==='arps')?(Math.random()<.5?'sharp':'flat'):S.spell;
+  return sp==='both'?{main:SH[pc],alt:FL[pc]}:{main:sp==='sharp'?SH[pc]:FL[pc]};}
+function next(){const it=draw();if(!it){show(null);return;}
+  if(hi<hist.length-1){hi++;show(hist[hi]);return;}                   /* na "terug": eerst weer vooruit door wat je al zag */
+  it.name=spellOf(it.pc);hist.push(it);if(hist.length>200)hist.shift();hi=hist.length-1;
+  count++;if(!t0)t0=Date.now();logPress();show(it);}
+function back(){if(hi>0){hi--;show(hist[hi]);}}
+function act(a){if(a==='back')back();else if(a==='repeat')say(hist[hi]);else next();flashDot();}
+
+/* ── weergave ── */
+function show(it){const big=$('#big'),on=$('#on');
+  if(!it){const tap=S.voice.on&&navigator.userActivation&&!navigator.userActivation.hasBeenActive;   /* Edge/Chrome laten pas praten na één klik of toets op de pagina */
+    big.className='big idle';big.textContent=!pool().length?'Pick at least one note':tap?'Click once to start':'Press your pedal';on.textContent='';$('#strs').innerHTML='';return;}
+  const t=it.t?typeOf(it.t):null,q=t?(t[1]||'major'):'';
+  big.className='big';big.innerHTML=esc(it.name.main)+(it.name.alt?'<span class="alt"> / '+esc(it.name.alt)+'</span>':'')+(t?'<span class="q">'+esc(q)+'</span>':'');
+  big.setAttribute('aria-label',it.name.main+(it.name.alt?' or '+it.name.alt:'')+(t?' '+t[2]:''));
+  if(it.s!=null){on.innerHTML=esc(it.t?'root on the ':'on the ')+'<b>'+esc(STRINGS[it.s][1])+'</b> string';
+    $('#strs').innerHTML=[5,4,3,2,1,0].map(i=>'<i class="'+(i===it.s?'hit':'')+'"></i>').join('');}
+  else{on.textContent='';$('#strs').innerHTML='';}
+  [big,on].forEach(e=>{e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop');});
+  $('#cnt').textContent=count;say(it);}
+
+/* ── stem: de opdracht hardop (Web Speech, de stemmen van je computer/browser) ──
+   Gewone letters, met de schrijfwijze die stemmen het best uitspreken: "E-flat", "F-sharp", "A-string".
+   Een losse A gevolgd door een woord krijgt een komma ("A, minor"), anders leest de stem het als lidwoord ("a minor"). */
+const SAY_Q={'':'major',m:'minor',dim:'diminished',aug:'augmented',sus2:'sus two',sus4:'sus four','6':'six',m6:'minor six',
+  maj7:'major seven',m7:'minor seven','7':'seven','m7♭5':'minor seven flat five',dim7:'diminished seven','m(maj7)':'minor major seven','7sus4':'seven sus four',
+  maj9:'major nine',m9:'minor nine','9':'nine','7♭9':'seven flat nine','7♯9':'seven sharp nine','7alt':'seven altered'};
+const SAY_S=['low E-string','A-string','D-string','G-string','B-string','high E-string'];
+const sayNote=n=>n[0]+(n[1]==='♭'?'-flat':n[1]==='♯'?'-sharp':'');
+function spoken(it){const t=it.t?typeOf(it.t):null;
+  let x=sayNote(it.name.main)+(it.name.alt?', or '+sayNote(it.name.alt):'');
+  if(t){const q=SAY_Q[t[1]]!=null?SAY_Q[t[1]]:t[2];x+=(/[♭♯]/.test(it.name.main)&&/^(six|seven|nine)/.test(q)||it.name.main==='A'?', ':' ')+q;}   /* "Dee flat, nine": korte pauze, anders klinkt het als één woord */
+  if(it.s!=null)x+=(t?'. Root on the ':'. On the ')+SAY_S[it.s];
+  return x+'.';}
+const TTS=window.speechSynthesis||null;
+/* stemmen: Engels; voorkeur voor de heldere "Natural"/online stemmen van Edge, dan Google, dan de rest */
+function voices(){if(!TTS)return[];return TTS.getVoices().filter(v=>/^en/i.test(v.lang))
+  .map(v=>({v,sc:(/natural/i.test(v.name)?4:0)+(/online/i.test(v.name)?2:0)+(/google/i.test(v.name)?1.5:0)+(/en[-_](us|gb)/i.test(v.lang)?1:0)+(v.localService?0:.5)}))
+  .sort((a,b)=>b.sc-a.sc||a.v.name.localeCompare(b.v.name)).map(x=>x.v);}
+function curVoice(){const L=voices();return L.find(v=>v.name===S.voice.name)||L[0]||null;}
+function say(it,force){if(!TTS||!it||!(S.voice.on||force))return;
+  try{TTS.cancel();const u=new SpeechSynthesisUtterance(typeof it==='string'?it:spoken(it)),v=curVoice();
+    if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-US';u.rate=S.voice.rate;u.volume=S.voice.vol;u.pitch=1;TTS.speak(u);}catch(e){}}
+setInterval(()=>{if(!t0)return;const s=Math.floor((Date.now()-t0)/1000);$('#tm').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},1000);
+function flashDot(){const d=$('#pdot');d.classList.add('flash');setTimeout(()=>d.classList.remove('flash'),180);}
+
+/* ── setup ── */
+const seg=(el,list,cur,attr)=>{el.innerHTML=list.map(([v,l])=>'<button type="button" data-'+attr+'="'+v+'" aria-pressed="'+(String(cur)===String(v))+'">'+esc(l)+'</button>').join('');};
+function renderSetup(){
+  $('#setup').hidden=!S.setup;$('#btnSetup').setAttribute('aria-expanded',S.setup);
+  seg($('#segMode'),[['notes','Notes'],['arps','Arpeggios']],S.mode,'mode');
+  seg($('#segSpell'),[['flat','♭'],['sharp','♯'],['mix','Random']].concat(S.mode==='notes'?[['both','Both']]:[]),S.spell==='both'&&S.mode==='arps'?'mix':S.spell,'spell');
+  $('#lbNotes').textContent=S.mode==='arps'?'Roots':'Notes';
+  $('#notes').innerHTML=SH.map((n,pc)=>'<button type="button" class="chip" data-pc="'+pc+'" aria-pressed="'+S.pcs.includes(pc)+'">'+(BLACK.includes(pc)?esc(FL[pc])+'<small>'+esc(SH[pc])+'</small>':esc(n))+'</button>').join('');
+  $('#noteQuick').innerHTML=[['all','All 12'],['nat','Naturals'],['acc','♯/♭ only'],['none','None']].map(([v,l])=>'<button type="button" class="lnk" data-q="'+v+'">'+esc(l)+'</button>').join('');
+  $('#typesBox').hidden=S.mode!=='arps';
+  $('#typesBox').innerHTML='<div class="row"><span class="lb">Chords</span><span class="cap">'+(S.types.length?S.types.length+' selected':'pick at least one')+'</span>'
+    +'<button type="button" class="lnk" data-tq="all">All</button><button type="button" class="lnk" data-tq="none">None</button></div>'
+    +TYPE_GROUPS.map(([g,list])=>'<div class="grp"><span>'+esc(g)+'</span><div class="chips">'+list.map(([id,sym,name])=>'<button type="button" class="chip wide" data-type="'+id+'" aria-pressed="'+S.types.includes(id)+'" title="'+esc(name)+'">'+esc(sym||'major')+'</button>').join('')+'</div></div>').join('');
+  $('#strings').innerHTML=STRINGS.map(([n,l],i)=>'<button type="button" class="chip" data-str="'+i+'" aria-pressed="'+S.strings.includes(i)+'" title="'+esc(l)+' string">'+esc(n)+'</button>').join('');
+  $('#strNote').textContent=!S.strings.length?'None picked: any string.':S.strings.length===1?'Always on the '+STRINGS[S.strings[0]][1]+' string.':'A random string from the ones you picked.';
+  $('#fair').checked=S.fair;
+  $('#sets').innerHTML=S.sets.length?S.sets.map((x,i)=>'<span class="set"><button type="button" data-load="'+i+'">'+esc(x.name)+'</button><button type="button" class="x" data-del="'+i+'" aria-label="Delete '+esc(x.name)+'">×</button></span>').join(''):'<span class="cap">No saved sets yet.</span>';
+  const n=pool().length;$('#sub').textContent=n?(n+' combination'+(n===1?'':'s')+' · press your pedal, Space or click the stage'):'Pick at least one note'+(S.mode==='arps'?' and one chord':'');
+  renderPedal();renderVoice();}
+const ICON_SPK={on:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  off:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'};
+function renderVoice(){const V=S.voice,L=voices(),cur=curVoice();
+  const b=$('#btnVoice'),l=V.on?'Voice on (V)':'Voice off (V)';b.innerHTML=ICON_SPK[V.on?'on':'off'];b.title=l;b.setAttribute('aria-label',l);b.setAttribute('aria-pressed',V.on);
+  $('#vOn').checked=V.on;$('#vRate').value=V.rate;$('#vRateV').textContent=V.rate.toFixed(2)+'×';$('#vVol').value=V.vol;
+  $('#vName').innerHTML=L.length?L.map(v=>'<option value="'+esc(v.name)+'">'+esc(v.name.replace(/^Microsoft /,'').replace(/ - English \((.*)\)$/,' · $1').replace('United States','US').replace('United Kingdom','UK'))+'</option>').join(''):'<option value="">No English voice found</option>';
+  if(cur)$('#vName').value=cur.name;
+  $('#vNote').textContent=!TTS?'This browser can’t speak. Try Edge or Firefox.':!L.length?'No English voices found yet. In Windows, add one under Settings → Time & language → Speech.':
+    /natural/i.test(cur?cur.name:'')?'':'Tip: in Edge, the voices called “Natural” sound the clearest.';}
+function setVoice(on){S.voice.on=on;save();renderVoice();if(on)say(hist[hi]||'Voice on.',true);else if(TTS)TTS.cancel();}
+function bindVoice(){
+  $('#btnVoice').addEventListener('click',()=>setVoice(!S.voice.on));
+  $('#vOn').addEventListener('change',e=>setVoice(e.target.checked));
+  $('#vName').addEventListener('change',e=>{S.voice.name=e.target.value;save();say(hist[hi]||'This is my voice.',true);});
+  $('#vRate').addEventListener('input',e=>{S.voice.rate=+e.target.value;$('#vRateV').textContent=S.voice.rate.toFixed(2)+'×';save();});
+  $('#vRate').addEventListener('change',()=>say(hist[hi]||'A-flat major seven. Root on the A-string.',true));
+  $('#vVol').addEventListener('input',e=>{S.voice.vol=+e.target.value;save();});
+  $('#vAbc').addEventListener('click',()=>say('A. B. C. D. E. F. G. A-flat. E-flat. F-sharp. A, minor.',true));
+  $('#vTest').addEventListener('click',()=>say(hist[hi]||'A-flat major seven. Root on the A-string.',true));
+  if(TTS&&'onvoiceschanged' in TTS)TTS.onvoiceschanged=renderVoice;}   /* stemmen laden soms pas later */
+/* instellingen gewijzigd: nieuwe ronde */
+function changed(){bag=[];save();renderSetup();if(hi<0)show(null);}
+const cfgOf=()=>({mode:S.mode,pcs:S.pcs.slice(),spell:S.spell,types:S.types.slice(),strings:S.strings.slice(),fair:S.fair});
+
+function bindSetup(){
+  $('#setup').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+    if(d.mode){S.mode=d.mode;changed();}
+    else if(d.spell){S.spell=d.spell;changed();}
+    else if(d.pc!=null){const pc=+d.pc;S.pcs=S.pcs.includes(pc)?S.pcs.filter(x=>x!==pc):[...S.pcs,pc].sort((a,b)=>a-b);changed();}
+    else if(d.q){S.pcs=d.q==='all'?[...Array(12).keys()]:d.q==='nat'?[0,2,4,5,7,9,11]:d.q==='acc'?BLACK.slice():[];changed();}
+    else if(d.type){S.types=S.types.includes(d.type)?S.types.filter(x=>x!==d.type):[...S.types,d.type];changed();}
+    else if(d.tq){S.types=d.tq==='all'?TYPES.map(t=>t[0]):[];changed();}
+    else if(d.str!=null){const i=+d.str;S.strings=S.strings.includes(i)?S.strings.filter(x=>x!==i):[...S.strings,i].sort((a,b)=>a-b);changed();}
+    else if(d.load!=null){const x=S.sets[+d.load];if(x){Object.assign(S,JSON.parse(JSON.stringify(x.cfg)));$('#setName').value=x.name;changed();}}
+    else if(d.del!=null){S.sets.splice(+d.del,1);save();renderSetup();}
+    else if(d.learn){learning=learning===d.learn?null:d.learn;renderPedal();return;}
+    if(e.detail>0)$('#stage').focus({preventScroll:true});});   /* na een muisklik: focus terug naar het podium, zodat pedaal-toetsen niet op een knop drukken */
+  $('#fair').addEventListener('change',e=>{S.fair=e.target.checked;changed();});
+  const doSave=()=>{const name=$('#setName').value.trim()||('Set '+(S.sets.length+1)),i=S.sets.findIndex(x=>x.name===name);
+    const x={name,cfg:cfgOf()};if(i>=0)S.sets[i]=x;else S.sets.push(x);save();renderSetup();};
+  $('#btnSave').addEventListener('click',doSave);
+  $('#setName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doSave();}});
+  $('#btnMidi').addEventListener('click',()=>midiInit(true));
+  $('#midiIn').addEventListener('change',e=>{const v=e.target.value,i=liveInputs().find(x=>x.id===v);
+    S.midiIn=v?{id:v,name:i?i.name:(S.midiIn&&S.midiIn.name)||v}:null;save();hookInputs();});
+  $('#btnForget').addEventListener('click',()=>{S.pedal={next:null,back:null,repeat:null};learning=null;save();renderPedal();});}
+
+/* ── pedaal: MIDI (Web MIDI) en toetsenbord, met "Learn" ──
+   Elke MIDI-"druk" telt: noot aan, controller omhoog (CC ≥ 64), of program change. Geleerd = alleen dat signaal.
+   Een controller die per druk 127 en daarna 0 stuurt telt één keer; een pedaal dat afwisselend 127 en 0 stuurt (toggle) telt elke keer. */
+let midi=null,learning=null,midiErr='';
+const ccLast={};   /* per controller: laatste waarde en tijd */
+function midiInit(ask){
+  if(!navigator.requestMIDIAccess){midiErr='nosupport';renderPedal();return;}
+  navigator.requestMIDIAccess({sysex:false}).then(acc=>{midi=acc;midiErr='';S.midiOn=true;save();
+    hookInputs();midi.onstatechange=hookInputs;},
+    ()=>{midiErr='denied';if(ask){S.midiOn=false;save();}renderPedal();});}
+/* de gekozen ingang (op id, en anders op naam: id's kunnen per sessie verschillen); niets gekozen of niet gevonden = alle */
+const liveInputs=()=>midi?[...midi.inputs.values()].filter(i=>i.state!=='disconnected'):[];
+function chosenInput(){const c=S.midiIn;if(!c)return null;const L=liveInputs();return L.find(i=>i.id===c.id)||L.find(i=>i.name===c.name)||null;}
+/* alle ingangen luisteren mee (voor de monitor); alleen de gekozen ingang (of alle, als niets gekozen is) bedient de app */
+function hookInputs(){if(!midi)return;midi.inputs.forEach(i=>{i.onmidimessage=e=>onMidi(e,i);});renderPedal();}
+/* MIDI-monitor: de laatste berichten, zodat je ziet wat je pedaal stuurt en wat de app ermee doet */
+const MON=[];
+function monitor(src,txt,res){MON.unshift({src,txt,res,t:new Date().toLocaleTimeString('en-GB')});MON.length=Math.min(MON.length,8);
+  const el=$('#midiMon');if(el)el.innerHTML=MON.map(m=>'<div><span class="cap">'+esc(m.t)+'</span> <b>'+esc(m.src)+'</b> · '+esc(m.txt)+' <span class="res">→ '+esc(m.res)+'</span></div>').join('');}
+function decode(d){const st=d[0],type=st>>4,ch=(st&15)+1,n=d[1],v=d[2];
+  return type===9?(v?'note on '+n+' vel '+v:'note off '+n):type===8?'note off '+n:type===11?'CC '+n+' = '+v:type===12?'program change '+(n+1):type===14?'pitch bend':type===13?'aftertouch':st>=0xF0?'system '+st.toString(16):'status '+st.toString(16);}
+/* Wat telt als "druk":
+   · noot aan (velocity > 0) · program change
+   · controller (CC): elk bericht, behalve een "loslaten" (waarde < 64 vlak na een waarde ≥ 64 van dezelfde CC).
+     Zo werken pedalen die per druk 127 sturen, die 127+0 sturen (momentary) én die afwisselend 127/0 sturen (toggle).
+   · 80 ms na een druk op hetzelfde signaal telt niets (dender). */
+const RELEASE_MS=450,DEBOUNCE_MS=80;
+function onMidi(e,input){const d=e.data;if(!d||!d.length||d[0]>=0xF0)return;            /* klok, sysex e.d. negeren */
+  const type=d[0]>>4,ch=d[0]&15,n=d[1],v=d.length>2?d[2]:0,src=input?input.name:'MIDI',txt=decode(d)+' (ch '+(ch+1)+')';
+  const sel=chosenInput();
+  if(S.midiIn&&sel&&input&&input.id!==sel.id){monitor(src,txt,'ignored: not the chosen input');return;}
+  let id=null,lab='',why='ignored';
+  if(type===9&&v>0){id='n'+ch+':'+n;lab='note '+n;}
+  else if(type===11){const k='c'+ch+':'+n,prev=ccLast[k]||{v:-1,t:-1e9},now=performance.now();ccLast[k]={v,t:now};
+    if(v<64&&prev.v>=64&&now-prev.t<RELEASE_MS)why='ignored: release';else{id=k;lab='CC '+n;}}
+  else if(type===12){id='p'+ch+':'+n;lab='program '+(n+1);}
+  else if(type===9||type===8)why='ignored: note off';
+  if(!id){monitor(src,txt,why);return;}
+  const now=performance.now();if(now-(lastHit[id]||-1e9)<DEBOUNCE_MS){monitor(src,txt,'ignored: bounce');return;}lastHit[id]=now;
+  if(learning){const w=learning;S.pedal[w]={kind:'midi',id,label:'MIDI '+lab+' (ch '+(ch+1)+')'};learning=null;save();renderPedal();flashDot();monitor(src,txt,'learned as '+w);return;}
+  const r=routeName('midi',id);monitor(src,txt,r||'ignored: not a learned button');if(r)act(r);}
+const lastHit={};
+/* welk signaal doet wat: geleerd "terug" → terug; geleerd "volgende" → alleen dat; niets geleerd → alles is "volgende" */
+function routeName(kind,id,fallback){const P=S.pedal,is=x=>x&&x.kind===kind&&x.id===id;
+  if(is(P.back))return 'back';
+  if(is(P.repeat))return 'repeat';
+  if(is(P.next))return 'next';
+  if(kind==='midi'&&!(P.next&&P.next.kind==='midi'))return 'next';
+  return fallback||null;}
+function route(kind,id,fallback){const r=routeName(kind,id,fallback);if(r)act(r);return !!r;}
+const typing=t=>t&&(t.tagName==='INPUT'&&t.type==='text'||t.tagName==='TEXTAREA'||t.tagName==='SELECT');
+addEventListener('keydown',e=>{
+  if(learning&&e.key!=='Escape'){e.preventDefault();S.pedal[learning]={kind:'key',id:e.code||e.key,label:'Key '+(e.key===' '?'Space':e.key)};learning=null;save();renderPedal();flashDot();return;}
+  if(e.key==='Escape'&&learning){learning=null;renderPedal();return;}
+  if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.target.closest&&e.target.closest('#setup')&&(e.key===' '||e.key==='Enter'))return;   /* knoppen in Setup gewoon laten werken */
+  const code=e.code||e.key;
+  const fb=[' ','Enter','ArrowRight','ArrowDown','PageDown'].includes(e.key)?'next':['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)?'back':null;
+  if(route('key',code,fb)){e.preventDefault();return;}
+  if(e.key==='f'||e.key==='F'){toggleFs();e.preventDefault();}
+  else if(e.key==='r'||e.key==='R'){act('repeat');e.preventDefault();}
+  else if(e.key==='v'||e.key==='V'){setVoice(!S.voice.on);e.preventDefault();}});
+function renderPedal(){
+  document.querySelectorAll('[data-learn]').forEach(b=>{const on=learning===b.dataset.learn;b.setAttribute('aria-pressed',on);b.textContent=on?'Press your pedal…':'Learn';});
+  const P=S.pedal;$('#lNext').textContent=P.next?P.next.label:'Any MIDI press, Space, Enter, →, Page Down';$('#lBack').textContent=P.back?P.back.label:'←, Page Up';
+  $('#lRep').textContent=P.repeat?P.repeat.label:'R (only useful with the voice on)';
+  const all=liveInputs(),ch=chosenInput(),ins=S.midiIn&&ch?[ch]:all;
+  const sel=$('#midiIn');$('#inRow').hidden=!midi||!all.length&&!S.midiIn;
+  if(midi){const opts=[['','All devices']].concat(all.map(i=>[i.id,i.name]));
+    if(S.midiIn&&!ch)opts.push([S.midiIn.id,S.midiIn.name+' (not connected)']);
+    sel.innerHTML=opts.map(([v,l])=>'<option value="'+esc(v)+'">'+esc(l)+'</option>').join('');sel.value=S.midiIn?(ch?ch.id:S.midiIn.id):'';}
+  $('#btnMidi').hidden=!!midi||midiErr==='nosupport';
+  $('#midiDev').textContent=midi?(ins.length?'Listening to: '+ins.map(i=>i.name).join(', '):S.midiIn?S.midiIn.name+' is not connected.':'No MIDI device found. Plug in or pair your pedal.'):'';
+  const ff=/firefox/i.test(navigator.userAgent),file=location.protocol==='file:';
+  const nt=$('#midiNote');nt.className='note'+(midiErr?' warn':'');
+  nt.textContent=midiErr==='nosupport'?(ff&&file?'Firefox has no MIDI for pages opened as a file from your computer. Use your pedal in keyboard (page-turner) mode and teach it below, or open this page in Chrome or Edge for MIDI.':'This browser has no MIDI access. Use your pedal in keyboard (page-turner) mode and teach it below.')
+    :midiErr==='denied'?'MIDI access was not allowed. Allow it in the browser (site permissions) and click Connect MIDI again.'
+    :midi?'Press a pedal button: the dot on the stage lights up. Use Learn to give one button “next” and another “back”.':'Click Connect MIDI and allow access. Or use a pedal in keyboard (page-turner) mode.';
+  $('#pdot').className='dot'+(midi&&ins.length||P.next&&P.next.kind==='key'?' ok':'');
+  $('#pstat').textContent=midi&&ins.length?ins[0].name:P.next?P.next.label:'Space / click';}
+
+/* ── volledig scherm, thema ── */
+function toggleFs(){const on=!document.fullscreenElement;
+  if(on){(document.documentElement.requestFullscreen?document.documentElement.requestFullscreen():Promise.reject()).catch(()=>document.body.classList.add('fs'));}
+  else document.exitFullscreen&&document.exitFullscreen();}
+document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('fs',!!document.fullscreenElement);$('#stage').focus();});
+const ICON={auto:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  dark:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor"/></svg>'};
+function applyTheme(){const r=document.documentElement;if(S.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',S.theme);
+  const b=$('#btnTheme'),l='Theme: '+(S.theme==='auto'?'automatic':S.theme);b.innerHTML=ICON[S.theme];b.title=l;b.setAttribute('aria-label',l);}
+
+/* ── start ── */
+function init(){
+  applyTheme();bindSetup();bindVoice();renderSetup();show(null);homeLink();
+  $('#keysHint').textContent='← back · R say again · V voice · F full screen';
+  $('#stage').addEventListener('click',()=>act('next'));
+  $('#btnSetup').addEventListener('click',()=>{S.setup=!S.setup;save();renderSetup();});
+  $('#btnFs').addEventListener('click',toggleFs);
+  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();applyTheme();});
+  if(S.midiOn&&navigator.requestMIDIAccess)midiInit(false);else if(!navigator.requestMIDIAccess)midiErr='nosupport';
+  renderPedal();$('#stage').focus();}
+init();
+})();
+</script>
+</body>
+</html>

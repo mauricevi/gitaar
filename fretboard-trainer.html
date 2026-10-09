@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fretboard Trainer</title>
+<style>
+/* ════════════════════════════════════════════════════════════════════════════
+   FRETBOARD TRAINER · v4 (Practice Room)
+   Opbouw van dit bestand:
+   CSS   1. tokens (licht/donker, hout)  2. app-indeling (zijbalk, werkbalk, kaarten)  3. bord  4. panelen
+   HTML  zijbalk · werkbalk · oefenkaart + inspector · Progress · Settings · back-up-venster
+   JS    0. TEXT (alle schermtekst)  1. DATA  2. STORE  3. ENGINE  3b. SLIM OEFENEN  4. BORD  5. HOUT
+         6. AUDIO  7. PAUZE  8. TRAINER  9. LEERPAD  10. STATS  11. UI
+   Opslag: localStorage 'fretTrainer.v1' (ongewijzigd t.o.v. v3, dus voortgang blijft bewaard).
+   Houtkleur: ook in 'practiceRoom.board', zodat andere tools en Home dezelfde kleur kunnen gebruiken.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ===== 1. TOKENS ===== */
+:root{
+  --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
+  --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
+  --ac:#0a63d6;--link:#0a63d6;--on-ac:#ffffff;
+  --ok:#1e7b34;--okbg:rgba(40,167,69,.13);--bad:#c4302b;--badbg:rgba(255,59,48,.11);
+  --sh:0 1px 2px rgba(0,0,0,.04);--due:#5aa9ff;
+  --dot-ok:#1f8a3e;--dot-bad:#c93434;--dot-ask:#0a63d6;
+  /* hout (wordt door JS overschreven met de gekozen houtsoort) */
+  --wd1:#3e2518;--wd2:#24150d;--wfret:rgba(205,198,186,.32);--wnut:#d9d3c7;--wstr:#d6cfc1;
+  --whl:#ffffff;--winl:rgba(232,225,210,.32);--wghost:rgba(255,255,255,.25);--wglow:0 0 5px rgba(255,255,255,.45);
+  /* fretbreedtes volgens de echte verhouding 2^(-n/12) */
+  --fr:.9fr .944fr .891fr .841fr .794fr .749fr .707fr .667fr .63fr .595fr .561fr .53fr .5fr;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#4cd964;--okbg:rgba(48,209,88,.16);--bad:#ff6961;--badbg:rgba(255,69,58,.16);--sh:none;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#4cd964;--okbg:rgba(48,209,88,.16);--bad:#ff6961;--badbg:rgba(255,69,58,.16);--sh:none;color-scheme:dark}
+
+/* ===== 2. APP-INDELING ===== */
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--link)}
+button{font:inherit;color:inherit}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible,.cell:focus-visible,a:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.app{display:flex;min-height:100vh}
+.side{flex:0 0 220px;position:sticky;top:0;height:100vh;padding:22px 12px;border-right:1px solid var(--sep);background:var(--side);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.brand{font-size:13px;font-weight:600;color:var(--mut);padding:0 10px 10px}
+.side nav{display:grid;gap:2px}
+.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
+.side a:hover{background:var(--fill)}
+.side a.on{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
+.side svg{flex:none}
+main{flex:1;min-width:0;max-width:var(--mainw,1120px);padding:20px 28px 56px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start}
+.tb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.tr{display:flex;align-items:center;gap:8px}
+.due{font-size:14px;color:var(--mut);margin-right:6px}.due b{color:var(--link);font-size:16px}
+.seg{display:inline-flex;padding:2px;border-radius:9px;background:var(--fill)}
+.seg .chip{min-height:32px;padding:0 14px;border:0;border-radius:7px;background:transparent;font-size:14px;color:var(--tx);cursor:pointer}
+.seg .chip[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600;color:var(--tx)}
+.btn{min-height:36px;padding:0 14px;border-radius:9px;border:0;background:var(--fill);font-size:14px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(.97)}
+.btn.pri{background:var(--ac);color:var(--on-ac)}
+.btn.big{min-height:48px;padding:0 26px;border-radius:999px;font-size:16px}
+.ib{width:36px;padding:0;display:grid;place-items:center}
+.card{background:var(--card);border-radius:18px;padding:22px;box-shadow:var(--sh)}
+.cap{font-size:13px;color:var(--mut)}
+.lay{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.play{flex:999 1 560px;min-width:0;position:relative;padding:26px}
+.insp{flex:1 1 230px;display:grid;gap:16px}
+.list{padding:4px 20px}
+.lr{display:flex;justify-content:space-between;align-items:center;min-height:42px;border-bottom:1px solid var(--sep);font-size:15px}
+.lr:last-child{border-bottom:0}
+.lr span{color:var(--mut)}
+/* chips (filters, opties) */
+.chip{min-height:32px;padding:0 12px;border-radius:999px;border:0;background:var(--fill);font-size:14px;cursor:pointer;color:var(--tx)}
+.chip[aria-pressed="true"]{background:var(--ac);color:var(--on-ac);font-weight:600}
+/* vraag + feedback */
+.qhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+#cap{font-weight:600}
+#prompt{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:2px 0 0;line-height:1.2}
+#prompt b{color:var(--link)}
+#prompt .sub{display:block;font-size:14px;font-weight:500;color:var(--mut);margin-top:4px}
+.pill{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:999px;font-weight:600;font-size:15px}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.bad{background:var(--badbg);color:var(--bad)}
+.sum{font-size:14px;color:var(--mut);margin:-6px 0 14px}
+.sum:empty{display:none}
+#answers{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px 0 4px}
+#answers{gap:6px}#answers .chip{min-width:46px;min-height:44px;padding:0 8px;font-weight:600;font-size:15px;border-radius:12px}
+#answers .chip.ok{background:var(--dot-ok);color:#fff}
+#answers .chip.bad{background:var(--dot-bad);color:#fff}
+#answers.ghost,.kh.ghost{visibility:hidden;pointer-events:none}
+.kh{text-align:center;min-height:1.3em;font-size:13px;color:var(--mut)}
+/* pauze */
+#play .ov{display:none;position:absolute;inset:0;place-items:center;z-index:5;pointer-events:none}
+#play .ov .btn{pointer-events:auto}
+#play.paused .ov{display:grid}
+#play.paused .bwrap,#play.paused .qhead,#play.paused #answers,#play.paused .sum{filter:blur(9px);pointer-events:none;user-select:none}
+/* filterbalk + popover */
+.fil{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--sep);min-height:48px}
+.strs{display:inline-flex;flex-wrap:wrap;gap:6px}
+.strs .chip{min-width:40px;font-weight:600}
+.fsum{border:0;background:none;font-size:14px;color:var(--mut);cursor:pointer;padding:6px 10px;border-radius:8px}
+.fsum:hover{background:var(--fill);color:var(--tx)}
+.pop{position:absolute;bottom:100%;right:0;margin-bottom:8px;z-index:6;background:var(--card);border:1px solid var(--sep);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.2);padding:14px 16px;display:grid;gap:10px;min-width:min(440px,100%)}
+.pop>div{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.pop .l{min-width:72px;color:var(--mut);font-size:14px}
+select{font:inherit;font-size:14px;padding:5px 8px;border-radius:8px;border:1px solid var(--sep);background:var(--card);color:var(--tx)}
+/* voortgangsrij */
+.prow{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:16px}
+.pgw{flex:1 1 220px;display:flex;align-items:center;gap:12px}
+.pg{flex:1;height:6px;border-radius:3px;background:var(--fill);overflow:hidden}.pg i{display:block;height:100%;width:0;background:var(--ac);transition:width .3s}
+.prow .btn.pri{margin-left:auto;min-height:44px;padding:0 22px;border-radius:999px;font-size:15px}
+/* deze noot */
+.ncn{font-size:17px;font-weight:600;margin:4px 0 8px}
+.dots{display:inline-flex;flex-wrap:wrap;gap:5px;vertical-align:middle}
+.dt{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--dot-ok);vertical-align:middle}
+.dt.slow{background:#e0a02b}.dt.bad{background:var(--dot-bad)}
+.table .dt{width:9px;height:9px}
+
+/* ===== 3. BORD ===== */
+.bwrap{overflow-x:auto;padding-bottom:2px}
+.board{min-width:660px}
+.neck{position:relative}   /* hout begint pas bij de kam: label- en open kolom blijven kaartkleur */
+.row{display:grid;grid-template-columns:2.2rem var(--fr);height:var(--rowh,2.6rem);position:relative}
+.lab{display:grid;place-items:center;font-weight:600;font-size:.8rem;color:var(--mut2)}
+.row.hl .lab{color:var(--tx);font-weight:700}
+.row.dim .lab{opacity:.55}
+/* effen hout per vak, frets als brede halfdoorzichtige draden (zoals een echt bord, zonder nerf-streepjes) */
+.cell{position:relative;background:var(--wd1);border-right:4px solid var(--wfret)}
+.cell.open{background:transparent;border-right:7px solid var(--wnut)}
+.row[data-s="5"] .cell:last-child{border-top-right-radius:10px}
+.row[data-s="0"] .cell:last-child{border-bottom-right-radius:10px}
+.cell.off{background-image:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28))}
+.cell.open.off{background-image:none}
+/* snaar per vak, loopt over de fretdraad heen; lage snaren dikker (--t) */
+.cell::before{content:"";position:absolute;left:0;right:-4px;top:50%;height:var(--t);transform:translateY(-50%);background:var(--wstr);z-index:2;pointer-events:none}
+.cell.open::before{right:0;background:var(--mut2);opacity:.4}
+.row.dim .cell::before{opacity:.35}.row.dim .cell.open::before{opacity:.18}
+.row.hl .cell::before{background:var(--whl);box-shadow:var(--wglow)}
+.row.hl .cell.open::before{background:var(--ac);opacity:.8;box-shadow:none}
+.cell i{position:absolute;left:50%;top:50%;width:1.9rem;height:1.9rem;border-radius:50%;transform:translate(-50%,-50%);display:none;place-items:center;font:700 .75rem/1 -apple-system,system-ui,sans-serif;font-style:normal;color:#fff;z-index:3;background:#888}
+.cell.on i{display:grid}
+.cell.ok i{background:var(--dot-ok);box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.cell.bad i{background:var(--dot-bad)}
+.cell.ask i{background:var(--dot-ask);box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.cell.ans i{background:var(--dot-ok);box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.board[data-m="find"] .row.hl .cell{cursor:pointer}
+.board[data-m="find"] .row.hl .cell:not(.on):hover i{display:block;background:var(--wghost)}
+.inlays{position:absolute;left:2.2rem;right:0;top:0;bottom:0;display:grid;grid-template-columns:var(--fr);pointer-events:none;z-index:1}
+.inlays span{position:relative}
+.inlays b{position:absolute;left:calc(50% - 1px);width:.75rem;height:.75rem;border-radius:50%;background:var(--winl);transform:translate(-50%,-50%)}
+.inlays b.m{top:50%}.inlays b.u{top:33.333%}.inlays b.d{top:66.667%}
+.nums{display:grid;grid-template-columns:2.2rem var(--fr)}
+.nums span{text-align:center;font-size:.75rem;color:var(--mut2);padding-top:6px;line-height:1.1}
+.nums span.k{color:var(--tx);font-weight:600}
+.nums span.k::after{content:attr(data-d);display:block;letter-spacing:2px;color:var(--mut2)}
+
+/* ===== 4. PANELEN ===== */
+details.panel{padding:0}
+details.panel>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:58px;padding:0 22px;font-size:17px;font-weight:600;cursor:pointer}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary .cap{font-weight:400;font-size:14px;margin-left:auto}
+details.panel>summary::after{content:"›";color:var(--mut2);font-size:22px;transition:transform .15s}
+details.panel[open]>summary::after{transform:rotate(90deg)}
+.pbody{padding:0 22px 24px;border-top:1px solid var(--sep)}
+h2{font-size:15px;font-weight:700;margin:24px 0 10px}
+h2 .cap{font-weight:400}
+.kpis{display:flex;flex-wrap:wrap;gap:28px;margin-top:6px}.kpis div{display:flex;flex-direction:column}
+.kpis b{font-size:24px;font-weight:700;line-height:1.15}.kpis span{font-size:12px;color:var(--mut)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--mut);margin:10px 0}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:50%}
+.twrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--sep)}
+th{color:var(--mut);font-weight:600}
+details.sx{margin:6px 0 10px}details.sx summary{font-size:14px;color:var(--link);cursor:pointer}
+details.sx p{margin:6px 0;font-size:14px;color:var(--mut)}
+/* leerpad */
+.stg{display:grid;grid-template-columns:1.6rem 1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sep)}
+.stg.lk{opacity:.5}.stg .ic{text-align:center;font-weight:700}.stg.dn .ic{color:var(--ok)}.stg.ac .ic{color:var(--link)}
+.stg>.cap{min-width:4.5ch;text-align:right}
+.pb{position:relative;height:6px;border-radius:3px;background:var(--fill);margin-top:6px;overflow:hidden}
+.pb i{display:block;height:100%;background:var(--ac)}.stg.dn .pb i{background:var(--dot-ok)}
+.pb u{position:absolute;left:80%;top:0;bottom:0;width:2px;background:var(--mut);opacity:.6}
+.stg .btn{min-height:30px;font-size:13px}
+/* instellingen */
+.grp{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);margin:24px 0 8px}
+.set{display:grid;gap:12px}
+.set>div{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.set .l{min-width:130px;color:var(--tx);font-size:14px}
+input[type=range]{accent-color:var(--ac);width:180px;max-width:100%}
+.woods{display:inline-flex;flex-wrap:wrap;gap:10px}
+.wood{display:grid;justify-items:center;gap:4px;border:0;background:none;cursor:pointer;font-size:12px;color:var(--mut);padding:2px}
+.wood i{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.wood[aria-pressed="true"] i{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ac)}
+.wood[aria-pressed="true"]{color:var(--tx);font-weight:600}
+.wood input{position:absolute;opacity:0;width:1px;height:1px}
+dialog{border:0;border-radius:16px;background:var(--card);color:var(--tx);max-width:560px;width:calc(100% - 28px);padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h2{margin-top:0}
+textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);color:var(--tx);border:1px solid var(--sep);border-radius:8px;padding:8px}
+#tip{position:fixed;z-index:20;pointer-events:none;display:none;max-width:260px;background:var(--card);color:var(--tx);border:1px solid var(--sep);border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+/* smalle schermen: zijbalk wordt een rij bovenaan */
+.sh{display:none}
+@media (max-width:860px){
+  .app{flex-direction:column}
+  .side{position:static;height:auto;flex:none;flex-direction:row;align-items:center;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--sep);padding:10px 12px}
+  .brand{padding:0 10px}.side nav{display:flex;flex-wrap:wrap}
+  main{padding:16px 14px 40px}
+  .play{padding:18px}#prompt{font-size:22px}
+  #uMode{order:3;width:100%}#uMode .chip{flex:1}.lg{display:none}.sh{display:inline}
+  .stg{grid-template-columns:1.2rem 1fr auto}.stg>.cap{display:none}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.pg i,details.panel>summary::after{transition:none}}
+.prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand" data-t="appName">Practice Room</div>
+    <nav>
+      <a id="lnkHome" href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span data-t="nav.home">Home</span></a>
+      <a class="on" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14M3 12h18"/></svg><span data-t="nav.fret">Fretboard Trainer</span></a>
+      <a id="lnkScales" href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span data-t="nav.scales">Scale Trainer</span></a>
+      <a href="note-prompter.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="tb">
+      <div id="uMode" class="seg" role="group" aria-label="Practice mode"></div>
+      <div class="tr">
+        <span class="due" id="dueWrap"><b id="sDue">0</b> <span data-t="ui.dueToday">due today</span></span>
+        <button class="btn" id="btnPause" title="Esc"></button>
+        <button class="btn ib" id="btnTheme"></button>
+        <button class="btn ib" id="btnGear" data-ta="ui.settings" aria-label="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      </div>
+    </header>
+
+    <div class="lay">
+      <section class="card play paused" id="play" aria-label="Practice">
+        <div class="ov"><button class="btn pri big" id="btnStart"></button></div>
+        <div class="qhead">
+          <div><div class="cap" id="cap"></div><p id="prompt"></p></div>
+          <div id="fb" class="pill" aria-live="polite" hidden></div>
+        </div>
+        <div id="sum" class="sum"></div>
+        <div class="bwrap"><div id="board" class="board"></div></div>
+        <div id="answers" class="ghost" aria-hidden="true"></div>
+        <div id="kh" class="kh ghost" aria-hidden="true"></div>
+        <div class="fil" id="fil">
+          <span id="uStr" class="strs"></span>
+          <button class="fsum" id="btnFil" aria-expanded="false" aria-controls="pop"><span id="filTxt"></span> ▾</button>
+          <span class="cap" id="filSm" hidden></span>
+          <div class="pop" id="pop" hidden>
+            <div><span class="l" data-t="ui.notes">Notes</span><span id="uNotes"></span></div>
+            <div><span class="l" data-t="ui.notation">Notation</span><span id="uAcc"></span></div>
+            <div><span class="l" data-t="ui.frets">Frets</span><select id="fMin" aria-label="From fret"></select> – <select id="fMax" aria-label="To fret"></select></div>
+            <div><span class="l" data-t="ui.focus">Focus</span><span id="uWeak"></span></div>
+          </div>
+        </div>
+        <div class="prow">
+          <span id="pgw" class="pgw"><span class="pg"><i id="pgb"></i></span><span id="pgt" class="cap"></span></span>
+          <button class="btn pri" id="btnNext"></button>
+        </div>
+      </section>
+
+      <aside class="insp">
+        <section class="card list" aria-live="polite">
+          <div class="lr"><span data-t="stats.score">Score</span><b id="sPct">–</b></div>
+          <div class="lr"><span data-t="stats.correct">Correct</span><b id="sN">0/0</b></div>
+          <div class="lr"><span data-t="stats.streak">Streak</span><b id="sStreak">0</b></div>
+          <div class="lr"><span data-t="stats.median">Median</span><b id="sMed">–</b></div>
+          <div class="lr"><span data-t="stats.active">Active</span><b id="sAct">0:00</b></div>
+          <div class="lr"><span data-t="stats.life">All-time</span><b id="sLife">–</b></div>
+        </section>
+        <section class="card">
+          <div class="cap" style="font-weight:600" data-t="ui.thisNote">This note</div>
+          <div id="nc"></div>
+        </section>
+      </aside>
+    </div>
+
+    <details class="card panel" id="pProg">
+      <summary><span data-t="ui.progress">Progress</span><span class="cap" data-t="ui.progressSub"></span></summary>
+      <div class="pbody">
+        <h2><span data-t="ui.path">Learning path</span> <span class="cap" data-t="ui.pathSub"></span></h2>
+        <div id="path"></div>
+        <h2 data-t="ui.heatmap">Heatmap</h2>
+        <div class="bar" style="margin:0"><span class="cap" data-t="ui.view">View</span><span id="uMap" class="seg"></span></div>
+        <div class="legend" id="legend"></div>
+        <div class="bwrap"><div id="heat" class="board" data-m="heat"></div></div>
+        <h2 data-t="ui.notesH">Notes</h2>
+        <div id="uWt" class="seg"></div>
+        <div class="kpis" id="wRec"></div>
+        <p class="cap" id="wHelp" style="margin:12px 0 6px"></p>
+        <details class="sx"><summary data-t="ui.howScore">How is the score calculated?</summary><div id="sxBody"></div></details>
+        <div id="worst" class="twrap table"></div>
+        <div class="bar">
+          <button class="btn pri" id="btnDrill" data-t="ui.drill">Drill weak spots</button>
+          <button class="btn" id="btnSess" data-t="ui.resetSess">Reset session</button>
+          <button class="btn" id="btnAll"></button>
+          <button class="btn" id="btnBk" data-t="ui.backup">Backup (JSON)</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="card panel" id="pSet">
+      <summary><span data-t="ui.settings">Settings</span><span class="cap" data-t="ui.settingsSub"></span></summary>
+      <div class="pbody">
+        <div class="grp" data-t="ui.gBoard">Fretboard</div>
+        <div class="set">
+          <div><span class="l" data-t="ui.wood">Wood</span><span id="uWood" class="woods"></span></div>
+          <div><span class="l" data-t="ui.pageW">Page width</span><input type="range" id="uPageW" min="1000" max="2600" step="50"><span class="cap" id="uPageWv"></span></div>
+          <div><span class="l" data-t="ui.rowH">String spacing</span><input type="range" id="uRowH" min="2" max="4.4" step="0.1"><span class="cap" id="uRowHv"></span></div>
+        </div>
+        <div class="grp" data-t="ui.gSmart">Smart practice</div>
+        <div class="set">
+          <div><span class="l" data-t="ui.newPerDay">New per day</span><span id="uNew" class="seg"></span><span class="cap" data-t="ui.newItems"></span></div>
+          <div><span class="l" data-t="ui.dueMark">Mark due notes</span><span id="uDue" class="seg"></span><span class="cap" data-t="ui.dueMarkSub"></span></div>
+        </div>
+        <div class="grp" data-t="ui.gGrading">Grading</div>
+        <div class="set">
+          <div><label class="l" for="wPct" data-t="ui.weakLimit">Weak threshold</label><input type="range" id="wPct" min="50" max="100" step="5" aria-describedby="wNote"><b id="wVal"></b><span class="cap" id="wNote"></span></div>
+          <div><label class="l" for="fSec" data-t="ui.fluentUnder">Fluent under</label><input type="range" id="fSec" min="1" max="5" step="0.5"><b id="fVal"></b><span class="cap" data-t="ui.fluentSub"></span></div>
+          <div><span class="l" data-t="ui.fluentAfter">Fluent after</span><span id="uMinN" class="seg"></span><span class="cap" data-t="ui.correctTries"></span></div>
+        </div>
+        <div class="grp" data-t="ui.gBehaviour">Behaviour</div>
+        <div class="set">
+          <div><span class="l" data-t="ui.autoPause">Auto-pause</span><span id="uIdle" class="seg"></span><span class="cap" data-t="ui.autoPauseSub"></span></div>
+          <div><span class="l" data-t="ui.tabPause">Tab switch</span><span id="uTab" class="seg"></span><span class="cap" data-t="ui.tabPauseSub"></span></div>
+          <div><span class="l" data-t="ui.sound">Sound</span><span id="uSnd" class="seg"></span></div>
+          <div><span class="l" data-t="ui.onCorrect">On correct</span><span id="uTone" class="seg"></span></div>
+        </div>
+        <div class="grp">Backup (all Practice Room apps)</div>
+        <div id="prBackup" data-app="Fretboard Trainer" data-btn="btn"></div>
+      </div>
+    </details>
+
+    <dialog id="dlgBk"><h2 data-t="bk.title">Backup</h2>
+      <p class="cap" style="margin-top:0" data-t="bk.help"></p>
+      <textarea id="bk" rows="8" aria-label="Backup data"></textarea>
+      <div class="bar"><button class="btn" id="bkCopy" data-t="bk.copy">Copy</button><button class="btn" id="bkImp" data-t="bk.import">Import</button><button class="btn pri" id="bkX" data-t="bk.close">Close</button><span class="cap" id="bkMsg" role="status"></span></div>
+    </dialog>
+  </main>
+</div>
+<div id="tip"></div>
+
+<script>
+
+/* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter) ══════
+   Exporteren: alle Practice Room-gegevens die deze pagina kan zien → één .json-bestand in je Downloads.
+   Importeren: één of meer van die bestanden → samenvoegen met wat er al is → pagina herladen.
+     · Instellingen, voortgang en progressies: de geïmporteerde versie vervangt de huidige.
+     · Oefenlogboeken en zelf ingevulde minuten (kalender): per dag samengevoegd, de hoogste waarde blijft.
+   Het wegschrijven gebeurt ná het herladen en vóórdat de app zijn gegevens leest, zodat de app ze niet meteen
+   weer overschrijft met wat hij nog in zijn geheugen had.
+   Knoppen verschijnen in elk element met id="prBackup" (data-app = naam van de pagina, data-btn = knopstijl). */
+var PRB=(function(){
+  'use strict';
+  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter)/;
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['practiceRoom','Home and shared settings']];
+  var LOGS=/(\.log|:log|^practiceRoom\.manual)$/;
+  var TXT={exp:'Export backup',imp:'Import backup…',
+    saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},
+    missing:function(list){return ' Not visible from this page: '+list+'. If you used that in this browser, export from there too.';},
+    done:function(list,n){return 'Imported '+n+' item'+(n===1?'':'s')+': '+list+'.';},
+    none:'Nothing to export yet.',bad:function(n){return n+' file'+(n===1?' is':'s are')+' not a Practice Room backup.';},
+    note:'One file with your progress, settings and practice log. Use it to move to another browser or computer.'};
+  var ls=null;try{ls=window.localStorage;}catch(e){}
+
+  /* een vorige import afmaken (na het herladen, vóór de app iets leest) */
+  try{var pend=sessionStorage.getItem('prImport');
+    if(pend&&ls){sessionStorage.removeItem('prImport');var P=JSON.parse(pend);
+      Object.keys(P.data).forEach(function(k){if(RX.test(k))ls.setItem(k,P.data[k]);});
+      sessionStorage.setItem('prImportDone',JSON.stringify({apps:P.apps,n:P.n,bad:P.bad}));}}catch(e){}
+
+  function appsIn(keys){return APPS.filter(function(a){return keys.some(function(k){return k.indexOf(a[0])===0;});}).map(function(a){return a[1];});}
+  function snapshot(){var d={};if(!ls)return d;for(var i=0;i<ls.length;i++){var k=ls.key(i);if(k&&RX.test(k))d[k]=ls.getItem(k);}return d;}
+  /* logboeken per dag samenvoegen: de grootste waarde (seconden of minuten) wint */
+  function mergeLog(a,b){var A,B;try{A=JSON.parse(a)||{};}catch(e){A={};}try{B=JSON.parse(b)||{};}catch(e){return a;}
+    var size=function(v){return typeof v==='number'?v:v&&typeof v==='object'?(+v.s||0):0;};
+    Object.keys(B).forEach(function(day){if(!(day in A)||size(B[day])>size(A[day]))A[day]=B[day];});
+    return JSON.stringify(A);}
+  function stamp(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+
+  function doExport(app,msg){var data=snapshot(),keys=Object.keys(data);
+    if(!keys.length){msg(TXT.none);return;}
+    var file='practice-room-backup-'+stamp()+'.json';
+    var blob=new Blob([JSON.stringify({type:'practice-room-backup',v:1,created:new Date().toISOString(),from:app,data:data},null,1)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},3000);
+    var have=appsIn(keys),miss=APPS.slice(0,3).map(function(x){return x[1];}).filter(function(n){return have.indexOf(n)<0;});
+    msg(TXT.saved(file,have.join(', '))+(miss.length?TXT.missing(miss.join(', ')):''));}
+
+  function doImport(files,msg){
+    Promise.all([].map.call(files,function(f){return f.text();})).then(function(texts){
+      var cur=snapshot(),out={},bad=0;
+      texts.forEach(function(t){var o;try{o=JSON.parse(t);}catch(e){o=null;}
+        if(!o||o.type!=='practice-room-backup'||!o.data||typeof o.data!=='object'){bad++;return;}
+        Object.keys(o.data).forEach(function(k){var v=o.data[k];if(!RX.test(k)||typeof v!=='string')return;
+          var base=k in out?out[k]:cur[k];out[k]=LOGS.test(k)&&base!=null?mergeLog(base,v):v;});});
+      var keys=Object.keys(out);
+      if(!keys.length){msg(TXT.bad(bad||files.length));return;}
+      try{sessionStorage.setItem('prImport',JSON.stringify({data:out,apps:appsIn(keys),n:keys.length,bad:bad}));}catch(e){msg('Could not import: '+e.message);return;}
+      location.reload();});}
+
+  function mount(){var el=document.getElementById('prBackup');if(!el||el.dataset.ready)return;el.dataset.ready='1';
+    var app=el.dataset.app||document.title,cls=el.dataset.btn||'';
+    el.innerHTML='<div class="prb-row"><button type="button" class="'+cls+'" data-prb="exp">'+TXT.exp+'</button>'
+      +'<button type="button" class="'+cls+'" data-prb="imp">'+TXT.imp+'</button>'
+      +'<input type="file" accept=".json,application/json" multiple hidden aria-label="Backup files"></div>'
+      +'<p class="prb-msg" role="status">'+TXT.note+'</p>';
+    var m=el.querySelector('.prb-msg'),inp=el.querySelector('input'),msg=function(t){m.textContent=t;};
+    el.querySelector('[data-prb="exp"]').onclick=function(){doExport(app,msg);};
+    el.querySelector('[data-prb="imp"]').onclick=function(){inp.value='';inp.click();};
+    inp.onchange=function(){if(inp.files&&inp.files.length)doImport(inp.files,msg);};
+    try{var dn=sessionStorage.getItem('prImportDone');if(dn){sessionStorage.removeItem('prImportDone');var D=JSON.parse(dn);
+      msg(TXT.done(D.apps.join(', '),D.n)+(D.bad?' '+TXT.bad(D.bad):''));var dt=el.closest('details');if(dt)dt.open=true;var hs=el.closest('[hidden]');if(hs)hs.hidden=false;if(el.scrollIntoView)setTimeout(function(){el.scrollIntoView({block:'center'});},300);}}catch(e){}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else setTimeout(mount,0);
+  return{mount:mount,mergeLog:mergeLog};
+})();
+/* ════════════════════════════════════════════════════════════════════════════
+   0. TEXT — alle schermtekst staat hier. Pas gerust aan (alleen de tekst tussen de aanhalingstekens).
+      Regels als  x=>`... ${x} ...`  zijn sjablonen: laat het deel met ${...} staan, dat vult de app in.
+   ════════════════════════════════════════════════════════════════════════════ */
+const TEXT={
+  appName:'Practice Room',
+  nav:{home:'Home',fret:'Fretboard Trainer',scales:'Scale Trainer'},
+  links:{home:'index.html',scales:'toonladder-trainer.html'},   // bestandsnamen van de andere pagina's in dezelfde map
+  modes:{find:['Find a note','Find'],name:['Name the note','Name'],smart:['Smart practice','Smart']},
+  strings:['low E','A','D','G','B','high e'],
+  levels:['new','learning','known','fluent'],
+  why:{relearn:'Relearn',due:'Due',weak:'Weak spot',new:'New'},
+  start:'Start  (Esc)', pauseBtn:p=>p?'Start':'Pause',
+  next:'Next  ↵', nextDay:'Next day  ↵',
+  capSmart:(why,step)=>`Smart practice${why?' · '+why:''} · Step ${step}`,
+  capClassic:(mode,lo,hi)=>`${mode} · frets ${lo}–${hi}`,
+  findPrompt:(n,s)=>`Find <b>${n}</b> on the <b>${s}</b> string`,
+  namePrompt:(s,f)=>`Which note is marked?<span class="sub">${s} string, fret ${f}</span>`,
+  noNotes:'No notes to practise. Pick a string, other notes or a different fret range.',
+  keys:acc=>'Keys: C D E F G A B'+(acc?' · Shift = '+acc:''),
+  correct:ms=>'Correct'+(ms!=null?' · '+(ms/1000).toFixed(1)+' s':''),
+  wrong:'Not quite · the right spot is green',
+  doneToday:'Done for today ✓',
+  summary:o=>`Answered <b>${o.n}</b> (${o.pct} correct) · Again ${o.g[0]} · Hard ${o.g[1]} · Good ${o.g[2]} · Easy ${o.g[3]} · newly learned <b>${o.nw}</b> · due tomorrow <b>${o.m}</b> · Enter = next day`,
+  todayProg:(d,t)=>`${d} of ${t} today`,
+  filtersFollow:'Filters follow the learning path in Smart practice',
+  filNotes:{nat:'Naturals',both:'Naturals + ♯/♭',acc:'♯/♭ only'}, filAcc:{sharp:'♯',flat:'♭',both:'♯/♭'},
+  filFrets:(a,b)=>`frets ${a}–${b}`, filWeak:'weak spots only', all:'All',
+  stringTitle:s=>`${s} string`,
+  noNote:'Start a session to see the history of each note here.',
+  noteName:(n,s)=>`${n} · ${s} string`,
+  noteScore:(p,l)=>`Score ${p}% · ${l}`, firstTime:'First time in this mode',
+  nextReview:d=>d<=0?'Review due today':d===1?'Next review tomorrow':`Next review in ${d} days`,
+  notInSrs:'Not in smart practice yet',
+  stats:{score:'Score',correct:'Correct',streak:'Streak',median:'Median',active:'Active',life:'All-time'},
+  ui:{settings:'Settings',settingsSub:'Fretboard · smart practice · grading · behaviour',dueToday:'due today',
+      notes:'Notes',notation:'Notation',frets:'Frets',focus:'Focus',thisNote:'This note',
+      progress:'Progress',progressSub:'Learning path · heatmap · notes',path:'Learning path',pathSub:'Smart practice',
+      heatmap:'Heatmap',view:'View',notesH:'Notes',howScore:'How is the score calculated?',
+      drill:'Drill weak spots',resetSess:'Reset session',backup:'Backup (JSON)',
+      gBoard:'Fretboard',wood:'Wood',pageW:'Page width',rowH:'String spacing',full:'full width',custom:'Custom',gSmart:'Smart practice',newPerDay:'New per day',newItems:'new items',
+      dueMark:'Mark due notes',dueMarkSub:'blue ring in the heatmap',gGrading:'Grading',weakLimit:'Weak threshold',
+      fluentUnder:'Fluent under',fluentSub:'Faster = full score; at 3× slower, 35% remains.',fluentAfter:'Fluent after',correctTries:'correct attempts',
+      gBehaviour:'Behaviour',autoPause:'Auto-pause',autoPauseSub:'when idle',tabPause:'Tab switch',tabPauseSub:'pause when the tab is hidden',
+      sound:'Sound',onCorrect:'On correct'},
+  woods:{rosewood:'Rosewood',ebony:'Ebony',pauferro:'Pau ferro',maple:'Maple',custom:'Custom'},
+  opt:{on:'On',off:'Off',nat:'Naturals only',both:'Naturals + ♯/♭',acc:'♯/♭ only',sharp:'♯',flat:'♭',bothAcc:'both',
+       weakOnly:'Weak spots only',guitar:'Guitar tone',ping:'Chime',weakest:'Weakest',strongest:'Strongest',fastest:'Fastest',
+       mast:'Mastery',speed:'Speed',accuracy:'Accuracy'},
+  weakNote:v=>`Weak = score below ${v}% (accuracy + speed; recent attempts count more).`,
+  path:{auto:'Automatic',manual:(c,a)=>`Manual: unlocked up to step ${c} (automatic would be step ${a}).`,
+        rule:'The next step unlocks once 80% of its items are correct.',
+        row:(i,str,nat,f)=>`<b>Step ${i}</b> · ${str} · ${nat?'naturals':'all notes'} · frets 0–${f}`,
+        here:'here',upTo:'up to here',title:i=>`Unlock up to step ${i} (manual)`},
+  heat:{nw:'new',mast:'weak {g} strong · yellow = weak threshold',speed:'slow {g} fast',acc:'often wrong {g} right',
+        foot:'dashed ring = weak · faded = little data · blue ring = due · hover a dot for details',
+        tip:(n,s,f)=>`<b>${n}</b> · ${s} string, fret ${f}<br>`, score:(p,l)=>`Score: <b>${p}%</b> (${l})<br>`,
+        notMode:'Not practised in this mode yet<br>', ok:(p,a,b)=>`Correct: ${p} (${a}/${b})<br>`,
+        med:(m,l)=>`Median: ${m} s<br><span class="cap">Last: ${l} s</span>`, noMed:'Median: –', never:'Not practised yet',
+        due:'<br><b>Due today</b>', locked:i=>`<br>Locked (step ${i})`},
+  notes:{weakHelp:'Score = accuracy and speed of your last 10 attempts (recent ones count more).',
+         weakEmpty:'No weak spots in your current selection (needs at least 2 attempts in this mode).',
+         strongHelp:n=>`Your best notes: highest score over the last 10 attempts (at least ${n}), fastest first on a tie.`,
+         strongEmpty:'No strong notes yet: answer a note correctly and quickly a few times and it shows up here.',
+         fastHelp:'Your fastest correct answer ever per note (record), next to your recent median.',
+         fastEmpty:'No times yet: give a few correct answers and your records appear here.',
+         streak:'longest streak',fastest:'fastest answer',fastestOn:(n,s)=>`fastest · ${n} on ${s} string`,fluent:'fluent notes (of 72)',
+         legend:f=>`Oldest attempt on the left · <span class="dt"></span> correct and quick (within ${f} s) · <span class="dt slow"></span> correct but slower · <span class="dt bad"></span> wrong`,
+         thNote:'Note',thString:'String',thScore:'Score',thLast:'Last attempts',thCorrect:'Correct',thMedian:'Median',thRecord:'Record',
+         wrong:'wrong',correct:'correct'},
+  scoreHelp:(f,w)=>[`For each note on a string, the trainer looks at your last 10 attempts in this mode. The newest counts most; each older one 20% less.`,
+                    `Wrong counts as 0. Correct within the fluent limit (now <b>${f}</b>) counts as 100%; slower counts less, down to 35% at three times the limit.`,
+                    `Below the weak threshold (now <b>${w}</b>) a note is a weak spot. One miss makes a strong note weak for a moment; after two correct answers it is known again.`],
+  clearAll:'Clear all statistics', clearSure:'Sure? Click again',
+  bk:{title:'Backup',help:'Copy the text and keep it somewhere safe. Paste an earlier backup here and choose Import to restore everything (replaces the current data).',
+      copy:'Copy',import:'Import',close:'Close',copied:'Copied.',copyFail:'Copying failed: select the text and copy it manually (Ctrl+C).',
+      imported:'Imported.',invalid:'Invalid backup: nothing changed.'},
+  theme:{light:'Light mode',dark:'Dark mode'}
+};
+const T=TEXT;
+
+/* ===== 1. DATA ===== */
+const OPEN=[4,9,2,7,11,4];                 // pitch class open snaar: laag E → hoog e
+const SNAME=['E','A','D','G','B','e'];
+const SLONG=T.strings;
+const SH=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const FL=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const NAT=[0,2,4,5,7,9,11], isNat=pc=>NAT.includes(pc);
+const $=s=>document.querySelector(s);
+const full=pc=>isNat(pc)?SH[pc]:cfg().acc==='flat'?FL[pc]:cfg().acc==='both'?SH[pc]+' / '+FL[pc]:SH[pc];
+const short=pc=>cfg().acc==='flat'?FL[pc]:SH[pc];
+
+/* ===== 2. STORE (localStorage, veilig met try/catch) ===== */
+const KEY='fretTrainer.v1';
+/* Oefenlogboek per dag (voor de kalender op Home): {"2026-10-08":{s:seconden,n:antwoorden,ok:goed}}. Eigen opslagsleutel. */
+var FLOG=(()=>{try{return JSON.parse(localStorage.getItem('fretTrainer.log'))||{};}catch(e){return{};}})();
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   /* lokale datum JJJJ-MM-DD */
+const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6};
+const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+function hydrate(r){r=obj(r);const set={...DEF,...obj(r.settings)};
+  if(!Array.isArray(set.strings)||set.strings.length!==6)set.strings=[...DEF.strings];
+  ['mood','petPos','petStage'].forEach(k=>delete set[k]);   // maatje bestaat niet meer
+  return{settings:set,stats:obj(r.stats),srs:obj(r.srs),day:r.day&&typeof r.day.d==='number'?r.day:{d:0,newN:0},off:+r.off||0,rec:{streak:0,...obj(r.rec)}};}
+let store=hydrate({});
+try{const raw=localStorage.getItem(KEY);if(raw){try{store=hydrate(JSON.parse(raw));}
+  catch(e){localStorage.setItem(KEY+'.bad',raw);}}}catch(e){}   // onleesbare data niet stil overschrijven
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}homeSum();};
+/* Samenvatting voor Home: los bewaard én meegegeven in de Home-link (#pr=…). Zo klopt Home met wat de trainer
+   telt, en werkt het ook in browsers die de opslag per bestand scheiden (bijv. Firefox bij lokale bestanden). */
+function homeSum(){try{
+  const due=[...new Map(dueKeys().map(k=>{const[a,b]=k.split(':').map(Number);return[a+':'+b,[a,b]];})).values()];
+  let n=0,ok=0;Object.values(store.stats).forEach(t=>{n+=t.n||0;ok+=t.ok||0;});
+  const weak=Object.entries(store.stats).filter(([,t])=>(t.n||0)>=2&&t.ok<t.n).sort((x,y)=>x[1].ok/x[1].n-y[1].ok/y[1].n).slice(0,6).map(([k])=>k.split(':').map(Number));
+  const dk=new Set(due.map(x=>x.join(':'))),mastered=Object.entries(store.stats).filter(([k,t])=>!dk.has(k)&&(t.n||0)>=cfg().minN&&Math.max(...dirs.map(d=>score(t,d)??0))>=.9).map(([k])=>k.split(':').map(Number));   /* "fluent" */
+  const log=Object.fromEntries(Object.entries(FLOG).sort().slice(-200).map(([k,e])=>[k,{s:Math.round(e.s),n:e.n,ok:e.ok}]));
+  const sum={due,acc:n?Math.round(100*ok/n):null,streak:(store.rec&&store.rec.streak)||0,practised:Object.keys(store.stats).length,weak,mastered,log};
+  localStorage.setItem('practiceRoom.fretSum',JSON.stringify(sum));
+  const a=document.getElementById('lnkHome');if(a)a.href=T.links.home+'#pr='+encodeURIComponent(JSON.stringify({fret:sum}));}catch(e){}}
+const cfg=()=>store.settings;
+const st=(s,pc)=>store.stats[s+':'+pc]||{n:0,ok:0};
+
+/* ===== 3. ENGINE ===== */
+const fretsFor=(s,pc,lo=cfg().min,hi=cfg().max)=>{const r=[];for(let f=lo;f<=hi;f++)if((OPEN[s]+f)%12===pc)r.push(f);return r;};
+function pool(){const c=cfg(),p=[];
+  c.strings.forEach((on,s)=>{if(!on)return;
+    for(let pc=0;pc<12;pc++){
+      if(c.notes==='nat'&&!isNat(pc))continue;
+      if(c.notes==='acc'&&isNat(pc))continue;
+      if(fretsFor(s,pc).length)p.push({s,pc});}});
+  return p;}
+const weakLimit=()=>Math.min(100,Math.max(50,+cfg().weakPct||85))/100;
+const med=a=>{if(!a||!a.length)return null;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
+const tk=()=>'h'+(cfg().mode==='smart'?'f':cfg().mode[0]);   // historie per oefenvorm: hf (vinden) / hn (benoemen)
+const hist=(t,d)=>t[d?'h'+d[0]:tk()]||[];                    // laatste ≤10 pogingen als [goed 0/1, ms of null]
+const LN=T.levels;
+const DECAY=.8;
+/* SCORE 0..1: recentste poging weegt 1, elke oudere ×DECAY. Fout = 0; goed = snelheidsfactor (1 tot de vloeiend-grens, lineair naar 0.35 bij 3×). */
+function score(t,d){const h=hist(t,d);if(!h.length)return t.n&&!t.hf&&!t.hn?t.ok/t.n:null;
+  const fl=cfg().fluentSec*1000;let a=0,b=0;
+  h.forEach(([ok,ms],i)=>{const w=Math.pow(DECAY,h.length-1-i),sp=ms==null?1:Math.max(.35,Math.min(1,1-.65*(ms-fl)/(2*fl)));a+=w*(ok?sp:0);b+=w;});
+  return a/b;}
+const medT=t=>med(hist(t).filter(x=>x[0]&&x[1]!=null).map(x=>x[1]));
+function lvl(t){const sc=score(t);if(!t.n||sc==null)return 0;return sc<weakLimit()?1:((hist(t).length||t.n)>=cfg().minN&&sc>=.9?3:2);}
+const inPool=(s,pc)=>pool().some(i=>i.s===s&&i.pc===pc);
+let lastKey='';
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const noteOf=x=>x.s+':'+x.pc;
+let recentN=[];
+const isRecent=x=>recentN.slice(-2).includes(noteOf(x));
+const firstFresh=l=>l.find(x=>!isRecent(x))||l[0];
+/* Klassieke modi: schud-zak — elke ronde elke noot ≥1×, nieuw/zwak 2×, heel zwak 3×, willekeurige volgorde */
+let bag=[],bagSig='';
+function pick(){let p=pool();if(!p.length)return null;
+  if(cfg().weak){const w=p.filter(i=>lvl(st(i.s,i.pc))===1);if(w.length)p=w;}
+  const by=new Map(p.map(i=>[noteOf(i),i])),c=cfg(),sig=[c.weak,c.mode,c.strings.join(''),c.notes,c.min,c.max].join('|');
+  if(sig!==bagSig){bag=[];bagSig=sig;}
+  bag=bag.filter(k=>by.has(k));
+  if(!bag.length){p.forEach(i=>{const t=st(i.s,i.pc),sc=score(t);let n=1;
+      if(lvl(t)!==3&&(sc==null||sc<weakLimit()))n++;
+      if(sc!=null&&sc<.5)n++;
+      for(let k=0;k<n;k++)bag.push(noteOf(i));});
+    shuffle(bag);}
+  let ix=bag.findIndex(k=>k!==lastKey&&!recentN.slice(-2).includes(k));
+  if(ix<0)ix=bag.findIndex(k=>k!==lastKey);if(ix<0)ix=0;
+  return by.get(bag.splice(ix,1)[0]);}
+function record(s,pc,ok,ms,d=cfg().mode){const k=s+':'+pc,t=store.stats[k]||(store.stats[k]={n:0,ok:0});
+  t.n++;if(ok)t.ok++;t['h'+d[0]]=(t['h'+d[0]]||[]).concat([[ok?1:0,ok?ms:null]]).slice(-10);
+  if(ok&&ms!=null){sess.times.push(ms);t.best=Math.min(t.best||1e9,ms);}
+  sess.n++;if(ok){sess.ok++;sess.streak++;if(sess.streak>store.rec.streak)store.rec.streak=sess.streak;}else sess.streak=0;logAdd(0,1,ok?1:0);logFlush();save();}
+
+/* ===== 3b. SLIM OEFENEN (spaced repetition) =====
+   Item = (snaar, noot, richting find|name), opslag in store.srs["s:pc:d"] = {box, due, lapses, g}.
+   Beoordeling: fout=Again, goed maar trager dan vloeiend=Hard, goed=Good, snel (≤60% grens)=Easy.
+   Sessie: fout → terug na 2-4 vragen, daarna na ~10. Dagen: Leitner 1/3/7/16/35. */
+const LADDER=[1,3,7,16,35];
+const EASY=.6;
+const dirs=['find','name'];
+const STAGES=[{s:[0,1],f:5,nat:1},{s:[0,1],f:12,nat:1},{s:[0,1,2,3],f:5,nat:1},{s:[0,1,2,3],f:12,nat:1},{s:[0,1,2,3,4,5],f:12,nat:1},{s:[0,1,2,3,4,5],f:12,nat:0}];
+const today=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(store.off||0);
+const ORDER=(()=>{const o=[];STAGES.forEach((g,i)=>g.s.forEach(s=>{for(let pc=0;pc<12;pc++){
+  if(o.some(x=>x.s===s&&x.pc===pc)||(g.nat&&!isNat(pc))||!fretsFor(s,pc,0,g.f).length)continue;o.push({s,pc,st:i});}}));return o;})();
+const STG=new Map(ORDER.map(x=>[x.s+':'+x.pc,x.st]));
+const fmax=(s,cur)=>STAGES.slice(0,cur+1).filter(g=>g.s.includes(s)).reduce((m,g)=>Math.max(m,g.f),0);
+let rl={};
+function dayCheck(){if(store.day.d!==today())store.day={d:today(),newN:0};}
+function migrateSrs(){Object.entries(store.stats).forEach(([k,t])=>dirs.forEach(d=>{const h=t['h'+d[0]],key=k+':'+d;
+  if(h&&h.length&&!store.srs[key])store.srs[key]={box:h.length>=3&&h.slice(-3).every(x=>x[0])?1:0,due:today(),lapses:0,g:h[h.length-1][0]?2:0};}));}
+dayCheck();migrateSrs();save();
+const isKnown=(s,pc,d)=>{const e=store.srs[s+':'+pc+':'+d];return !!e&&e.g>=2;};
+function autoStage(){for(let i=0;i<STAGES.length-1;i++){const it=ORDER.filter(x=>x.st===i);let n=0;
+  it.forEach(x=>dirs.forEach(d=>{if(isKnown(x.s,x.pc,d))n++;}));if(n<.8*it.length*dirs.length)return i;}return STAGES.length-1;}
+const curStage=()=>cfg().stageSet!=null?Math.min(cfg().stageSet,STAGES.length-1):autoStage();
+function smartItems(){const cur=curStage();return ORDER.filter(x=>x.st<=cur).flatMap(x=>dirs.map(d=>({...x,d,k:x.s+':'+x.pc+':'+d,fm:fmax(x.s,cur)})));}
+const dueKeys=()=>{const cs=curStage();return Object.keys(store.srs).filter(k=>{const[s,pc]=k.split(':');return store.srs[k].due<=today()&&!sess.seen[k]&&STG.get(s+':'+pc)<=cs;});};
+const isDue=(s,pc)=>dirs.some(d=>{const e=store.srs[s+':'+pc+':'+d];return e&&e.due<=today();});
+function dueUI(){dayCheck();const dk=dueKeys().length,sm=cfg().mode==='smart';$('#sDue').textContent=dk;$('#dueWrap').hidden=!sm&&!Object.keys(store.srs).length;$('#pgw').hidden=!sm;if(!sm)return;
+  const done=Object.keys(sess.seen).length,nw=Math.min(Math.max(0,cfg().newPerDay-store.day.newN),smartItems().filter(x=>!store.srs[x.k]).length),tot=done+dk+nw+Object.keys(rl).length;
+  $('#pgt').textContent=T.todayProg(done,tot);$('#pgb').style.width=(tot?100*done/tot:0)+'%';}
+function nextDay(){store.off=(store.off||0)+1;dayCheck();sess.seen={};sess.gr=[0,0,0,0];sess.nw=0;rl={};save();newQ();}
+const sc2=x=>score(store.stats[x.s+':'+x.pc],x.d);
+/* Volgorde: 1 sessie-herhaling · 2 due (oudste eerst) · 3 zwakke plekken · 4 nieuw (tot dagmaximum) · 5 rest van de herhalingen */
+function pickSmart(){dayCheck();const all=smartItems(),n=sess.n,TD=today(),byK=k=>all.find(x=>x.k===k),ok=x=>x.k!==lastKey;
+  const rdy=Object.entries(rl).filter(([k,r])=>r.at<=n&&k!==lastKey&&byK(k)).sort((a,b)=>a[1].at-b[1].at).map(([k])=>byK(k));
+  if(rdy.length)return{...firstFresh(rdy),why:'relearn'};
+  const due=shuffle(all.filter(x=>{const e=store.srs[x.k];return e&&e.due<=TD&&!sess.seen[x.k]&&ok(x);})).sort((a,b)=>store.srs[a.k].due-store.srs[b.k].due);
+  if(due.length)return{...firstFresh(due),why:'due'};
+  const weak=shuffle(all.filter(x=>store.srs[x.k]&&store.stats[x.s+':'+x.pc]&&!sess.seen[x.k]&&ok(x)&&sc2(x)<weakLimit())).sort((a,b)=>sc2(a)-sc2(b));
+  if(weak.length)return{...firstFresh(weak),why:'weak'};
+  if(store.day.newN<cfg().newPerDay){const nw=all.filter(x=>!store.srs[x.k]&&ok(x));
+    if(nw.length){const s0=Math.min(...nw.map(x=>x.st)),c=nw.filter(x=>x.st===s0),cnt={};
+      Object.keys(store.srs).forEach(k=>{cnt[k[0]]=(cnt[k[0]]||0)+1;});
+      const m=Math.min(...c.map(x=>cnt[x.s]||0));
+      return{...firstFresh(shuffle(c.filter(x=>(cnt[x.s]||0)===m))),why:'new'};}}
+  const left=Object.entries(rl).sort((a,b)=>a[1].at-b[1].at).map(([k])=>byK(k)).filter(Boolean);return left.length?{...firstFresh(left),why:'relearn'}:null;}
+function srsAfter(q,ok,ms){const k=q.s+':'+q.pc+':'+q.d;
+  if(!sess.seen[k]){sess.seen[k]=1;const fl=cfg().fluentSec*1000;
+    const g=!ok?0:ms==null?2:ms>fl?1:ms<=fl*EASY?3:2;
+    let e=store.srs[k];const nieuw=!e;if(nieuw){e={box:-1,due:0,lapses:0,g:0};store.day.newN++;sess.nw++;}
+    const b=e.box,early=!nieuw&&e.due>today();
+    if(early&&g>0){e.g=g;store.srs[k]=e;sess.gr[g]++;}   // vóór de due-datum goed: planning blijft staan
+    else{e.box=g===0?0:g===1?Math.max(0,b):Math.min(LADDER.length-1,b+(g===3?2:1));
+    if(g===0&&!nieuw)e.lapses++;
+    e.g=g;e.due=today()+LADDER[e.box];store.srs[k]=e;sess.gr[g]++;}}
+  if(!ok)rl[k]={at:sess.n+2+Math.floor(Math.random()*3),step:1};
+  else if(rl[k]){if(rl[k].step===1)rl[k]={at:sess.n+10,step:2};else delete rl[k];}
+  save();}
+function showSum(){const TD=today(),m=Object.values(store.srs).filter(e=>e.due===TD+1).length;
+  $('#cap').textContent='';$('#prompt').textContent=T.doneToday;$('#btnNext').textContent=T.nextDay;
+  $('#sum').innerHTML=T.summary({n:sess.n,pct:pct(sess.ok,sess.n),g:sess.gr,nw:sess.nw,m});}
+
+/* ===== 4. BORD =====
+   Hoge e boven, lage E onder, fret 0 t/m 12. Geeft cells[snaar][fret] terug. */
+function buildBoard(el,onClick,inlays){el.innerHTML='';const cells=[];
+  const neck=document.createElement('div');neck.className='neck';
+  if(inlays){const o=document.createElement('div');o.className='inlays';o.setAttribute('aria-hidden','true');
+    [3,5,7,9,12].forEach(f=>{const sp=document.createElement('span');sp.style.gridColumn=String(f+1);
+      sp.innerHTML=f===12?'<b class="u"></b><b class="d"></b>':'<b class="m"></b>';o.append(sp);});
+    neck.append(o);}
+  for(let s=5;s>=0;s--){
+    const row=document.createElement('div');row.className='row';row.dataset.s=s;row.style.setProperty('--t',(1+(1-s/5)*2.6).toFixed(1)+'px');
+    const lab=document.createElement('div');lab.className='lab';lab.textContent=SNAME[s];row.append(lab);
+    cells[s]=[];
+    for(let f=0;f<=12;f++){
+      const c=document.createElement('div');c.className='cell'+(f?'':' open');
+      c.innerHTML='<i></i>';
+      if(onClick)c.onclick=()=>onClick(s,f);
+      row.append(c);cells[s][f]=c;}
+    neck.append(row);}
+  el.append(neck);
+  const n=document.createElement('div');n.className='nums';n.setAttribute('aria-hidden','true');n.append(document.createElement('span'));
+  for(let f=0;f<=12;f++){const c=document.createElement('span');c.textContent=f;
+    if([3,5,7,9,12].includes(f)){c.className='k';c.dataset.d=f===12?'••':'•';}n.append(c);}
+  el.append(n);return cells;}
+const mark=(c,cls,txt)=>{c.classList.add('on',cls);c.firstChild.textContent=txt||'';};
+
+/* ===== 5. HOUT: houtsoort van het fretboard =====
+   Gedeeld met andere tools via localStorage 'practiceRoom.board' = {wood, custom}. */
+const WOODS={rosewood:['#3e2518','#24150d'],ebony:['#25201d','#131110'],pauferro:['#6e432a','#4b2c1a'],maple:['#ecd6aa','#d6b47c']};
+const SHARED='practiceRoom.board';
+const hexRgb=h=>{h=String(h||'').replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');const n=parseInt(h,16);return isNaN(n)||h.length!==6?[122,74,42]:[n>>16&255,n>>8&255,n&255];};
+const lumOf=h=>{const c=hexRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+const shade=(h,k)=>'#'+hexRgb(h).map(v=>Math.max(0,Math.min(255,Math.round(v*k))).toString(16).padStart(2,'0')).join('');
+const isHex=v=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v);
+function woodColors(){const w=cfg().wood;return WOODS[w]||[cfg().woodCustom,shade(cfg().woodCustom,.68)];}
+function applyWood(){applySize();const[c1,c2]=woodColors(),light=lumOf(c1)>.3,r=document.documentElement.style;
+  const v=light?{'--wfret':'rgba(110,92,64,.38)','--wnut':'#7d7a73','--wstr':'#6f675b','--whl':'#0a63d6','--winl':'rgba(110,92,64,.45)','--wghost':'rgba(0,0,0,.16)','--wglow':'none'}
+               :{'--wfret':'rgba(205,198,186,.32)','--wnut':'#d9d3c7','--wstr':'#d6cfc1','--whl':'#ffffff','--winl':'rgba(232,225,210,.32)','--wghost':'rgba(255,255,255,.25)','--wglow':'0 0 5px rgba(255,255,255,.45)'};
+  v['--wd1']=c1;v['--wd2']=c2;Object.entries(v).forEach(([k,x])=>r.setProperty(k,x));
+  document.documentElement.dataset.wood=light?'light':'dark';}
+function readSharedWood(){try{const s=JSON.parse(localStorage.getItem(SHARED)||'null');if(!s)return;
+  if(s.wood&&(WOODS[s.wood]||s.wood==='custom'))cfg().wood=s.wood;if(isHex(s.custom))cfg().woodCustom=s.custom;}catch(e){}}
+function writeSharedWood(){try{localStorage.setItem(SHARED,JSON.stringify({wood:cfg().wood,custom:cfg().woodCustom}));}catch(e){}}
+function woodSel(){const box=$('#uWood');box.innerHTML='';
+  Object.keys(WOODS).forEach(w=>{const b=document.createElement('button');b.type='button';b.className='wood';b.setAttribute('aria-pressed',cfg().wood===w);
+    b.innerHTML=`<i style="background:linear-gradient(${WOODS[w][0]},${WOODS[w][1]})"></i>${T.woods[w]}`;
+    b.onclick=()=>{cfg().wood=w;save();writeSharedWood();applyWood();woodSel();};box.append(b);});
+  const lb=document.createElement('label');lb.className='wood';lb.setAttribute('aria-pressed',cfg().wood==='custom');
+  lb.innerHTML=`<i style="background:linear-gradient(${cfg().woodCustom},${shade(cfg().woodCustom,.68)})"></i>${T.woods.custom}<input type="color" aria-label="${T.woods.custom}">`;
+  const inp=lb.querySelector('input');inp.value=cfg().woodCustom;
+  inp.oninput=()=>{cfg().wood='custom';cfg().woodCustom=inp.value;applyWood();lb.querySelector('i').style.background=`linear-gradient(${inp.value},${shade(inp.value,.68)})`;};
+  inp.onchange=()=>{save();writeSharedWood();woodSel();};
+  box.append(lb);}
+
+/* ===== 6. AUDIO: zachte feedback via WebAudio (geen bestanden) ===== */
+let AC=null;
+function tone(f,t,d,v){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.05);}
+/* Gitaartoon: Karplus-Strong (gezupte snaar) voor de echte noot van snaar + fret. */
+const GMIDI=[40,45,50,55,59,64],PLK=new Map();
+function pluck(m){if(PLK.has(m))return PLK.get(m);
+  const sr=AC.sampleRate,f=440*Math.pow(2,(m-69)/12),N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*1.8),buf=AC.createBuffer(1,len,sr),y=buf.getChannelData(0);
+  let p=0;for(let i=0;i<N;i++){p=y[i]=.65*(Math.random()*2-1)+.35*p;}
+  for(let i=N;i<len;i++)y[i]=.5*(y[i-N]+y[i-N+(i>N?-1:0)])*.997;
+  let mx=0,e=0;const W=Math.floor(sr*.4);for(let i=0;i<len;i++){mx=Math.max(mx,Math.abs(y[i]));if(i<W)e+=y[i]*y[i];}
+  const k=Math.min(1/(mx||1),.13/(Math.sqrt(e/W)||1));for(let i=0;i<len;i++)y[i]*=k;   // gelijke luidheid over alle snaren
+  const r={buf,rate:f*(N+.5)/sr};PLK.set(m,r);return r;}                               // rate corrigeert afronding van N
+let voice=null;
+function playNote(s,f){const r=pluck(GMIDI[s]+f),t=AC.currentTime+.01,src=AC.createBufferSource(),g=AC.createGain(),lp=AC.createBiquadFilter();
+  if(voice){try{voice.g.gain.cancelScheduledValues(t);voice.g.gain.setValueAtTime(voice.g.gain.value,t);voice.g.gain.linearRampToValueAtTime(0,t+.08);voice.src.stop(t+.1);}catch(e){}}
+  voice={src,g};
+  src.buffer=r.buf;src.playbackRate.value=r.rate;lp.type='lowpass';lp.frequency.value=3200;
+  g.gain.setValueAtTime(.42,t);g.gain.setValueAtTime(.42,t+1.2);g.gain.linearRampToValueAtTime(0,t+1.7);
+  src.connect(lp).connect(g).connect(AC.destination);src.start(t);}
+function playSound(ok,s,f){if(!cfg().sound)return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();
+    const t=AC.currentTime+.01;
+    if(ok&&cfg().tone!=='ping'&&s!=null&&f!=null)playNote(s,f);
+    else if(ok){tone(587.33,t,.28,.09);tone(880,t+.09,.4,.08);}
+    else{tone(349.23,t,.3,.1);tone(293.66,t+.14,.42,.09);}
+  }catch(e){}}
+
+/* ===== 7. PAUZE: tijd telt alleen mee zolang de sessie loopt ===== */
+/* logboek: actieve tijd (niet gepauzeerd) per dag, elke 15 s en bij pauze/antwoord weggeschreven */
+let logMark=0;
+function logAdd(sec,n,ok){const e=FLOG[dayKey()]||(FLOG[dayKey()]={s:0,n:0,ok:0});e.s+=sec;e.n+=n||0;e.ok+=ok||0;}
+function logFlush(){if(!paused&&logMark){const now=performance.now();logAdd((now-logMark)/1000);logMark=now;}
+  const ks=Object.keys(FLOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete FLOG[k]);
+  try{localStorage.setItem('fretTrainer.log',JSON.stringify(FLOG));}catch(e){}}
+setInterval(()=>{if(!paused){logFlush();homeSum();}},15000);
+let paused=true,runStart=0,activeMs=0,idleT=null,q=null;
+const fmtT=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+const tick=()=>{$('#sAct').textContent=fmtT(activeMs+(paused?0:performance.now()-runStart));};
+function armIdle(){clearTimeout(idleT);const n=cfg().idleSec;if(!paused&&n)idleT=setTimeout(()=>setPaused(true),n*1000);}
+function setPaused(p){if(p===paused)return;if(p)logFlush();paused=p;if(!p)logMark=performance.now();$('#play').classList.toggle('paused',p);
+  $('#btnPause').textContent=T.pauseBtn(p);
+  if(p){activeMs+=performance.now()-runStart;if(q)q.t0=null;clearTimeout(idleT);}
+  else{runStart=performance.now();if(q&&!q.done)q.t0=performance.now();armIdle();}
+  tick();}
+['mousemove','mousedown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{if(!paused)armIdle();},{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&cfg().tabPause)setPaused(true);});
+setInterval(tick,1000);
+
+/* ===== 8. TRAINER ===== */
+const newSess=()=>({n:0,ok:0,streak:0,times:[],seen:{},gr:[0,0,0,0],nw:0});
+let timer=null,MB=[],sess=newSess();
+const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';
+function scoreboard(){let n=0,ok=0;Object.values(store.stats).forEach(t=>{n+=t.n;ok+=t.ok;});
+  $('#sPct').textContent=pct(sess.ok,sess.n);$('#sN').textContent=sess.ok+'/'+sess.n;
+  $('#sStreak').textContent=sess.streak;dueUI();
+  $('#sMed').textContent=sess.times.length?(med(sess.times)/1000).toFixed(1)+' s':'–';$('#sLife').textContent=pct(ok,n);
+  noteCard();homeSum();}
+/* Kaartje "This note": historie van de huidige vraag */
+function noteCard(){const box=$('#nc');if(!q){box.innerHTML='<p class="cap">'+T.noNote+'</p>';return;}
+  const t=st(q.s,q.pc),h=hist(t,q.dir),fl=cfg().fluentSec*1000,sc=score(t,q.dir);
+  /* bij "benoem de noot" pas na het antwoord de naam tonen, anders verklapt deze kaart het antwoord */
+  const hide=q.dir==='name'&&!q.done;
+  let html='<div class="ncn">'+T.noteName(hide?'?':full(q.pc),SLONG[q.s])+'</div>';
+  if(h.length)html+='<div class="dots">'+h.map(([ok,ms])=>`<i class="dt ${!ok?'bad':ms!=null&&ms>fl?'slow':''}"></i>`).join('')+'</div>';
+  html+='<p class="cap" style="margin:8px 0 0">'+(sc!=null&&h.length?T.noteScore(Math.round(100*sc),LN[sc<weakLimit()?1:h.length>=cfg().minN&&sc>=.9?3:2]):T.firstTime)+'</p>';
+  if(cfg().mode==='smart'){const e=store.srs[q.s+':'+q.pc+':'+q.dir];html+='<p class="cap" style="margin:4px 0 0">'+(e?T.nextReview(e.due-today()):T.notInSrs)+'</p>';}
+  box.innerHTML=html;}
+/* Antwoordknoppen: altijd opgebouwd (vaste hoogte); buiten "benoemen" onzichtbaar (.ghost) */
+function buildAnswers(sm){const c=cfg(),ans=$('#answers');ans.innerHTML='';
+  for(let pc=0;pc<12;pc++){
+    if(sm?(STAGES[curStage()].nat&&!isNat(pc)):(c.notes==='nat'&&!isNat(pc)||c.notes==='acc'&&isNat(pc)))continue;
+    const b=document.createElement('button');b.className='chip';b.textContent=full(pc);b.dataset.pc=pc;
+    b.onclick=()=>{if(q&&q.dir==='name')answer(pc);};ans.append(b);}}
+function newQ(){clearTimeout(timer);const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick(),dir=sm?(it&&it.d):c.mode;
+  $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#fb').hidden=true;
+  MB=buildBoard($('#board'),onCell,true);$('#board').dataset.m=dir||'find';
+  buildAnswers(sm);const ans=$('#answers');ans.classList.toggle('ghost',dir!=='name');$('#kh').classList.toggle('ghost',dir!=='name');ans.setAttribute('aria-hidden',dir!=='name');
+  $('#kh').textContent=T.keys((sm?!STAGES[curStage()].nat:c.notes!=='nat')?(c.acc==='flat'?'♭':'♯'):'');
+  if(!it){q=null;if(sm)showSum();else{$('#cap').textContent='';$('#prompt').textContent=T.noNotes;}scoreboard();return;}
+  lastKey=sm?it.k:noteOf(it);recentN.push(noteOf(it));if(recentN.length>6)recentN.shift();
+  q={...it,dir,fr:sm?fretsFor(it.s,it.pc,0,12):fretsFor(it.s,it.pc),done:false,t0:paused?null:performance.now()};
+  $('#cap').textContent=sm?T.capSmart(T.why[it.why]||'',curStage()+1):T.capClassic(T.modes[dir][0],c.min,c.max);
+  if(dir==='find'){
+    document.querySelectorAll('#board .row').forEach(r=>r.classList.add(+r.dataset.s===q.s?'hl':'dim'));
+    if(!sm)MB[q.s].forEach((cl,f)=>{if(f<c.min||f>c.max)cl.classList.add('off');});
+    $('#prompt').innerHTML=T.findPrompt(full(q.pc),SLONG[q.s]);
+  }else{
+    const cand=sm?fretsFor(q.s,q.pc,0,it.fm):q.fr;q.f=cand[Math.floor(Math.random()*cand.length)];   // Slim: alleen frets binnen ontgrendeld bereik
+    mark(MB[q.s][q.f],'ask','?');
+    $('#prompt').innerHTML=T.namePrompt(SLONG[q.s],q.f);
+  }
+  scoreboard();}
+function onCell(s,f){if(!q||q.dir!=='find'||q.done||s!==q.s)return;answer(null,s,f);}
+function answer(pcChosen,s,f){if(!q||q.done||paused)return;q.done=true;
+  const ms=q.t0?Math.min(performance.now()-q.t0,15000):null;
+  const find=q.dir==='find',ok=find?(OPEN[s]+f)%12===q.pc:pcChosen===q.pc;   // de juiste noot telt op elke plek
+  record(q.s,q.pc,ok,ms,q.dir);if(cfg().mode==='smart')srsAfter(q,ok,ms);
+  if(find){
+    if(ok)mark(MB[s][f],'ok',short(q.pc));
+    else{mark(MB[s][f],'bad',short((OPEN[s]+f)%12));q.fr.forEach(x=>mark(MB[q.s][x],'ans',short(q.pc)));}
+  }else{
+    const cell=MB[q.s][q.f];cell.classList.remove('ask');mark(cell,ok?'ok':'ans',short(q.pc));
+    document.querySelectorAll('#answers .chip').forEach(b=>{b.disabled=true;
+      if(+b.dataset.pc===q.pc)b.classList.add('ok');else if(+b.dataset.pc===pcChosen)b.classList.add('bad');});
+  }
+  playSound(ok,q.s,find?f:q.f);
+  const fb=$('#fb');fb.hidden=false;fb.className='pill '+(ok?'ok':'bad');
+  fb.innerHTML=(ok?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>':'')+(ok?T.correct(ms):T.wrong);
+  scoreboard();renderStats();
+  if(ok)timer=setTimeout(newQ,650);}
+
+/* ===== 9. LEERPAD: ontgrendeld/vergrendeld + handmatig bijsturen ===== */
+function stageStat(i){const it=ORDER.filter(x=>x.st===i);let n=0;it.forEach(x=>dirs.forEach(d=>{if(isKnown(x.s,x.pc,d))n++;}));return{n,t:it.length*dirs.length};}
+const pathChanged=()=>{cfg().mode==='smart'?restart():renderStats();};
+function renderPath(){const cur=curStage(),man=cfg().stageSet!=null,box=$('#path');box.innerHTML='';
+  const top=document.createElement('div');top.className='bar';top.style.margin='0 0 6px';
+  const a=document.createElement('button');a.className='chip';a.textContent=T.path.auto;a.setAttribute('aria-pressed',!man);
+  a.onclick=()=>{cfg().stageSet=null;save();pathChanged();};
+  const nt=document.createElement('span');nt.className='cap';
+  nt.textContent=man?T.path.manual(cur+1,autoStage()+1):T.path.rule;
+  top.append(a,nt);box.append(top);
+  STAGES.forEach((g,i)=>{const{n,t}=stageStat(i),lk=i>cur,dn=!lk&&n>=.8*t;
+    const r=document.createElement('div');r.className='stg'+(lk?' lk':dn?' dn':' ac');
+    r.innerHTML=`<span class="ic">${lk?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-label="locked"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':dn?'✓':'●'}</span><div>${T.path.row(i+1,g.s.map(x=>SNAME[x]).join(' '),g.nat,g.f)}<div class="pb"><i style="width:${Math.round(100*n/t)}%"></i><u></u></div></div><span class="cap">${n}/${t}</span>`;
+    const b=document.createElement('button');b.className='btn';b.textContent=i===cur?T.path.here:T.path.upTo;b.disabled=i===cur;
+    b.title=T.path.title(i+1);b.onclick=()=>{cfg().stageSet=i;save();pathChanged();};
+    r.append(b);box.append(r);});}
+
+/* ===== 10. STATS ===== */
+function renderStats(){const cs=curStage(),H=T.heat,wl=weakLimit();
+  const cells=buildBoard($('#heat'),null,false);
+  document.querySelectorAll('#heat .row').forEach(r=>{if(!cfg().strings[+r.dataset.s])r.classList.add('dim');});
+  const ring=document.documentElement.dataset.wood==='light'?'#1c1c1e':'#ffffff';
+  for(let s=0;s<6;s++)for(let f=0;f<=12;f++){
+    const pc=(OPEN[s]+f)%12,t=st(s,pc),c=cells[s][f];c.classList.add('on');
+    const i=c.firstChild,m=medT(t),sc=score(t),fl=cfg().fluentSec*1000,mp=cfg().map;let bg='#6f6a60';
+    const g=x=>`hsl(${Math.round(120*Math.max(0,Math.min(1,x)))} 68% 42%)`;
+    let x=null;if(t.n){if(mp==='acc')x=t.ok/t.n;else if(mp==='speed'){if(m)x=1-(m-fl)/(2*fl);}else if(sc!=null){x=sc<wl?.5*sc/wl:.5+.5*(sc-wl)/(1-wl||1);}}
+    if(x!=null)bg=g(x);
+    i.textContent=short(pc);i.style.background=bg;i.style.color=x!=null&&x>=.25?'#14130f':'#fff';
+    i.style.outline=lvl(t)===1?'2px dashed '+ring:'';i.style.outlineOffset='1px';
+    i.style.opacity=t.n&&t.n<3?.7:1;
+    const lk=cfg().mode==='smart'&&STG.get(s+':'+pc)>cs,due=cfg().dueMark&&!lk&&isDue(s,pc);
+    i.style.boxShadow=due?'0 0 0 2.5px var(--due)':'';
+    if(lk){i.style.background='#6f6a60';i.style.outline='';i.style.opacity=.3;i.style.color='#fff';}
+    const tt=hist(t).filter(y=>y[0]&&y[1]!=null).slice(-6).map(y=>(y[1]/1000).toFixed(1));
+    c._tip=H.tip(full(pc),SLONG[s],f)+(t.n?(sc!=null?H.score(Math.round(100*sc),LN[lvl(t)]):H.notMode)+H.ok(pct(t.ok,t.n),t.ok,t.n)+
+      (m?H.med((m/1000).toFixed(1),tt.join(', ')):H.noMed):H.never)+(due?H.due:'')+(lk?H.locked(STG.get(s+':'+pc)+1):'');}
+  const dot=(cl,l)=>`<i style="background:${cl}"></i>${l} `,gr='<i style="width:90px;border-radius:7px;background:linear-gradient(90deg,hsl(0 68% 42%),hsl(60 68% 42%),hsl(120 68% 42%))"></i>';
+  $('#legend').innerHTML=dot('#6f6a60',H.nw)+H[cfg().map].replace('{g}',gr)+'<span style="flex-basis:100%">'+H.foot+'</span>';
+  const sx=T.scoreHelp(cfg().fluentSec.toFixed(1)+' s',Math.round(wl*100)+'%');$('#sxBody').innerHTML=sx.map(p=>'<p>'+p+'</p>').join('');
+  renderNotes();renderPath();}
+
+/* Noten-tabel met tabs: Weakest (binnen huidige selectie) · Strongest · Fastest (records) */
+const bestMs=t=>{const a=[...(t.hf||[]),...(t.hn||[])].filter(x=>x[0]&&x[1]!=null).map(x=>x[1]);if(t.best)a.push(t.best);return a.length?Math.min(...a):null;};
+function renderNotes(){const tab=cfg().wtab||'weak',flm=cfg().fluentSec*1000,X=T.notes;
+  const all=Object.entries(store.stats).map(([k,t])=>{const[s,pc]=k.split(':').map(Number);return{s,pc,...t,sc:score(t),m:medT(t),L:lvl(t),h:hist(t),bm:bestMs(t)};});
+  const dots=h=>'<span class="dots">'+h.map(([ok,ms])=>`<i class="dt ${!ok?'bad':ms!=null&&ms>flm?'slow':''}" title="${ok?(ms!=null?(ms/1000).toFixed(1)+' s':X.correct):X.wrong}"></i>`).join('')+'</span>';
+  const goed=r=>r.h.length?r.h.filter(x=>x[0]).length+'/'+r.h.length:pct(r.ok,r.n),sec=x=>x?(x/1000).toFixed(1)+' s':'–';
+  let rows,help,empty;
+  if(tab==='weak'){
+    rows=all.filter(r=>(r.h.length||r.n)>=2&&r.L===1&&inPool(r.s,r.pc)).sort((a,b)=>a.sc-b.sc||(b.m||0)-(a.m||0)).slice(0,8);
+    help=X.weakHelp;empty=X.weakEmpty;
+  }else if(tab==='strong'){
+    rows=all.filter(r=>r.h.length>=cfg().minN&&r.L>=2).sort((a,b)=>b.sc-a.sc||(a.m||9e9)-(b.m||9e9)).slice(0,8);
+    help=X.strongHelp(cfg().minN);empty=X.strongEmpty;
+  }else{
+    rows=all.filter(r=>r.bm).sort((a,b)=>a.bm-b.bm).slice(0,8);
+    help=X.fastHelp;empty=X.fastEmpty;
+  }
+  const fastest=all.filter(r=>r.bm).sort((a,b)=>a.bm-b.bm)[0],flu=all.filter(r=>r.L===3).length;
+  $('#wRec').innerHTML=tab==='weak'?'':`<div><b>${store.rec.streak||'–'}</b><span>${X.streak}</span></div>`+
+    `<div><b>${fastest?sec(fastest.bm):'–'}</b><span>${fastest?X.fastestOn(full(fastest.pc),SLONG[fastest.s]):X.fastest}</span></div>`+
+    `<div><b>${flu}</b><span>${X.fluent}</span></div>`;
+  $('#wHelp').textContent=help;
+  if(!rows.length){$('#worst').innerHTML='<p class="cap">'+empty+'</p>';return;}
+  const th=tab==='fast'?`<th>${X.thNote}</th><th>${X.thString}</th><th>${X.thRecord}</th><th>${X.thMedian}</th><th>${X.thCorrect}</th>`
+                       :`<th>${X.thNote}</th><th>${X.thString}</th><th>${X.thScore}</th><th>${X.thLast}</th><th>${X.thCorrect}</th><th>${X.thMedian}</th>`;
+  const tr=r=>tab==='fast'?`<td>${full(r.pc)}</td><td>${SLONG[r.s]}</td><td><b>${sec(r.bm)}</b></td><td>${sec(r.m)}</td><td>${goed(r)}</td>`
+    :`<td>${full(r.pc)}</td><td>${SLONG[r.s]}</td><td>${Math.round(100*r.sc)}%</td><td>${r.h.length?dots(r.h):'–'}</td><td>${goed(r)}</td><td>${sec(r.m)}</td>`;
+  $('#worst').innerHTML='<table><tr>'+th+'</tr>'+rows.map(r=>'<tr>'+tr(r)+'</tr>').join('')+'</table>'+(tab==='fast'?'':'<p class="cap">'+X.legend(cfg().fluentSec.toFixed(1))+'</p>');}
+
+/* ===== 11. UI ===== */
+/* Generieke knoppenrij (één keuze). Labels: tekst, of [lang, kort] voor smalle schermen. */
+function seg(id,key,opts,after){const box=$(id);box.innerHTML='';
+  opts.forEach(([v,l])=>{const b=document.createElement('button');b.className='chip';b.type='button';
+    if(Array.isArray(l)){b.innerHTML=`<span class="lg">${l[0]}</span><span class="sh">${l[1]}</span>`;b.title=l[0];}else b.textContent=l;
+    b.setAttribute('aria-pressed',cfg()[key]===v);
+    b.onclick=()=>{cfg()[key]=v;save();seg(id,key,opts,after);(after||restart)();};box.append(b);});}
+function strChips(){const box=$('#uStr');box.innerHTML='';
+  for(let s=5;s>=0;s--){const b=document.createElement('button');b.className='chip';b.type='button';b.textContent=SNAME[s];b.title=T.stringTitle(SLONG[s]);
+    b.setAttribute('aria-pressed',!!cfg().strings[s]);
+    b.onclick=()=>{cfg().strings[s]=cfg().strings[s]?0:1;save();strChips();restart();};box.append(b);}
+  const a=document.createElement('button');a.className='chip';a.type='button';a.textContent=T.all;
+  a.onclick=()=>{cfg().strings=[1,1,1,1,1,1];save();strChips();restart();};box.append(a);}
+function fretSel(){const a=$('#fMin'),b=$('#fMax');a.innerHTML=b.innerHTML='';
+  for(let f=0;f<=12;f++){a.add(new Option(f,f));b.add(new Option(f,f));}
+  a.value=cfg().min;b.value=cfg().max;
+  a.onchange=()=>{cfg().min=+a.value;if(cfg().max<cfg().min){cfg().max=cfg().min;b.value=cfg().max;}save();restart();};
+  b.onchange=()=>{cfg().max=+b.value;if(cfg().min>cfg().max){cfg().min=cfg().max;a.value=cfg().min;}save();restart();};}
+function weakSel(){const r=$('#wPct'),show=()=>{const v=Math.round(weakLimit()*100);$('#wVal').textContent=v+'%';$('#wNote').textContent=T.weakNote(v);};
+  r.value=Math.round(weakLimit()*100);show();
+  r.oninput=()=>{cfg().weakPct=+r.value;show();};
+  r.onchange=()=>{cfg().weakPct=+r.value;save();cfg().weak?restart():renderStats();};}
+function fluSel(){const r=$('#fSec'),show=()=>{$('#fVal').textContent=(+r.value).toFixed(1)+' s';};
+  r.value=cfg().fluentSec;show();r.oninput=show;r.onchange=()=>{cfg().fluentSec=+r.value;save();renderStats();};}
+/* Filterbalk: in Slim oefenen verborgen (die volgt het Leerpad) */
+function filUI(){const c=cfg(),sm=c.mode==='smart';$('#uStr').hidden=sm;$('#btnFil').hidden=sm;$('#filSm').hidden=!sm;if(sm)popShow(false);
+  $('#filSm').textContent=T.filtersFollow;
+  $('#filTxt').textContent=T.filNotes[c.notes]+' · '+T.filAcc[c.acc]+' · '+T.filFrets(c.min,c.max)+(c.weak?' · '+T.filWeak:'');}
+function restart(){newQ();renderStats();filUI();}
+/* paginabreedte (2600 = volle breedte) en snaarafstand: bord groter of kleiner */
+function applySize(){const s=cfg(),r=document.documentElement.style,w=Math.min(2600,Math.max(1000,+s.pageW||2600)),h=Math.min(4.4,Math.max(2,+s.rowH||2.6));
+  r.setProperty('--mainw',w>=2600?'none':w+'px');r.setProperty('--rowh',h+'rem');
+  const pv=$('#uPageWv'),hv=$('#uRowHv');if(pv)pv.textContent=w>=2600?T.ui.full:w+' px';if(hv)hv.textContent=h.toFixed(1)+' rem';}
+function drawSettings(){const O=T.opt;
+  const pw=$('#uPageW'),rh=$('#uRowH');pw.value=cfg().pageW;rh.value=cfg().rowH;
+  pw.oninput=()=>{cfg().pageW=+pw.value;save();applySize();};rh.oninput=()=>{cfg().rowH=+rh.value;save();applySize();};
+  seg('#uMode','mode',[['find',T.modes.find],['name',T.modes.name],['smart',T.modes.smart]],()=>{filUI();restart();});
+  strChips();
+  seg('#uNotes','notes',[['nat',O.nat],['both',O.both],['acc',O.acc]]);
+  seg('#uAcc','acc',[['sharp',O.sharp],['flat',O.flat],['both',O.bothAcc]]);
+  seg('#uWeak','weak',[[false,O.off],[true,O.weakOnly]]);
+  weakSel();
+  seg('#uSnd','sound',[[true,O.on],[false,O.off]],()=>{if(cfg().sound)playSound(true,1,5);});
+  seg('#uTone','tone',[['guitar',O.guitar],['ping',O.ping]],()=>playSound(true,1,5));
+  seg('#uWt','wtab',[['weak',O.weakest],['strong',O.strongest],['fast',O.fastest]],renderNotes);
+  fluSel();
+  seg('#uMinN','minN',[[2,'2'],[3,'3'],[5,'5']],renderStats);
+  seg('#uIdle','idleSec',[[0,O.off],[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'60 s']],armIdle);
+  seg('#uTab','tabPause',[[true,O.on],[false,O.off]],()=>{});
+  seg('#uMap','map',[['mast',O.mast],['speed',O.speed],['acc',O.accuracy]],renderStats);
+  seg('#uNew','newPerDay',[[3,'3'],[6,'6'],[10,'10'],[20,'20']],restart);
+  seg('#uDue','dueMark',[[true,O.on],[false,O.off]],renderStats);
+  woodSel();fretSel();filUI();}
+/* Statische teksten uit TEXT invullen (elementen met data-t / data-ta) */
+const pathGet=p=>p.split('.').reduce((o,k)=>o&&o[k],TEXT);
+function applyText(){document.querySelectorAll('[data-t]').forEach(el=>{const v=pathGet(el.dataset.t);if(typeof v==='string')el.textContent=v;});
+  document.querySelectorAll('[data-ta]').forEach(el=>{const v=pathGet(el.dataset.ta);if(typeof v==='string'){el.setAttribute('aria-label',v);el.title=v;}});
+  $('#lnkHome').href=T.links.home;$('#lnkScales').href=T.links.scales;
+  $('#btnStart').textContent=T.start;$('#btnPause').textContent=T.pauseBtn(paused);$('#btnAll').textContent=T.clearAll;
+  document.title=T.nav.fret;}
+
+$('#btnNext').onclick=()=>{if(paused)return;if(!q&&cfg().mode==='smart')nextDay();else if(!q||q.done)newQ();};
+const typing=e=>/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||!!document.querySelector('dialog[open]');
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!q&&cfg().mode==='smart'&&!paused&&!typing(e)){e.preventDefault();nextDay();}});
+$('#btnPause').onclick=$('#btnStart').onclick=()=>setPaused(!paused);
+/* Benoemen met het toetsenbord: letter = natuurlijke noot, Shift+letter = ♯ (of ♭ bij notatie ♭) */
+document.addEventListener('keydown',e=>{if(!q||q.done||paused||q.dir!=='name'||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1||typing(e))return;
+  const L='CDEFGAB'.indexOf(e.key.toUpperCase());if(L<0)return;
+  const pc=(NAT[L]+(e.shiftKey?(cfg().acc==='flat'?11:1):0))%12;
+  if(!document.querySelector(`#answers .chip[data-pc="${pc}"]`))return;
+  e.preventDefault();answer(pc);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pop').hidden){popShow(false);return;}
+  if(e.key==='Escape'&&!document.querySelector('dialog[open]')){e.preventDefault();setPaused(!paused);}});
+$('#btnGear').onclick=()=>{setPaused(true);$('#pSet').open=true;$('#pSet').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&q&&q.done&&!paused&&!typing(e)){e.preventDefault();newQ();}});
+$('#btnDrill').onclick=()=>{cfg().weak=true;if(cfg().mode==='smart')cfg().mode='find';save();drawSettings();restart();scrollTo({top:0,behavior:'smooth'});};
+function resetSess(){sess=newSess();rl={};activeMs=0;runStart=performance.now();tick();scoreboard();}
+$('#btnSess').onclick=resetSess;
+/* confirm() werkt niet overal → eigen bevestiging met tweede klik */
+let armAll=null;
+$('#btnAll').onclick=function(){const b=this;
+  if(!armAll){b.textContent=T.clearSure;armAll=setTimeout(()=>{armAll=null;b.textContent=T.clearAll;},4000);return;}
+  clearTimeout(armAll);armAll=null;b.textContent=T.clearAll;store.stats={};store.srs={};store.day={d:0,newN:0};store.off=0;store.rec={streak:0};save();resetSess();restart();};
+const tip=$('#tip');
+$('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.cell');
+  if(!c||!c._tip){tip.style.display='none';return;}
+  tip.innerHTML=c._tip;tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.max(6,Math.min(innerWidth-w-6,e.clientX+14))+'px';
+  tip.style.top=(e.clientY+h+22>innerHeight?e.clientY-h-12:e.clientY+16)+'px';});
+$('#heat').addEventListener('mouseleave',()=>{tip.style.display='none';});
+/* thema: licht/donker (standaard = systeemvoorkeur) */
+const SUN='<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const MOON='<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor"/></svg>';
+const isDark=()=>document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme(){if(cfg().theme)document.documentElement.dataset.theme=cfg().theme;else delete document.documentElement.dataset.theme;
+  const b=$('#btnTheme');b.innerHTML=isDark()?SUN:MOON;const l=isDark()?T.theme.light:T.theme.dark;b.title=l;b.setAttribute('aria-label',l);}
+$('#btnTheme').onclick=()=>{cfg().theme=isDark()?'light':'dark';save();applyTheme();};
+/* back-up: JSON tonen/kopiëren/plakken */
+$('#btnBk').onclick=()=>{setPaused(true);$('#bk').value=JSON.stringify(store);$('#bkMsg').textContent='';$('#dlgBk').showModal();};
+$('#bkX').onclick=()=>$('#dlgBk').close();
+$('#bkCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('#bk').value);$('#bkMsg').textContent=T.bk.copied;}catch(e){$('#bk').select();$('#bkMsg').textContent=T.bk.copyFail;}};
+$('#bkImp').onclick=()=>{try{const r=JSON.parse($('#bk').value);if(!r||typeof r.stats!=='object'||r.stats===null)throw 0;
+  store=hydrate(r);migrateSrs();save();writeSharedWood();
+  drawSettings();applyTheme();applyWood();resetSess();restart();$('#bkMsg').textContent=T.bk.imported;}
+  catch(e){$('#bkMsg').textContent=T.bk.invalid;}};
+/* popover van de filterbalk: klik erbuiten of Esc sluit */
+const pop=$('#pop'),bFil=$('#btnFil');
+function popShow(v){pop.hidden=!v;bFil.setAttribute('aria-expanded',v);}
+bFil.onclick=e=>{e.stopPropagation();popShow(pop.hidden);};
+document.addEventListener('click',e=>{if(!pop.hidden&&!e.target.closest('#fil'))popShow(false);});
+/* Meerdere tabbladen: neem opgeslagen data van een ander tabblad over; houtkleur ook vanuit andere tools */
+addEventListener('storage',e=>{
+  if(e.key===SHARED){readSharedWood();applyWood();woodSel();renderStats();return;}
+  if(e.key!==KEY||!e.newValue)return;try{store=hydrate(JSON.parse(e.newValue));}catch(x){return;}
+  dayCheck();readSharedWood();drawSettings();applyTheme();applyWood();restart();});
+/* In een ingesloten weergave (zoals een artifact) leidt de zijbalk nergens heen */
+try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
+
+/* ===== START ===== */
+readSharedWood();applyText();applyTheme();applyWood();drawSettings();restart();
+</script>
+</body>
+</html>
