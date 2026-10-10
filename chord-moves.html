@@ -20,7 +20,7 @@
 :root{
   --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
   --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
-  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--ok:#1e7b34;--okbg:rgba(52,199,89,.15);--sh:0 1px 2px rgba(0,0,0,.04);
+  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--ok:#1e7b34;--okbg:rgba(52,199,89,.15);--err:#c4302b;--sh:0 1px 2px rgba(0,0,0,.04);
   --hi:#ff9f0a;--hitx:#a65300;--hibg:rgba(255,159,10,.15);
   /* hout (wordt door JS overschreven met de gekozen houtsoort) */
   --wd1:#3e2518;--wfret:rgba(205,198,186,.42);--wnut:#d9d3c7;--wstr:#d6cfc1;--wdot:#f5efe6;--wdtx:#1c1c1e;--wmut:rgba(245,239,230,.55);
@@ -29,12 +29,12 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
   --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--sh:none;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
   --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
   --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--sh:none;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
   --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -159,7 +159,7 @@ svg .fn{fill:var(--mut);font:600 10px ui-monospace,"SF Mono",Menlo,monospace} sv
 .rxin textarea:focus{outline:3px solid var(--ac);outline-offset:1px}
 .rxrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rxrow input[type=text]{flex:1;min-width:160px;min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 10px}
-.err{color:#c4302b}
+.err{color:var(--err)}
 .abar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:14px;padding:10px 12px;border-radius:14px;background:var(--hibg)}
 .abar b{font-size:14px}
 .dg.chg .sym{color:var(--hitx)}
@@ -275,7 +275,7 @@ svg .dm{opacity:.35}
         </div>
       </section>
       <section class="card" aria-label="Ideas">
-        <div class="rxrow" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ideas for your progression</h3><span id="rxOnly"></span></div>
+        <div class="rxrow" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ideas for your progression</h3><span class="rxrow"><span class="seg" id="rxKind" role="group" aria-label="Kind of ideas"></span><span id="rxOnly"></span></span></div>
         <ul class="ideas" id="rxIdeas"></ul>
       </section>
     </div>
@@ -435,7 +435,7 @@ var PRB=(function(){
    ════════════════════════════════════════════════════════════════════════════
    id      korte unieke naam (letters, cijfers, streepjes). Je voortgang wordt hieronder bewaard: niet meer wijzigen.
    name    naam op het scherm;  family  soort zet (klein, boven de naam)
-   style   'pop' · 'soul' · 'jazz' · 'modal'   (de groepen in de zijbalk en het filter)
+   style   'pop' · 'soul' · 'jazz' · 'modal' · 'approach'   (de groepen in de zijbalk en het filter)
    mood    één of meer van: 'wistful' 'dreamy' 'bright' 'dark' 'soulful'
    level   1 = makkelijk, 2 = gemiddeld, 3 = pittig
    key     begintoonsoort, bijv. 'G', 'Bb', 'F#'.  minor:true = mineurtoonsoort (de trappen blijven t.o.v. de grondtoon).
@@ -565,7 +565,32 @@ const MOVES=[
    remix:['IV > bVI','I vi > $1 III','i bVI > $1 bVI III'],
    songs:['Creep · Radiohead (I – III)','John Williams film scores'],
    why:'Major chords whose roots are a major third apart, and not in the same key. One note stays and the others move by a half step: listen to {n:5} – {n:b6} – {n:5} – {n:#5}. The effect is big and cinematic, like a sudden change of light.',
-   tip:'At the end of a verse, move from I to ♭VI and back, and listen to what it does to your melody.'}
+   tip:'At the end of a verse, move from I to ♭VI and back, and listen to what it does to your melody.'},
+
+  /* ── Approaches (naar "Harmonic Jazz Universe": secundaire dominanten, hun subs en de bijbehorende ii's) ── */
+  {id:'related-two-five',name:'Related ii–V',family:'Secondary ii–V',style:'approach',mood:['bright'],level:2,
+   key:'C',chords:'Imaj7(2) iiiø7 VI7 ii7 V7',line:'3 2 #1 1 7',tempo:120,band:'swing',
+   remix:['* * > $1~ ii/$2 V/$2 $2'],
+   songs:['Fly Me to the Moon · Bart Howard','All the Things You Are · Jerome Kern'],
+   why:'Any chord of the key can get its own ii–V. Here {c3} is the V7 of {c4} (a secondary dominant) and {c2} is its related ii: a small cadence into {c4}, as if the music visits another key for a moment. The guide tones fall step by step: {n:3} – {n:2} – {n:#1} – {n:1} – {n:7}.',
+   tip:'Open the Approach map, pick any target chord and play its ii – V. Then try the same in Remix on one of your own progressions.'},
+  {id:'sub-five',name:'Sub V to any chord',family:'Tritone substitution',style:'approach',mood:['dreamy'],level:2,
+   key:'C',chords:'Imaj7 bIII7 ii7 bII7',line:'1 b3 2 b2',tempo:110,band:'swing',
+   remix:['* * > $1~ subV/$2 $2'],
+   songs:['Satin Doll · Duke Ellington','The Girl from Ipanema · Antônio Carlos Jobim'],
+   why:'Every dominant can be swapped for the dominant a tritone away. Both share the same 3rd and 7th, so it does the same job. Put a sub V in front of any chord and the bass slides into it from a half step above: {c2} into {c3}, {c4} into {c1}.',
+   tip:'Before each chord of a slow progression, play the dominant a half step above it.'},
+  {id:'sub-two-five',name:'Sub ii–V',family:'Tritone substitution',style:'approach',mood:['dreamy'],level:3,
+   key:'C',chords:'vi7 II7 bvi7 bII7 Imaj7(2)',line:'5 #4 b5 4 3',tempo:120,band:'swing',
+   remix:['ii V > bvi7 bII7','V > bvi7 bII7','* I > $1~ subii/$2 subV/$2 $2'],
+   songs:['Satin Doll · Duke Ellington'],
+   why:'A ii–V can move as one block. {c3} – {c4} replaces the usual {n:2}m7 – {n:5}7: it is the same ii–V a tritone away, so it lands on {c5} from a half step above. Listen to the guide tones: {n:5} – {n:#4} – {n:b5} – {n:4} – {n:3}, one half step at a time.',
+   tip:'Play a ii – V – I, then the same with the sub ii – sub V. Compare both with A/B in Remix.'},
+  {id:'guide-tones',name:'Guide-tone line',family:'Voice leading',style:'approach',mood:['soulful'],level:1,
+   key:'C',chords:'iii7 VI7 ii7 V7 Imaj7(2)',line:'2 #1 1 7 7',tempo:110,band:'swing',
+   songs:['Fly Me to the Moon · Bart Howard','Autumn Leaves · Joseph Kosma'],
+   why:'The 3rd and the 7th tell you what a chord is. In a chain of dominants and ii–Vs they move by a half step or stay put: the 7th of one chord becomes the 3rd of the next. Follow one line, {n:2} – {n:#1} – {n:1} – {n:7}, and you can play through the changes with two notes per chord. Set Labels to Guide tones to see both lines on the neck.',
+   tip:'Comp with Shells and let only the 3rd and 7th move. Then sing or play the orange line while the band plays.'}
 ];
 </script>
 <script>
@@ -583,7 +608,7 @@ const mod=(n,m)=>((n%m)+m)%m;
 /* ═══════════ 0. TEKST (alle schermtekst) ═══════════ */
 const T={
   title:'Chord Moves',sub:'New progressions, one move at a time.',
-  styles:{all:'All',pop:'Pop & rock',soul:'Soul & songwriter',jazz:'Jazz',modal:'Modal & film'},
+  styles:{all:'All',pop:'Pop & rock',soul:'Soul & songwriter',jazz:'Jazz',modal:'Modal & film',approach:'Approaches'},
   moods:{any:'Any',wistful:'Wistful',dreamy:'Dreamy',bright:'Bright',dark:'Dark',soulful:'Soulful'},
   level:['','Easy','Medium','Advanced'],
   allMoves:'All moves',none:'No moves match these filters.',
@@ -611,9 +636,10 @@ const T={
   rx:{title:'Remix',sub:'Put a move into your own progression, one change at a time.',draft:'Draft',savedL:'Saved',fromST:'From the Scale Trainer',
     auto:k=>`Auto (${k})`,empty:'Type a progression above, for example C G Am F, and ideas from the moves appear here.',
     none:'No move fits this progression yet. Try longer chords (2 bars), another key, or a progression with a IV, V or vi.',
-    bad:l=>`Not recognised (left out): ${l}.`,saved:n=>`Saved as “${n}”.`,deleted:'Deleted.',kept:n=>`Kept the idea from ${n}. Undo brings back your progression.`,
+    bad:l=>`Not recognised (left out): ${l}.`,saved:n=>`Saved as “${n}”.`,deleted:'Deleted.',kept:n=>`Kept: ${n}. Undo brings back your progression.`,
     orig:'Your progression',idea:'Idea',keep:'Keep this idea',close:'Back to my progression',trying:'Trying',try:'Try',about:'About this move',
-    only:n=>`Only ideas from ${n}`,showAll:'Show all',count:n=>`${n} idea${n===1?'':'s'}`,stHint:'Your progressions from the Scale Trainer are not visible here; in Safari or Firefox, open the files from the same folder or type the chords.',
+    only:n=>`Only ideas from ${n}`,kinds:{all:'All',moves:'Moves',ap:'Approaches'},apName:(r,t)=>`${r} → ${t}`,apAll:r=>`${r} into every chord`,apFam:'Approach',
+    apAllNote:'The same approach before every chord of your progression. Each chord gives up some of its time.',apOpts:'ii and dominant colour: set in the Approach map.',inMap:'Approach map',showAll:'Show all',count:n=>`${n} idea${n===1?'':'s'}`,stHint:'Your progressions from the Scale Trainer are not visible here; in Safari or Firefox, open the files from the same folder or type the chords.',
     untitled:'My progression'},
   tryRemix:'Try in Remix',
   map:{title:'Approach map',sub:'Every chord of the key, and four ways to lead into it.',
@@ -819,6 +845,7 @@ function voiceLead(R,set,pos){
            maj7 = alleen maj7, ø = halfverminderd, ° = verminderd, * = elk akkoord.
      NAAR  nieuwe trappen (met akkoordsoort, zoals bij chords), of $1 $2 … = het gevonden akkoord 1, 2 … ongewijzigd;
            $1~ = hetzelfde akkoord, maar het deelt zijn tijd met de nieuwe akkoorden; D$2 = de V7 van akkoord 2;
+           ii/$2  V/$2  subV/$2  subii/$2  dim/$2 = de aanloopakkoorden uit de Approach map naar akkoord 2;
            T$1 = de tritone sub (dominant een tritonus verder) van akkoord 1.
      Duur: $n houdt zijn maten; nieuwe akkoorden (en $n~) verdelen de rest in halve maten. Past dat niet, dan geen idee. */
 const QSYM={'':'maj','maj':'maj','M':'maj','m':'m','min':'m','mi':'m','-':'m','dim':'dim','°':'dim','o':'dim','aug':'aug','+':'aug',
@@ -885,11 +912,12 @@ function parseRule(str){const p=String(str).split('>');if(p.length!==2)return nu
   const F=p[0].trim().split(/\s+/).map(fromTok);if(!F.length||F.some(x=>!x))return null;
   const TO=p[1].trim().split(/\s+/).filter(Boolean).map(t=>{let m=/^\$(\d)(~?)$/.exec(t);if(m)return{ref:+m[1]-1,flex:!!m[2]};
     m=/^([DT])\$(\d)(?:\((½|1\/2|\d)\))?$/.exec(t);if(m)return{kind:m[1],ref:+m[2]-1,bars:m[3]?parseBarsTok(m[3]):null};
+    m=/^(ii|V|subV|subii|dim)\/\$(\d)(?:\((½|1\/2|\d)\))?$/.exec(t);if(m)return{kind:'ap',part:{ii:'ii',V:'V',subV:'sV',subii:'sii',dim:'dim'}[m[1]],ref:+m[2]-1,bars:m[3]?parseBarsTok(m[3]):null};
     const c=parseRoman(t);if(!c)return null;return{rom:c,bars:/\((½|1\/2|\d)\)$/.test(t)?c.bars:null};});
   if(!TO.length||TO.some(x=>!x)||TO.some(x=>x.ref!=null&&(x.ref<0||x.ref>=F.length)))return null;
   return{F,TO,src:str};}
 /* alle plekken waar een regel past → nieuwe akkoordenlijsten */
-function applyRule(rule,list,key){const an=list.map(c=>Object.assign(degOf(c.root,key),{fam:FAM[c.q]})),L=rule.F.length,out=[],tp=nPc(key.tonic);
+function applyRule(rule,list,key,o){const an=list.map(c=>Object.assign(degOf(c.root,key),{fam:FAM[c.q]})),L=rule.F.length,out=[],tp=nPc(key.tonic);
   const deg=(d,a)=>plain(nice(spellPc(mod(key.tonic.l+d,7),tp+LPC[d]+a)));
   for(let i=0;i+L<=list.length;i++){
     if(!rule.F.every((f,j)=>f.any||an[i+j].deg===f.deg&&an[i+j].acc===f.acc&&f.fams.includes(an[i+j].fam)))continue;
@@ -902,6 +930,7 @@ function applyRule(rule,list,key){const an=list.map(c=>Object.assign(degOf(c.roo
     if(bars.some(b=>!BARS.includes(b)))continue;
     const neu=rule.TO.map((t,k)=>{
       if(t.ref!=null&&!t.kind)return Object.assign({},span[t.ref],{bars:bars[k],chg:false});
+      if(t.kind==='ap'){const a=approachChords(span[t.ref],{ii:'ii-V',V:'V',sV:'subV',sii:'subii-subV',dim:'dim'}[t.part],o).find(x=>x.part===t.part);return Object.assign({},a,{bars:bars[k],chg:true});}
       if(t.kind){const r=span[t.ref].root,up=t.kind==='D'?7:6;return{root:plain(nice(spellPc(mod(r.l+4,7),nPc(r)+up))),q:'7',bass:null,bars:bars[k],chg:true};}
       const c=t.rom;return{root:deg(c.deg,c.acc),q:c.q,bass:c.bass?deg(c.bass.deg,c.bass.acc):null,bars:bars[k],chg:true};});
     const all=list.slice(0,i).concat(neu,list.slice(i+L)),same=(x,y)=>x&&y&&chordText([Object.assign({},x,{bars:1})])===chordText([Object.assign({},y,{bars:1})]);
@@ -909,8 +938,8 @@ function applyRule(rule,list,key){const an=list.map(c=>Object.assign(degOf(c.roo
     out.push({at:i,len:L,chords:all});}
   return out;}
 /* ideeën voor een progressie: elke regel van elke zet, dubbele en ongewijzigde eruit */
-function ideasFor(list,key,only){const seen=new Set([chordText(list)]),out=[];
-  LIB.forEach(mv=>{if(only&&mv.id!==only)return;(mv._rules||[]).forEach(r=>applyRule(r,list,key).forEach(x=>{const t=chordText(x.chords);
+function ideasFor(list,key,only,o){const seen=new Set([chordText(list)]),out=[];
+  LIB.forEach(mv=>{if(only&&mv.id!==only)return;(mv._rules||[]).forEach(r=>applyRule(r,list,key,o).forEach(x=>{const t=chordText(x.chords);
     if(seen.has(t))return;seen.add(t);out.push(Object.assign(x,{mv,text:t}));}));});
   return out.sort((a,b)=>a.mv.level-b.mv.level||a.at-b.at);}
 
@@ -934,6 +963,37 @@ function approachBox(keyName,t,o){o=o||{};const key=parseKey(keyName)||parseKey(
 const ROUTE_PARTS={'ii-V':['ii','V'],'ii-subV':['ii','sV'],'subii-V':['sii','V'],'subii-subV':['sii','sV'],'V':['V'],'subV':['sV'],'dim':['dim']};
 function approachList(keyName,t,route,o){const B=approachBox(keyName,t,o),parts=ROUTE_PARTS[route]||ROUTE_PARTS['ii-V'];
   return{key:B.key,box:B,list:parts.map(p=>Object.assign({bass:null,bars:1},B[p])).concat([Object.assign({bass:null,bars:2},B.X)])};}
+/* ── approach-routes als Remix-ideeën: dezelfde vier aanloopakkoorden, maar naar elk akkoord van JOUW progressie ──
+   De aanloop krijgt de tijd van het akkoord ervoor: duurt dat 2 maten of meer, dan houdt het 1 maat minder;
+   duurt het 1 maat, dan deelt het (één aanloopakkoord: ½ + ½) of wordt het vervangen (ii–V: twee halve maten).
+   Het eerste akkoord krijgt zijn aanloop van het laatste (de terugweg naar het begin). */
+function approachChords(target,route,o){o=o||{};const X=target.root,minorT=['min','hd'].includes(FAM[target.q]),col=o.dom==='colour',iiQ=minorT&&o.ii!=='m7'?'m7b5':'m7';
+  const C={ii:{root:upN(X,1,2),q:iiQ},sii:{root:upN(X,5,8),q:iiQ},V:{root:upN(X,4,7),q:col?(minorT?'7b9':'13'):'7'},sV:{root:upN(X,1,1),q:col?'7s11':'7'},dim:{root:upN(X,6,11),q:'dim7'}};
+  return(ROUTE_PARTS[route]||[]).map(p=>Object.assign({bass:null,chg:true,part:p},C[p]));}
+function withApproaches(list,targets,route,o){const n=list.length;if(n<2)return null;
+  const give=new Map();   /* donor-index → aanloopakkoorden met hun duur, en wat de donor overhoudt */
+  for(const t of targets){const di=mod(t-1,n),d=list[di],ap=approachChords(list[t],route,o),b=d.bars;let keep,each;
+    if(ap.length===2){if(b>=2){keep=b-1;each=.5;}else if(b===1){keep=0;each=.5;}else continue;}
+    else{if(b>=2){keep=b-1;each=1;}else if(b===1){keep=.5;each=.5;}else{keep=0;each=.5;}}
+    if(keep===0&&targets.size>1&&targets.has(di))continue;   /* bij "elk akkoord": geen doel wegvervangen */
+    if(!BARS.includes(keep)&&keep!==0)continue;
+    give.set(di,{keep,ap:ap.map(a=>Object.assign(a,{bars:each}))});}
+  if(!give.size)return null;
+  const out=[];let lead=null;
+  list.forEach((c,i)=>{const g=give.get(i);
+    if(!g){out.push(Object.assign({},c,{chg:false}));return;}
+    if(g.keep)out.push(Object.assign({},c,{bars:g.keep,chg:false}));
+    if(i===n-1&&mod(i+1,n)===0&&targets.has(0))lead=g.ap;else out.push(...g.ap);});
+  if(lead)out.push(...lead);   /* aanloop naar het eerste akkoord staat aan het eind (de lus begint weer) */
+  return out;}
+function approachIdeas(list,key,o){const out=[],n=list.length,same=(x,y)=>x&&y&&nPc(x.root)===nPc(y.root);   /* geen aanloop naast een akkoord met dezelfde grondtoon (Dm → Dm7) */
+  if(n<2)return out;
+  const ok=r=>r&&!r.some((c,k)=>c.chg&&(same(c,r[k-1])||same(c,r[k+1])||k===r.length-1&&same(c,r[0])));
+  ROUTES.forEach(route=>{
+    for(let t=0;t<n;t++){const r=withApproaches(list,new Set([t]),route,o);if(ok(r))out.push({kind:'ap',route,target:t,tsym:nName(list[t].root)+QUAL[list[t].q].sym,chords:r,text:chordText(r),
+      parts:Object.fromEntries(['ii-V','subii-subV','dim'].flatMap(x=>approachChords(list[t],x,o)).map(a=>[a.part,nName(a.root)+QUAL[a.q].sym]))});}
+    if(n>=3){const r=withApproaches(list,new Set(list.map((c,i)=>i)),route,o);if(ok(r)&&r.filter(c=>c.chg).length>ROUTE_PARTS[route].length)out.push({kind:'ap',route,all:true,chords:r,text:chordText(r)});}});
+  return out;}
 /* guide tones: terts en septiem (of sext / sus-noot / kwint als er geen septiem is) */
 function guideIv(q){const iv=QUAL[q].iv.map(x=>mod(x,12)),pick=(...l)=>l.find(x=>iv.includes(x));
   return[pick(4,3,5,2),pick(10,11,9,7)].filter(x=>x!=null);}
@@ -960,10 +1020,10 @@ const LIB=(typeof MOVES!=='undefined'&&Array.isArray(MOVES)?MOVES:[]).filter((mv
   mv.songs=Array.isArray(mv.songs)?mv.songs:[];
   mv._rules=(Array.isArray(mv.remix)?mv.remix:[]).map(r=>{const x=parseRule(r);if(!x)PROBLEMS.push(T.badRule(mv.name,r));return x;}).filter(Boolean);
   return true;});
-const STYLES=['pop','soul','jazz','modal'];
+const STYLES=['pop','soul','jazz','modal','approach'];
 
 const API={QUAL,parseRoman,compile,realize,candidates,voiceLead,LIB,PROBLEMS,ivLab,toneName,nName,KEYS_MAJ,KEYS_MIN,keyList,
-  parseSym,parseProg,detectKey,parseKey,keyName,progR,parseRule,applyRule,ideasFor,chordText,approachBox,approachList,guideLine,guideIv,ROUTES};
+  parseSym,parseProg,detectKey,parseKey,keyName,progR,parseRule,applyRule,ideasFor,chordText,approachBox,approachList,guideLine,guideIv,ROUTES,approachIdeas,withApproaches};
 if(typeof module!=='undefined'&&module.exports){module.exports=API;}
 if(typeof document==='undefined'||!document.getElementById('vMove'))return;
 
@@ -971,7 +1031,7 @@ if(typeof document==='undefined'||!document.getElementById('vMove'))return;
 const KEY='chordMoves.v1',LOGKEY='chordMoves.log',SUMKEY='practiceRoom.movesSum',SHARED='practiceRoom.board';
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 const DEF={theme:'auto',view:'lib',cur:null,style:'all',mood:'any',set:'barre',pos:'mid',labels:'int',loop:true,bass:true,keys:{},tempo:{},prog:{},
-  mine:[],rx:{src:'draft',text:'C G Am F',name:'',key:'auto',tempo:96,undo:null,only:null},
+  mine:[],rx:{src:'draft',text:'C G Am F',name:'',key:'auto',tempo:96,undo:null,only:null,kind:'all'},
   map:{key:'C',t:1,route:'ii-V',ii:'hd',dom:'plain',tempo:100}};   /* map = Approach map */   /* mine = je bewaarde progressies voor Remix */
 function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)||{});
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';s.view=['move','remix','map'].includes(s.view)?s.view:'lib';
@@ -979,7 +1039,7 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)|
     ii:mp.ii==='m7'?'m7':'hd',dom:mp.dom==='colour'?'colour':'plain',tempo:Math.min(200,Math.max(40,+mp.tempo||100))};
   s.mine=Array.isArray(s.mine)?s.mine.filter(x=>x&&typeof x.id==='string'&&typeof x.text==='string').map(x=>({id:x.id,name:String(x.name||'').slice(0,60),text:x.text.slice(0,600),key:typeof x.key==='string'?x.key:'auto'})):[];
   const rx=s.rx&&typeof s.rx==='object'?s.rx:{};s.rx={src:typeof rx.src==='string'?rx.src:'draft',text:typeof rx.text==='string'?rx.text.slice(0,600):DEF.rx.text,name:typeof rx.name==='string'?rx.name.slice(0,60):'',
-    key:rx.key==='auto'||parseKey(rx.key)?rx.key:'auto',tempo:Math.min(200,Math.max(40,+rx.tempo||96)),undo:typeof rx.undo==='string'?rx.undo:null,only:LIB.some(m=>m.id===rx.only)?rx.only:null};
+    key:rx.key==='auto'||parseKey(rx.key)?rx.key:'auto',tempo:Math.min(200,Math.max(40,+rx.tempo||96)),undo:typeof rx.undo==='string'?rx.undo:null,only:LIB.some(m=>m.id===rx.only)?rx.only:null,kind:['all','moves','ap'].includes(rx.kind)?rx.kind:'all'};
   s.style=['all',...STYLES].includes(s.style)?s.style:'all';s.mood=Object.keys(T.moods).includes(s.mood)?s.mood:'any';
   s.set=Object.keys(T.sets).includes(s.set)?s.set:'barre';s.pos=Object.keys(T.pos).includes(s.pos)?s.pos:'mid';
   s.labels=Object.keys(T.lab).includes(s.labels)?s.labels:'int';s.loop=s.loop!==false;s.bass=s.bass!==false;
@@ -989,6 +1049,9 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)|
   if(!LIB.some(m=>m.id===s.cur)){s.cur=null;if(s.view==='move')s.view='lib';}
   return s;}
 let S=load();
+/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
+const THEMEKEY='practiceRoom.theme';
+(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;else try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}summary();}
 const prog=id=>S.prog[id]||(S.prog[id]={h:0,p:0,u:0,k:[]});
 const stagesOf=id=>{const p=S.prog[id]||{};return{h:!!p.h,p:!!p.p,m:(p.k||[]).length>=3,u:!!p.u};};
@@ -1217,7 +1280,9 @@ function stText(p){return p.sections.map(sec=>(sec.chords||[]).map(c=>String(c.s
 function rxCompute(){const P=parseProg(S.rx.text);RX.list=P.chords;RX.bad=P.bad;
   RX.key=S.rx.key==='auto'?(P.chords.length?detectKey(P.chords):parseKey('C')):parseKey(S.rx.key);
   RX.auto=P.chords.length?detectKey(P.chords):null;
-  RX.ideas=P.chords.length?ideasFor(P.chords,RX.key,S.rx.only):[];
+  const K=S.rx.only?'moves':S.rx.kind,mv=P.chords.length&&K!=='ap'?ideasFor(P.chords,RX.key,S.rx.only,{ii:S.map.ii,dom:S.map.dom}):[],seen=new Set([chordText(P.chords),...mv.map(x=>x.text)]);
+  const ap=P.chords.length&&K!=='moves'?approachIdeas(P.chords,RX.key,{ii:S.map.ii,dom:S.map.dom}).filter(x=>!seen.has(x.text)&&(seen.add(x.text),true)):[];
+  RX.ideas=mv.concat(ap);
   if(RX.prev>=RX.ideas.length)RX.prev=-1;rxCur();}
 function rxCur(){const show=RX.prev>=0&&RX.ab==='b'?RX.ideas[RX.prev].chords:RX.list;
   if(!show.length){CUR=null;return;}
@@ -1243,21 +1308,27 @@ function renderRemix(){
 function rxMsg(t,err){const m=$('#rxMsg');m.textContent=t||'';m.classList.toggle('err',!!err);}
 function renderRxBoard(){
   const ab=$('#rxAB'),I=RX.prev>=0?RX.ideas[RX.prev]:null;
-  if(I){ab.hidden=false;ab.innerHTML='<b>'+esc(I.mv.name)+'</b><span class="seg" role="group" aria-label="Compare"><button type="button" data-ab="a" aria-pressed="'+(RX.ab==='a')+'">'+esc(T.rx.orig)+'</button><button type="button" data-ab="b" aria-pressed="'+(RX.ab==='b')+'">'+esc(T.rx.idea)+'</button></span>'
+  if(I){ab.hidden=false;ab.innerHTML='<b>'+esc(ideaName(I))+'</b><span class="seg" role="group" aria-label="Compare"><button type="button" data-ab="a" aria-pressed="'+(RX.ab==='a')+'">'+esc(T.rx.orig)+'</button><button type="button" data-ab="b" aria-pressed="'+(RX.ab==='b')+'">'+esc(T.rx.idea)+'</button></span>'
     +'<button type="button" class="act pri" data-keep="1">'+esc(T.rx.keep)+'</button><button type="button" class="act" data-close="1">'+esc(T.rx.close)+'</button>';}
   else{ab.hidden=true;ab.innerHTML='';}
   $('#rxDgs').innerHTML=CUR&&CUR.box==='#rxDgs'?diagrams(CUR.R,CUR.V):'';}
+/* naam en soort van een idee (zet of approach-route) */
+const ideaName=x=>x.kind==='ap'?(x.all?T.rx.apAll(T.map.routes[x.route]):T.rx.apName(T.map.routes[x.route],x.tsym)):x.mv.name;
+const ideaFam=x=>x.kind==='ap'?T.rx.apFam:(x.mv.family||'');
+const ideaNote=x=>x.kind!=='ap'?'':x.all?esc(T.rx.apAllNote):esc(T.map.explain[x.route]).replace(/\{(ii|sii|V|sV|dim)\}/g,(m,k)=>'<b>'+esc(x.parts[k]||'')+'</b>').replace(/\{X\}/g,'<b>'+esc(x.tsym)+'</b>');
 function renderIdeas(){
   const mv=moveById(S.rx.only);
+  seg($('#rxKind'),Object.entries(T.rx.kinds),mv?'moves':S.rx.kind,'kind');
   $('#rxOnly').innerHTML=mv?'<span class="only"><span class="chip">'+esc(T.rx.only(mv.name))+'</span><button type="button" class="lnk" data-all="1">'+esc(T.rx.showAll)+'</button></span>':'<span class="cap">'+esc(RX.ideas.length?T.rx.count(RX.ideas.length):'')+'</span>';
   if(!RX.list.length){$('#rxIdeas').innerHTML='<li class="note">'+esc(T.rx.empty)+'</li>';return;}
   if(!RX.ideas.length){$('#rxIdeas').innerHTML='<li class="note">'+esc(T.rx.none)+'</li>';return;}
-  $('#rxIdeas').innerHTML=RX.ideas.map((x,k)=>'<li class="idea'+(k===RX.prev?' on':'')+'"><div class="ih"><b>'+esc(x.mv.name)+'</b><span class="fam">'+esc(x.mv.family||'')+'</span><button type="button" class="lnk" data-open="'+esc(x.mv.id)+'">'+esc(T.rx.about)+'</button></div>'
-    +'<div class="prog">'+x.chords.map(chip).join('')+'</div><div class="ia"><button type="button" class="act'+(k===RX.prev?' pri':'')+'" data-try="'+k+'">'+esc(k===RX.prev?T.rx.trying:T.rx.try)+'</button></div></li>').join('');}
+  $('#rxIdeas').innerHTML=RX.ideas.map((x,k)=>'<li class="idea'+(k===RX.prev?' on':'')+'"><div class="ih"><b>'+esc(ideaName(x))+'</b><span class="fam">'+esc(ideaFam(x))+'</span>'
+    +(x.kind==='ap'?'<button type="button" class="lnk" data-map="1">'+esc(T.rx.inMap)+'</button>':'<button type="button" class="lnk" data-open="'+esc(x.mv.id)+'">'+esc(T.rx.about)+'</button>')+'</div>'
+    +'<div class="prog">'+x.chords.map(chip).join('')+'</div>'+(x.kind==='ap'&&k===RX.prev?'<p class="note" style="grid-column:1">'+ideaNote(x)+'</p>':'')+'<div class="ia"><button type="button" class="act'+(k===RX.prev?' pri':'')+'" data-try="'+k+'">'+esc(k===RX.prev?T.rx.trying:T.rx.try)+'</button></div></li>').join('');}
 function rxUpdate(keepPrev){if(!keepPrev)RX.prev=-1;RX.ab='b';rxCompute();renderRemix();}
 function rxTry(k){RX.prev=k===RX.prev?-1:k;RX.ab='b';rxCur();act();renderRxBoard();renderIdeas();}
 function rxKeep(){const I=RX.ideas[RX.prev];if(!I)return;S.rx.undo=S.rx.text;S.rx.text=chordText(I.chords);S.rx.src='draft';
-  prog(I.mv.id).u=1;logMove(I.mv.name);act();save();rxUpdate();renderNav();rxMsg(T.rx.kept(I.mv.name));}
+  if(I.mv)prog(I.mv.id).u=1;logMove(I.mv?I.mv.name:T.map.title);act();save();rxUpdate();renderNav();rxMsg(T.rx.kept(ideaName(I)));}
 function rxLoadSrc(v){const[kind,id]=v.split(':');
   if(kind==='mine'){const m=S.mine.find(x=>x.id===id);if(m){S.rx.text=m.text;S.rx.name=m.name;S.rx.key=m.key||'auto';}}
   else if(kind==='st'){const p=stProgs().find(x=>x.id===id);if(p){S.rx.text=stText(p);S.rx.name=p.name||'';S.rx.key='auto';S.rx.tempo=Math.min(200,Math.max(40,+p.tempo||S.rx.tempo));}}
@@ -1268,7 +1339,7 @@ function rxSave(){const name=$('#rxName').value.trim().slice(0,60)||T.rx.untitle
   S.rx.src='mine:'+m.id;save();renderRemix();rxMsg(T.rx.saved(name));}
 function rxDelete(){const id=S.rx.src.slice(5);S.mine=S.mine.filter(x=>x.id!==id);S.rx.src='draft';save();renderRemix();rxMsg(T.rx.deleted);}
 function rxToScale(){if(!CUR||CUR.box!=='#rxDgs')return;stopPlay();const list=RX.prev>=0&&RX.ab==='b'?RX.ideas[RX.prev].chords:RX.list;
-  const name=(S.rx.name||T.rx.untitled)+(RX.prev>=0&&RX.ab==='b'?' · '+RX.ideas[RX.prev].mv.name:'');
+  const name=(S.rx.name||T.rx.untitled)+(RX.prev>=0&&RX.ab==='b'?' · '+ideaName(RX.ideas[RX.prev]):'');
   act();save();logDirty=true;logSave();
   location.href='toonladder-trainer.html#add='+encodeURIComponent(JSON.stringify({name,chords:chordText(list),tempo:S.rx.tempo}));}
 function openRemix(only){stopPlay();S.view='remix';if(only!==undefined)S.rx.only=only;save();act();render();window.scrollTo&&window.scrollTo({top:0});}
@@ -1346,7 +1417,7 @@ function reLabel(){save();if(S.view==='remix')renderRxBoard();else if(S.view==='
 
 /* ═══════════ 6. START ═══════════ */
 function bind(){
-  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();applyTheme();});
+  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
   $('#btnBack').addEventListener('click',openLib);
   $('#btnPrev').addEventListener('click',()=>step(-1));$('#btnNext').addEventListener('click',()=>step(1));
   $('#btnSurprise').addEventListener('click',surprise);
@@ -1395,7 +1466,8 @@ function bind(){
   $('#rxUndo').addEventListener('click',()=>{if(S.rx.undo==null)return;S.rx.text=S.rx.undo;S.rx.undo=null;save();rxUpdate();});
   $('#rxST').addEventListener('click',rxToScale);
   $('#rxIdeas').addEventListener('click',e=>{const t=e.target.closest('[data-try]'),o=e.target.closest('[data-open]');
-    if(t)rxTry(+t.dataset.try);else if(o)openMove(o.dataset.open);});
+    if(t)rxTry(+t.dataset.try);else if(o)openMove(o.dataset.open);else if(e.target.closest('[data-map]'))openMap();});
+  $('#rxKind').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(!b)return;S.rx.kind=b.dataset.kind;S.rx.only=null;save();rxUpdate();});
   $('#rxOnly').addEventListener('click',e=>{if(e.target.closest('[data-all]')){S.rx.only=null;save();rxUpdate();}});
   $('#rxAB').addEventListener('click',e=>{const a=e.target.closest('[data-ab]');
     if(a){RX.ab=a.dataset.ab;rxCur();renderRxBoard();return;}
@@ -1406,7 +1478,9 @@ function bind(){
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
     if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(PL)stopPlay();else playStart('full');}
     else if(S.view==='move'&&e.key==='ArrowRight'){e.preventDefault();step(1);}else if(S.view==='move'&&e.key==='ArrowLeft'){e.preventDefault();step(-1);}});
-  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();});
+  /* een link naar een zet (#minor-four), #remix of #map terwijl de pagina al open is */
+  addEventListener('hashchange',()=>{const h=decodeURIComponent((location.hash||'').slice(1));if(moveById(h))openMove(h);else if(h==='remix')openRemix();else if(h==='map')openMap();});
+  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;save();applyTheme();}}});
   $('#keysHint').textContent=T.keysHint;}
 function init(){applyWood();bind();
   /* direct naar een zet: chord-moves.html#minor-four, of naar Remix: chord-moves.html#remix */

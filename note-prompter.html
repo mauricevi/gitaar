@@ -334,6 +334,10 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)),read(
   const v=s.voice&&typeof s.voice==='object'?s.voice:{};s.voice={on:v.on===true,name:typeof v.name==='string'?v.name:'',rate:Math.min(1.4,Math.max(.7,+v.rate||1)),vol:Math.min(1,Math.max(.2,+v.vol||1))};
   return s;}
 let S=load();
+/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
+const THEMEKEY='practiceRoom.theme';
+(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;else try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}})();
+addEventListener('storage',e=>{if(e.key!==THEMEKEY)return;const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;save();applyTheme();}});
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
 /* ── oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden,n:opdrachten}} ── */
@@ -575,7 +579,7 @@ function init(){
   $('#stage').addEventListener('click',()=>act('next'));
   $('#btnSetup').addEventListener('click',()=>{S.setup=!S.setup;save();renderSetup();});
   $('#btnFs').addEventListener('click',toggleFs);
-  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();applyTheme();});
+  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
   if(S.midiOn&&navigator.requestMIDIAccess)midiInit(false);else if(!navigator.requestMIDIAccess)midiErr='nosupport';
   renderPedal();$('#stage').focus();}
 init();
