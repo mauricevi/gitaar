@@ -20,7 +20,7 @@
 :root{
   --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
   --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
-  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--ok:#1e7b34;--okbg:rgba(52,199,89,.15);--sh:0 1px 2px rgba(0,0,0,.04);
+  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--ok:#1e7b34;--okbg:rgba(52,199,89,.15);--err:#c4302b;--sh:0 1px 2px rgba(0,0,0,.04);
   --hi:#ff9f0a;--hitx:#a65300;--hibg:rgba(255,159,10,.15);
   /* hout (wordt door JS overschreven met de gekozen houtsoort) */
   --wd1:#3e2518;--wfret:rgba(205,198,186,.42);--wnut:#d9d3c7;--wstr:#d6cfc1;--wdot:#f5efe6;--wdtx:#1c1c1e;--wmut:rgba(245,239,230,.55);
@@ -29,12 +29,12 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
   --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--sh:none;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
   --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
   --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--sh:none;
+  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
   --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -159,7 +159,7 @@ svg .fn{fill:var(--mut);font:600 10px ui-monospace,"SF Mono",Menlo,monospace} sv
 .rxin textarea:focus{outline:3px solid var(--ac);outline-offset:1px}
 .rxrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rxrow input[type=text]{flex:1;min-width:160px;min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 10px}
-.err{color:#c4302b}
+.err{color:var(--err)}
 .abar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:14px;padding:10px 12px;border-radius:14px;background:var(--hibg)}
 .abar b{font-size:14px}
 .dg.chg .sym{color:var(--hitx)}
@@ -989,6 +989,9 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)|
   if(!LIB.some(m=>m.id===s.cur)){s.cur=null;if(s.view==='move')s.view='lib';}
   return s;}
 let S=load();
+/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
+const THEMEKEY='practiceRoom.theme';
+(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;else try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}summary();}
 const prog=id=>S.prog[id]||(S.prog[id]={h:0,p:0,u:0,k:[]});
 const stagesOf=id=>{const p=S.prog[id]||{};return{h:!!p.h,p:!!p.p,m:(p.k||[]).length>=3,u:!!p.u};};
@@ -1346,7 +1349,7 @@ function reLabel(){save();if(S.view==='remix')renderRxBoard();else if(S.view==='
 
 /* ═══════════ 6. START ═══════════ */
 function bind(){
-  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();applyTheme();});
+  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
   $('#btnBack').addEventListener('click',openLib);
   $('#btnPrev').addEventListener('click',()=>step(-1));$('#btnNext').addEventListener('click',()=>step(1));
   $('#btnSurprise').addEventListener('click',surprise);
@@ -1406,7 +1409,7 @@ function bind(){
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
     if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(PL)stopPlay();else playStart('full');}
     else if(S.view==='move'&&e.key==='ArrowRight'){e.preventDefault();step(1);}else if(S.view==='move'&&e.key==='ArrowLeft'){e.preventDefault();step(-1);}});
-  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();});
+  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;save();applyTheme();}}});
   $('#keysHint').textContent=T.keysHint;}
 function init(){applyWood();bind();
   /* direct naar een zet: chord-moves.html#minor-four, of naar Remix: chord-moves.html#remix */

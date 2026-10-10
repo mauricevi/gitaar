@@ -225,6 +225,12 @@ details.panel[open]>summary::after{transform:rotate(90deg)}
 .tr .act{min-height:36px}
 .tempo{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);background:var(--fill);border-radius:9px;padding:0 4px 0 10px}
 .tempo input{width:4.2rem;border:0;background:transparent;text-align:right;font-weight:600}
+/* BPM-velden: slepen omhoog/omlaag verandert het tempo; klikken zonder slepen = typen */
+input[data-drag]{cursor:ns-resize;touch-action:none;-moz-appearance:textfield;appearance:textfield}
+input[data-drag]::-webkit-inner-spin-button,input[data-drag]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[data-drag]:focus{cursor:text}
+.tempo:has(input[data-drag])::before{content:"↕";font-size:12px;opacity:.6}
+body.dragnum,body.dragnum *{cursor:ns-resize!important;user-select:none;-webkit-user-select:none}
 .trn{padding:0 2px;gap:2px}
 .seg.so{flex-wrap:wrap}
 .grpt .info{margin-left:6px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--link);background:none;color:var(--link);font:italic 700 11px/1 Georgia,serif;text-transform:none;vertical-align:-3px;cursor:pointer;padding:0}
@@ -493,7 +499,7 @@ dialog.sheet::backdrop{background:rgba(0,0,0,.35)}
           <div class="grp"><textarea id="shChords" rows="3" spellcheck="false" autocomplete="off"></textarea><div class="sherr" id="shErr" role="status"></div></div>
           <p class="cap" style="margin:8px 4px 0" data-t="sheet.help"></p></div>
         <div><h3 data-t="sheet.preview">Preview · suggested scales</h3><div class="prev" id="shPrev"></div><p class="cap" id="shKeys" style="margin:6px 4px 0"></p></div>
-        <div><h3><label for="shTempo" data-t="sheet.tempo">Tempo</label></h3><div class="grp shtempo"><input type="number" id="shTempo" min="40" max="240"> BPM</div></div>
+        <div><h3><label for="shTempo" data-t="sheet.tempo">Tempo</label></h3><div class="grp shtempo"><input type="number" id="shTempo" min="40" max="240" data-drag title="Drag up or down, or click to type"> BPM</div></div>
       </div>
     </dialog>
     <!-- uitleg: toonladders vanaf een andere noot (superimposities) -->
@@ -2144,7 +2150,7 @@ function renderHead(){
     +'<span class="beats" id="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>'
     +'<span class="bandw"><button type="button" class="act" data-a="band" aria-expanded="'+bandOpen+'">'+esc(PT.band)+' ▾</button>'+(bandOpen?bandPop():'')+'</span>'
     +'<button type="button" class="act" data-a="loop" aria-pressed="'+state.pv.loop+'">↻ '+esc(PT.loop)+'</button>'
-    +'<label class="tempo"><input type="number" id="pTempo" min="40" max="240" value="'+p.tempo+'" aria-label="Tempo"> BPM</label>'
+    +'<label class="tempo" title="Drag up or down, or click to type"><input type="number" id="pTempo" min="40" max="240" value="'+p.tempo+'" aria-label="Tempo" data-drag> BPM</label>'
     +'<span class="tempo trn" role="group" aria-label="'+esc(PT.trans)+'"><button type="button" data-a="tr" data-v="-1" title="'+esc(PT.transDown)+'" aria-label="'+esc(PT.transDown)+'">−</button><span>'+esc(PT.trans)
       +(p.trans?' <b>'+(p.trans>0?'+':'−')+Math.abs(p.trans)+'</b>':'')+'</span><button type="button" data-a="tr" data-v="1" title="'+esc(PT.transUp)+'" aria-label="'+esc(PT.transUp)+'">+</button></span>'
     +'<button type="button" class="act" data-a="edit" aria-pressed="'+editing+'">'+esc(editing?PT.done:PT.edit)+'</button>';
@@ -2416,6 +2422,8 @@ function bindProgUI(){
   $('#btnNew').addEventListener('click',()=>openSheet('new'));
   document.addEventListener('click',e=>{if(bandOpen&&!e.target.closest('.bandw')){bandOpen=false;if(D&&D.prog)renderHead();}});
   document.querySelector('main').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&(b.closest('#progBar,#progCard,#insp')||(b.closest('#formMap'))))act(b.dataset.a,b,e);});
+  /* tijdens het slepen meteen het nieuwe tempo laten horen (de band leest het tempo per tel) */
+  document.querySelector('main').addEventListener('input',e=>{const t=e.target,p=curProg();if(p&&t.id==='pTempo'&&t.value!=='')p.tempo=clamp(t.value,40,240);});
   document.querySelector('main').addEventListener('change',e=>{const t=e.target,p=curProg();if(!p)return;
     if(t.id==='pTempo'){p.tempo=clamp(t.value,40,240);update();}
     else if(t.id==='pName'){p.name=t.value.trim().slice(0,80)||PT.untitled;update();}
@@ -3115,8 +3123,30 @@ function importFromLink(){
   if(['swing','bossa','ballad'].includes(d.style))state.pv.band.style=d.style;
   state.view.prog=p.id;state.view.sel=0;state.view.mode='prog';}
 
+/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
+const THEMEKEY='practiceRoom.theme';
+function readTheme(){try{const t=JSON.parse(localStorage.getItem(THEMEKEY)||'null');return['auto','light','dark'].includes(t)?t:null;}catch(e){return null;}}
+function writeTheme(){try{localStorage.setItem(THEMEKEY,JSON.stringify(state.theme));}catch(e){}}
+
+/* Getalvelden met data-drag (BPM): slepen omhoog = sneller, omlaag = langzamer (1 BPM per 4 pixels, met Shift 5 per stap);
+   scrollen erboven werkt ook. Klikken zonder te slepen opent het veld om te typen. */
+function bindDragNumbers(){let D=null;
+  const set=(el,v)=>{v=clamp(v,+el.min||0,+el.max||999);if(+el.value!==v){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));}};
+  document.addEventListener('pointerdown',e=>{const el=e.target.closest('input[data-drag]');if(!el||e.button>0||document.activeElement===el)return;
+    D={el,y:e.clientY,v:+el.value||+el.min||0,moved:false,id:e.pointerId};e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(x){}});
+  document.addEventListener('pointermove',e=>{if(!D||e.pointerId!==D.id)return;const dy=D.y-e.clientY;if(!D.moved&&Math.abs(dy)<4)return;
+    D.moved=true;document.body.classList.add('dragnum');set(D.el,Math.round(D.v+dy/4*(e.shiftKey?5:1)));});
+  const end=e=>{if(!D||e.pointerId!==D.id)return;const d=D;D=null;document.body.classList.remove('dragnum');
+    if(d.moved)d.el.dispatchEvent(new Event('change',{bubbles:true}));else{d.el.focus();d.el.select();}};
+  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+  let wt=null;
+  document.addEventListener('wheel',e=>{const el=e.target.closest&&e.target.closest('input[data-drag]');if(!el)return;e.preventDefault();
+    set(el,(+el.value||0)+(e.deltaY<0?1:-1)*(e.shiftKey?5:1));clearTimeout(wt);wt=setTimeout(()=>el.dispatchEvent(new Event('change',{bubbles:true})),400);},{passive:false});}
+
 function init(){
   state=load();
+  bindDragNumbers();
+  {const t=readTheme();if(t)state.theme=t;else writeTheme();}
   importFromLink();
   if(!readSharedWood()&&state.set.wood==='custom') writeSharedWood();   /* oude eigen houtkleur doorgeven aan de andere tools */
   applyText();
@@ -3124,7 +3154,7 @@ function init(){
   buildSettings();
   bindBoardUI();
   bindProgUI();
-  $('#btnTheme').addEventListener('click',()=>{state.theme=state.theme==='auto'?'light':(state.theme==='light'?'dark':'auto');update();});
+  $('#btnTheme').addEventListener('click',()=>{state.theme=state.theme==='auto'?'light':(state.theme==='light'?'dark':'auto');writeTheme();update();});
   $('#btnSet').addEventListener('click',()=>{const p=$('#panelSet');p.open=true;p.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});
   let armed=false,timer=null;
   $('#btnReset').addEventListener('click',()=>{
@@ -3137,7 +3167,8 @@ function init(){
     setTimeout(()=>{msg.textContent='';},2500);
   });
   /* houtkleur gewijzigd in een andere tool of tabblad */
-  addEventListener('storage',e=>{if(e.key===SHARED){readSharedWood();applyWood();woodSel();}});
+  addEventListener('storage',e=>{if(e.key===SHARED){readSharedWood();applyWood();woodSel();}
+    if(e.key===THEMEKEY){const t=readTheme();if(t&&t!==state.theme){state.theme=t;update();}}});
   /* in een ingesloten weergave (zoals een artifact) leidt de zijbalk nergens heen */
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
   update();
