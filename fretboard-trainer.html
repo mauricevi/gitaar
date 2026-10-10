@@ -530,7 +530,7 @@ const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 function hydrate(r){r=obj(r);const set={...DEF,...obj(r.settings)};
   if(!Array.isArray(set.strings)||set.strings.length!==6)set.strings=[...DEF.strings];
   ['mood','petPos','petStage'].forEach(k=>delete set[k]);   // maatje bestaat niet meer
-  return{settings:set,stats:obj(r.stats),srs:obj(r.srs),day:r.day&&typeof r.day.d==='number'?r.day:{d:0,newN:0},off:+r.off||0,rec:{streak:0,...obj(r.rec)}};}
+  return{settings:set,stats:obj(r.stats),srs:obj(r.srs),day:r.day&&typeof r.day.d==='number'?r.day:{d:0,newN:0},off:+r.off||0,maxSt:Math.max(0,+r.maxSt||0),rec:{streak:0,...obj(r.rec)}};}
 let store=hydrate({});
 try{const raw=localStorage.getItem(KEY);if(raw){try{store=hydrate(JSON.parse(raw));}
   catch(e){localStorage.setItem(KEY+'.bad',raw);}}}catch(e){}   // onleesbare data niet stil overschrijven
@@ -616,9 +616,11 @@ function dayCheck(){if(store.day.d!==today())store.day={d:today(),newN:0};}
 function migrateSrs(){Object.entries(store.stats).forEach(([k,t])=>dirs.forEach(d=>{const h=t['h'+d[0]],key=k+':'+d;
   if(h&&h.length&&!store.srs[key])store.srs[key]={box:h.length>=3&&h.slice(-3).every(x=>x[0])?1:0,due:today(),lapses:0,g:h[h.length-1][0]?2:0};}));}
 dayCheck();migrateSrs();save();
-const isKnown=(s,pc,d)=>{const e=store.srs[s+':'+pc+':'+d];return !!e&&e.g>=2;};
-function autoStage(){for(let i=0;i<STAGES.length-1;i++){const it=ORDER.filter(x=>x.st===i);let n=0;
-  it.forEach(x=>dirs.forEach(d=>{if(isKnown(x.s,x.pc,d))n++;}));if(n<.8*it.length*dirs.length)return i;}return STAGES.length-1;}
+const isKnown=(s,pc,d)=>{const e=store.srs[s+':'+pc+':'+d];return !!e&&e.g>=1;};   // Hard (goed maar traag) telt ook als gekend
+/* Stage zakt nooit terug: hoogst bereikte stap wordt onthouden in store.maxSt */
+function autoStage(){let i=0;for(;i<STAGES.length-1;i++){const it=ORDER.filter(x=>x.st===i);let n=0;
+  it.forEach(x=>dirs.forEach(d=>{if(isKnown(x.s,x.pc,d))n++;}));if(n<.8*it.length*dirs.length)break;}
+  if(i>store.maxSt){store.maxSt=i;save();}return Math.max(i,store.maxSt);}
 const curStage=()=>cfg().stageSet!=null?Math.min(cfg().stageSet,STAGES.length-1):autoStage();
 function smartItems(){const cur=curStage();return ORDER.filter(x=>x.st<=cur).flatMap(x=>dirs.map(d=>({...x,d,k:x.s+':'+x.pc+':'+d,fm:fmax(x.s,cur)})));}
 const dueKeys=()=>{const cs=curStage();return Object.keys(store.srs).filter(k=>{const[s,pc]=k.split(':');return store.srs[k].due<=today()&&!sess.seen[k]&&STG.get(s+':'+pc)<=cs;});};
@@ -977,7 +979,7 @@ $('#btnSess').onclick=resetSess;
 let armAll=null;
 $('#btnAll').onclick=function(){const b=this;
   if(!armAll){b.textContent=T.clearSure;armAll=setTimeout(()=>{armAll=null;b.textContent=T.clearAll;},4000);return;}
-  clearTimeout(armAll);armAll=null;b.textContent=T.clearAll;store.stats={};store.srs={};store.day={d:0,newN:0};store.off=0;store.rec={streak:0};save();resetSess();restart();};
+  clearTimeout(armAll);armAll=null;b.textContent=T.clearAll;store.stats={};store.srs={};store.day={d:0,newN:0};store.off=0;store.maxSt=0;store.rec={streak:0};save();resetSess();restart();};
 const tip=$('#tip');
 $('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.cell');
   if(!c||!c._tip){tip.style.display='none';return;}
