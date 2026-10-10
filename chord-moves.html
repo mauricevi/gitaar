@@ -275,7 +275,7 @@ svg .dm{opacity:.35}
         </div>
       </section>
       <section class="card" aria-label="Ideas">
-        <div class="rxrow" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ideas for your progression</h3><span id="rxOnly"></span></div>
+        <div class="rxrow" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ideas for your progression</h3><span class="rxrow"><span class="seg" id="rxKind" role="group" aria-label="Kind of ideas"></span><span id="rxOnly"></span></span></div>
         <ul class="ideas" id="rxIdeas"></ul>
       </section>
     </div>
@@ -611,9 +611,10 @@ const T={
   rx:{title:'Remix',sub:'Put a move into your own progression, one change at a time.',draft:'Draft',savedL:'Saved',fromST:'From the Scale Trainer',
     auto:k=>`Auto (${k})`,empty:'Type a progression above, for example C G Am F, and ideas from the moves appear here.',
     none:'No move fits this progression yet. Try longer chords (2 bars), another key, or a progression with a IV, V or vi.',
-    bad:l=>`Not recognised (left out): ${l}.`,saved:n=>`Saved as “${n}”.`,deleted:'Deleted.',kept:n=>`Kept the idea from ${n}. Undo brings back your progression.`,
+    bad:l=>`Not recognised (left out): ${l}.`,saved:n=>`Saved as “${n}”.`,deleted:'Deleted.',kept:n=>`Kept: ${n}. Undo brings back your progression.`,
     orig:'Your progression',idea:'Idea',keep:'Keep this idea',close:'Back to my progression',trying:'Trying',try:'Try',about:'About this move',
-    only:n=>`Only ideas from ${n}`,showAll:'Show all',count:n=>`${n} idea${n===1?'':'s'}`,stHint:'Your progressions from the Scale Trainer are not visible here; in Safari or Firefox, open the files from the same folder or type the chords.',
+    only:n=>`Only ideas from ${n}`,kinds:{all:'All',moves:'Moves',ap:'Approaches'},apName:(r,t)=>`${r} → ${t}`,apAll:r=>`${r} into every chord`,apFam:'Approach',
+    apAllNote:'The same approach before every chord of your progression. Each chord gives up some of its time.',apOpts:'ii and dominant colour: set in the Approach map.',inMap:'Approach map',showAll:'Show all',count:n=>`${n} idea${n===1?'':'s'}`,stHint:'Your progressions from the Scale Trainer are not visible here; in Safari or Firefox, open the files from the same folder or type the chords.',
     untitled:'My progression'},
   tryRemix:'Try in Remix',
   map:{title:'Approach map',sub:'Every chord of the key, and four ways to lead into it.',
@@ -934,6 +935,37 @@ function approachBox(keyName,t,o){o=o||{};const key=parseKey(keyName)||parseKey(
 const ROUTE_PARTS={'ii-V':['ii','V'],'ii-subV':['ii','sV'],'subii-V':['sii','V'],'subii-subV':['sii','sV'],'V':['V'],'subV':['sV'],'dim':['dim']};
 function approachList(keyName,t,route,o){const B=approachBox(keyName,t,o),parts=ROUTE_PARTS[route]||ROUTE_PARTS['ii-V'];
   return{key:B.key,box:B,list:parts.map(p=>Object.assign({bass:null,bars:1},B[p])).concat([Object.assign({bass:null,bars:2},B.X)])};}
+/* ── approach-routes als Remix-ideeën: dezelfde vier aanloopakkoorden, maar naar elk akkoord van JOUW progressie ──
+   De aanloop krijgt de tijd van het akkoord ervoor: duurt dat 2 maten of meer, dan houdt het 1 maat minder;
+   duurt het 1 maat, dan deelt het (één aanloopakkoord: ½ + ½) of wordt het vervangen (ii–V: twee halve maten).
+   Het eerste akkoord krijgt zijn aanloop van het laatste (de terugweg naar het begin). */
+function approachChords(target,route,o){o=o||{};const X=target.root,minorT=['min','hd'].includes(FAM[target.q]),col=o.dom==='colour',iiQ=minorT&&o.ii!=='m7'?'m7b5':'m7';
+  const C={ii:{root:upN(X,1,2),q:iiQ},sii:{root:upN(X,5,8),q:iiQ},V:{root:upN(X,4,7),q:col?(minorT?'7b9':'13'):'7'},sV:{root:upN(X,1,1),q:col?'7s11':'7'},dim:{root:upN(X,6,11),q:'dim7'}};
+  return(ROUTE_PARTS[route]||[]).map(p=>Object.assign({bass:null,chg:true,part:p},C[p]));}
+function withApproaches(list,targets,route,o){const n=list.length;if(n<2)return null;
+  const give=new Map();   /* donor-index → aanloopakkoorden met hun duur, en wat de donor overhoudt */
+  for(const t of targets){const di=mod(t-1,n),d=list[di],ap=approachChords(list[t],route,o),b=d.bars;let keep,each;
+    if(ap.length===2){if(b>=2){keep=b-1;each=.5;}else if(b===1){keep=0;each=.5;}else continue;}
+    else{if(b>=2){keep=b-1;each=1;}else if(b===1){keep=.5;each=.5;}else{keep=0;each=.5;}}
+    if(keep===0&&targets.size>1&&targets.has(di))continue;   /* bij "elk akkoord": geen doel wegvervangen */
+    if(!BARS.includes(keep)&&keep!==0)continue;
+    give.set(di,{keep,ap:ap.map(a=>Object.assign(a,{bars:each}))});}
+  if(!give.size)return null;
+  const out=[];let lead=null;
+  list.forEach((c,i)=>{const g=give.get(i);
+    if(!g){out.push(Object.assign({},c,{chg:false}));return;}
+    if(g.keep)out.push(Object.assign({},c,{bars:g.keep,chg:false}));
+    if(i===n-1&&mod(i+1,n)===0&&targets.has(0))lead=g.ap;else out.push(...g.ap);});
+  if(lead)out.push(...lead);   /* aanloop naar het eerste akkoord staat aan het eind (de lus begint weer) */
+  return out;}
+function approachIdeas(list,key,o){const out=[],n=list.length,same=(x,y)=>x&&y&&nPc(x.root)===nPc(y.root);   /* geen aanloop naast een akkoord met dezelfde grondtoon (Dm → Dm7) */
+  if(n<2)return out;
+  const ok=r=>r&&!r.some((c,k)=>c.chg&&(same(c,r[k-1])||same(c,r[k+1])||k===r.length-1&&same(c,r[0])));
+  ROUTES.forEach(route=>{
+    for(let t=0;t<n;t++){const r=withApproaches(list,new Set([t]),route,o);if(ok(r))out.push({kind:'ap',route,target:t,tsym:nName(list[t].root)+QUAL[list[t].q].sym,chords:r,text:chordText(r),
+      parts:Object.fromEntries(['ii-V','subii-subV','dim'].flatMap(x=>approachChords(list[t],x,o)).map(a=>[a.part,nName(a.root)+QUAL[a.q].sym]))});}
+    if(n>=3){const r=withApproaches(list,new Set(list.map((c,i)=>i)),route,o);if(ok(r)&&r.filter(c=>c.chg).length>ROUTE_PARTS[route].length)out.push({kind:'ap',route,all:true,chords:r,text:chordText(r)});}});
+  return out;}
 /* guide tones: terts en septiem (of sext / sus-noot / kwint als er geen septiem is) */
 function guideIv(q){const iv=QUAL[q].iv.map(x=>mod(x,12)),pick=(...l)=>l.find(x=>iv.includes(x));
   return[pick(4,3,5,2),pick(10,11,9,7)].filter(x=>x!=null);}
@@ -963,7 +995,7 @@ const LIB=(typeof MOVES!=='undefined'&&Array.isArray(MOVES)?MOVES:[]).filter((mv
 const STYLES=['pop','soul','jazz','modal'];
 
 const API={QUAL,parseRoman,compile,realize,candidates,voiceLead,LIB,PROBLEMS,ivLab,toneName,nName,KEYS_MAJ,KEYS_MIN,keyList,
-  parseSym,parseProg,detectKey,parseKey,keyName,progR,parseRule,applyRule,ideasFor,chordText,approachBox,approachList,guideLine,guideIv,ROUTES};
+  parseSym,parseProg,detectKey,parseKey,keyName,progR,parseRule,applyRule,ideasFor,chordText,approachBox,approachList,guideLine,guideIv,ROUTES,approachIdeas,withApproaches};
 if(typeof module!=='undefined'&&module.exports){module.exports=API;}
 if(typeof document==='undefined'||!document.getElementById('vMove'))return;
 
@@ -971,7 +1003,7 @@ if(typeof document==='undefined'||!document.getElementById('vMove'))return;
 const KEY='chordMoves.v1',LOGKEY='chordMoves.log',SUMKEY='practiceRoom.movesSum',SHARED='practiceRoom.board';
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 const DEF={theme:'auto',view:'lib',cur:null,style:'all',mood:'any',set:'barre',pos:'mid',labels:'int',loop:true,bass:true,keys:{},tempo:{},prog:{},
-  mine:[],rx:{src:'draft',text:'C G Am F',name:'',key:'auto',tempo:96,undo:null,only:null},
+  mine:[],rx:{src:'draft',text:'C G Am F',name:'',key:'auto',tempo:96,undo:null,only:null,kind:'all'},
   map:{key:'C',t:1,route:'ii-V',ii:'hd',dom:'plain',tempo:100}};   /* map = Approach map */   /* mine = je bewaarde progressies voor Remix */
 function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)||{});
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';s.view=['move','remix','map'].includes(s.view)?s.view:'lib';
@@ -979,7 +1011,7 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)|
     ii:mp.ii==='m7'?'m7':'hd',dom:mp.dom==='colour'?'colour':'plain',tempo:Math.min(200,Math.max(40,+mp.tempo||100))};
   s.mine=Array.isArray(s.mine)?s.mine.filter(x=>x&&typeof x.id==='string'&&typeof x.text==='string').map(x=>({id:x.id,name:String(x.name||'').slice(0,60),text:x.text.slice(0,600),key:typeof x.key==='string'?x.key:'auto'})):[];
   const rx=s.rx&&typeof s.rx==='object'?s.rx:{};s.rx={src:typeof rx.src==='string'?rx.src:'draft',text:typeof rx.text==='string'?rx.text.slice(0,600):DEF.rx.text,name:typeof rx.name==='string'?rx.name.slice(0,60):'',
-    key:rx.key==='auto'||parseKey(rx.key)?rx.key:'auto',tempo:Math.min(200,Math.max(40,+rx.tempo||96)),undo:typeof rx.undo==='string'?rx.undo:null,only:LIB.some(m=>m.id===rx.only)?rx.only:null};
+    key:rx.key==='auto'||parseKey(rx.key)?rx.key:'auto',tempo:Math.min(200,Math.max(40,+rx.tempo||96)),undo:typeof rx.undo==='string'?rx.undo:null,only:LIB.some(m=>m.id===rx.only)?rx.only:null,kind:['all','moves','ap'].includes(rx.kind)?rx.kind:'all'};
   s.style=['all',...STYLES].includes(s.style)?s.style:'all';s.mood=Object.keys(T.moods).includes(s.mood)?s.mood:'any';
   s.set=Object.keys(T.sets).includes(s.set)?s.set:'barre';s.pos=Object.keys(T.pos).includes(s.pos)?s.pos:'mid';
   s.labels=Object.keys(T.lab).includes(s.labels)?s.labels:'int';s.loop=s.loop!==false;s.bass=s.bass!==false;
@@ -1220,7 +1252,9 @@ function stText(p){return p.sections.map(sec=>(sec.chords||[]).map(c=>String(c.s
 function rxCompute(){const P=parseProg(S.rx.text);RX.list=P.chords;RX.bad=P.bad;
   RX.key=S.rx.key==='auto'?(P.chords.length?detectKey(P.chords):parseKey('C')):parseKey(S.rx.key);
   RX.auto=P.chords.length?detectKey(P.chords):null;
-  RX.ideas=P.chords.length?ideasFor(P.chords,RX.key,S.rx.only):[];
+  const K=S.rx.only?'moves':S.rx.kind,mv=P.chords.length&&K!=='ap'?ideasFor(P.chords,RX.key,S.rx.only):[],seen=new Set([chordText(P.chords),...mv.map(x=>x.text)]);
+  const ap=P.chords.length&&K!=='moves'?approachIdeas(P.chords,RX.key,{ii:S.map.ii,dom:S.map.dom}).filter(x=>!seen.has(x.text)&&(seen.add(x.text),true)):[];
+  RX.ideas=mv.concat(ap);
   if(RX.prev>=RX.ideas.length)RX.prev=-1;rxCur();}
 function rxCur(){const show=RX.prev>=0&&RX.ab==='b'?RX.ideas[RX.prev].chords:RX.list;
   if(!show.length){CUR=null;return;}
@@ -1246,21 +1280,27 @@ function renderRemix(){
 function rxMsg(t,err){const m=$('#rxMsg');m.textContent=t||'';m.classList.toggle('err',!!err);}
 function renderRxBoard(){
   const ab=$('#rxAB'),I=RX.prev>=0?RX.ideas[RX.prev]:null;
-  if(I){ab.hidden=false;ab.innerHTML='<b>'+esc(I.mv.name)+'</b><span class="seg" role="group" aria-label="Compare"><button type="button" data-ab="a" aria-pressed="'+(RX.ab==='a')+'">'+esc(T.rx.orig)+'</button><button type="button" data-ab="b" aria-pressed="'+(RX.ab==='b')+'">'+esc(T.rx.idea)+'</button></span>'
+  if(I){ab.hidden=false;ab.innerHTML='<b>'+esc(ideaName(I))+'</b><span class="seg" role="group" aria-label="Compare"><button type="button" data-ab="a" aria-pressed="'+(RX.ab==='a')+'">'+esc(T.rx.orig)+'</button><button type="button" data-ab="b" aria-pressed="'+(RX.ab==='b')+'">'+esc(T.rx.idea)+'</button></span>'
     +'<button type="button" class="act pri" data-keep="1">'+esc(T.rx.keep)+'</button><button type="button" class="act" data-close="1">'+esc(T.rx.close)+'</button>';}
   else{ab.hidden=true;ab.innerHTML='';}
   $('#rxDgs').innerHTML=CUR&&CUR.box==='#rxDgs'?diagrams(CUR.R,CUR.V):'';}
+/* naam en soort van een idee (zet of approach-route) */
+const ideaName=x=>x.kind==='ap'?(x.all?T.rx.apAll(T.map.routes[x.route]):T.rx.apName(T.map.routes[x.route],x.tsym)):x.mv.name;
+const ideaFam=x=>x.kind==='ap'?T.rx.apFam:(x.mv.family||'');
+const ideaNote=x=>x.kind!=='ap'?'':x.all?esc(T.rx.apAllNote):esc(T.map.explain[x.route]).replace(/\{(ii|sii|V|sV|dim)\}/g,(m,k)=>'<b>'+esc(x.parts[k]||'')+'</b>').replace(/\{X\}/g,'<b>'+esc(x.tsym)+'</b>');
 function renderIdeas(){
   const mv=moveById(S.rx.only);
+  seg($('#rxKind'),Object.entries(T.rx.kinds),mv?'moves':S.rx.kind,'kind');
   $('#rxOnly').innerHTML=mv?'<span class="only"><span class="chip">'+esc(T.rx.only(mv.name))+'</span><button type="button" class="lnk" data-all="1">'+esc(T.rx.showAll)+'</button></span>':'<span class="cap">'+esc(RX.ideas.length?T.rx.count(RX.ideas.length):'')+'</span>';
   if(!RX.list.length){$('#rxIdeas').innerHTML='<li class="note">'+esc(T.rx.empty)+'</li>';return;}
   if(!RX.ideas.length){$('#rxIdeas').innerHTML='<li class="note">'+esc(T.rx.none)+'</li>';return;}
-  $('#rxIdeas').innerHTML=RX.ideas.map((x,k)=>'<li class="idea'+(k===RX.prev?' on':'')+'"><div class="ih"><b>'+esc(x.mv.name)+'</b><span class="fam">'+esc(x.mv.family||'')+'</span><button type="button" class="lnk" data-open="'+esc(x.mv.id)+'">'+esc(T.rx.about)+'</button></div>'
-    +'<div class="prog">'+x.chords.map(chip).join('')+'</div><div class="ia"><button type="button" class="act'+(k===RX.prev?' pri':'')+'" data-try="'+k+'">'+esc(k===RX.prev?T.rx.trying:T.rx.try)+'</button></div></li>').join('');}
+  $('#rxIdeas').innerHTML=RX.ideas.map((x,k)=>'<li class="idea'+(k===RX.prev?' on':'')+'"><div class="ih"><b>'+esc(ideaName(x))+'</b><span class="fam">'+esc(ideaFam(x))+'</span>'
+    +(x.kind==='ap'?'<button type="button" class="lnk" data-map="1">'+esc(T.rx.inMap)+'</button>':'<button type="button" class="lnk" data-open="'+esc(x.mv.id)+'">'+esc(T.rx.about)+'</button>')+'</div>'
+    +'<div class="prog">'+x.chords.map(chip).join('')+'</div>'+(x.kind==='ap'&&k===RX.prev?'<p class="note" style="grid-column:1">'+ideaNote(x)+'</p>':'')+'<div class="ia"><button type="button" class="act'+(k===RX.prev?' pri':'')+'" data-try="'+k+'">'+esc(k===RX.prev?T.rx.trying:T.rx.try)+'</button></div></li>').join('');}
 function rxUpdate(keepPrev){if(!keepPrev)RX.prev=-1;RX.ab='b';rxCompute();renderRemix();}
 function rxTry(k){RX.prev=k===RX.prev?-1:k;RX.ab='b';rxCur();act();renderRxBoard();renderIdeas();}
 function rxKeep(){const I=RX.ideas[RX.prev];if(!I)return;S.rx.undo=S.rx.text;S.rx.text=chordText(I.chords);S.rx.src='draft';
-  prog(I.mv.id).u=1;logMove(I.mv.name);act();save();rxUpdate();renderNav();rxMsg(T.rx.kept(I.mv.name));}
+  if(I.mv)prog(I.mv.id).u=1;logMove(I.mv?I.mv.name:T.map.title);act();save();rxUpdate();renderNav();rxMsg(T.rx.kept(ideaName(I)));}
 function rxLoadSrc(v){const[kind,id]=v.split(':');
   if(kind==='mine'){const m=S.mine.find(x=>x.id===id);if(m){S.rx.text=m.text;S.rx.name=m.name;S.rx.key=m.key||'auto';}}
   else if(kind==='st'){const p=stProgs().find(x=>x.id===id);if(p){S.rx.text=stText(p);S.rx.name=p.name||'';S.rx.key='auto';S.rx.tempo=Math.min(200,Math.max(40,+p.tempo||S.rx.tempo));}}
@@ -1271,7 +1311,7 @@ function rxSave(){const name=$('#rxName').value.trim().slice(0,60)||T.rx.untitle
   S.rx.src='mine:'+m.id;save();renderRemix();rxMsg(T.rx.saved(name));}
 function rxDelete(){const id=S.rx.src.slice(5);S.mine=S.mine.filter(x=>x.id!==id);S.rx.src='draft';save();renderRemix();rxMsg(T.rx.deleted);}
 function rxToScale(){if(!CUR||CUR.box!=='#rxDgs')return;stopPlay();const list=RX.prev>=0&&RX.ab==='b'?RX.ideas[RX.prev].chords:RX.list;
-  const name=(S.rx.name||T.rx.untitled)+(RX.prev>=0&&RX.ab==='b'?' · '+RX.ideas[RX.prev].mv.name:'');
+  const name=(S.rx.name||T.rx.untitled)+(RX.prev>=0&&RX.ab==='b'?' · '+ideaName(RX.ideas[RX.prev]):'');
   act();save();logDirty=true;logSave();
   location.href='toonladder-trainer.html#add='+encodeURIComponent(JSON.stringify({name,chords:chordText(list),tempo:S.rx.tempo}));}
 function openRemix(only){stopPlay();S.view='remix';if(only!==undefined)S.rx.only=only;save();act();render();window.scrollTo&&window.scrollTo({top:0});}
@@ -1398,7 +1438,8 @@ function bind(){
   $('#rxUndo').addEventListener('click',()=>{if(S.rx.undo==null)return;S.rx.text=S.rx.undo;S.rx.undo=null;save();rxUpdate();});
   $('#rxST').addEventListener('click',rxToScale);
   $('#rxIdeas').addEventListener('click',e=>{const t=e.target.closest('[data-try]'),o=e.target.closest('[data-open]');
-    if(t)rxTry(+t.dataset.try);else if(o)openMove(o.dataset.open);});
+    if(t)rxTry(+t.dataset.try);else if(o)openMove(o.dataset.open);else if(e.target.closest('[data-map]'))openMap();});
+  $('#rxKind').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(!b)return;S.rx.kind=b.dataset.kind;S.rx.only=null;save();rxUpdate();});
   $('#rxOnly').addEventListener('click',e=>{if(e.target.closest('[data-all]')){S.rx.only=null;save();rxUpdate();}});
   $('#rxAB').addEventListener('click',e=>{const a=e.target.closest('[data-ab]');
     if(a){RX.ab=a.dataset.ab;rxCur();renderRxBoard();return;}
