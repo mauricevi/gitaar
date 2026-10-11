@@ -9,8 +9,10 @@
    CHORD MOVES (Practice Room)
    Nieuwe akkoordprogressies leren, één zet tegelijk. Een zet is een klein harmonisch idee (de mineur-vier,
    een tritone sub, een dalende bas …) met voorbeeldnummers, voicings op de hals, afspelen en uitleg.
-   Indeling: zijbalk (apps + alle zetten) · kop · bibliotheek (Discover) of zetkaart (speler, uitleg, voortgang).
-   Zetten aanpassen of toevoegen: blok "JOUW ZETTEN" in het eerste <script>.
+   Indeling: zijbalk (apps, met daaronder de onderdelen Moves · Progressions · Remix · Approach map, en de zetten per stijl
+   in uitklapbare groepen) · kop · bibliotheek (Discover) of zetkaart (speler, uitleg, voortgang).
+   Progressions: een database met veelvoorkomende progressies, elk in meerdere versies (basis, kleurakkoorden, baslijn).
+   Zetten en progressies aanpassen of toevoegen: blokken "JOUW ZETTEN" en "JOUW PROGRESSIES" in het eerste <script>.
    Opslag: localStorage 'chordMoves.v1' (instellingen en voortgang), 'chordMoves.log' (oefentijd per dag,
    voor de kalender op Home) en 'practiceRoom.movesSum' (korte samenvatting voor Home).
    Remix: je eigen progressie (intypen, bewaren of uit de Scale Trainer halen) + ideeën uit de remix-regels van de zetten.
@@ -54,7 +56,25 @@ p{margin:0}
 .side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
 .side a:hover{background:var(--fill)}
 .side a.cur{font-weight:600;background:rgba(10,99,214,.13);color:var(--link)}
-.mvnav .gh{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut2);padding:12px 10px 3px}
+/* onderdelen van Chord Moves, ingesprongen onder de app-link */
+.subnav{display:grid;gap:1px;margin:2px 0 6px 19px;padding-left:8px;border-left:1px solid var(--sep)}
+.subnav button{display:flex;align-items:center;gap:9px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px}
+.subnav button:hover{background:var(--fill)}
+.subnav button svg{flex:none;color:var(--mut)}
+.subnav button[aria-current="true"]{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
+.subnav button[aria-current="true"] svg{color:currentColor}
+.subnav small{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut2);font-variant-numeric:tabular-nums}
+/* zetten per stijl, in- en uitklapbaar */
+.mvnav{gap:1px}
+.mvnav summary{display:flex;align-items:center;gap:6px;min-height:32px;padding:0 10px 0 6px;border-radius:9px;cursor:pointer;list-style:none;font-size:14px;font-weight:600}
+.mvnav summary::-webkit-details-marker{display:none}
+.mvnav summary:hover{background:var(--fill)}
+.mvnav summary:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.mvnav summary>svg{flex:none;color:var(--mut2);transition:transform .15s}
+.mvnav details[open]>summary>svg{transform:rotate(90deg)}
+.mvnav summary.has{color:var(--link)}
+.mvnav summary small{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut2);font-variant-numeric:tabular-nums}
+.mvnav details>div{display:grid;gap:1px;padding:1px 0 6px 12px}
 .mvnav button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:9px;background:none;text-align:left;font-size:14px}
 .mvnav button:hover{background:var(--fill)}
 .mvnav button[aria-current="true"]{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
@@ -211,8 +231,9 @@ svg .dm{opacity:.35}
       <a href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Scale Trainer</span></a>
       <a href="note-prompter.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
       <a class="cur" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14M10 3v18M14 3v18"/><circle cx="10" cy="12" r="1.4" fill="currentColor"/><circle cx="14" cy="15" r="1.4" fill="currentColor"/></svg><span>Chord Moves</span></a>
+      <div class="subnav" id="toolNav" role="group" aria-label="Chord Moves"></div>
     </nav>
-    <div class="sh2">Moves</div>
+    <div class="sh2">Moves by style</div>
     <nav class="mvnav" id="mvNav" aria-label="Moves"></nav>
   </aside>
 
@@ -224,6 +245,7 @@ svg .dm{opacity:.35}
       </div>
       <div class="tr">
         <button type="button" class="act" id="btnRemix"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h11l-3-3M20 17H9l3 3"/></svg><span>Remix</span></button>
+        <button type="button" class="act" id="btnProgs"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/></svg><span>Progressions</span></button>
         <button type="button" class="act" id="btnMap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M3 9h18M12 3v12M12 15v6M9 18l3 3 3-3"/></svg><span>Approach map</span></button>
         <button type="button" class="act" id="btnSurprise"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg><span>Surprise me</span></button>
         <button type="button" class="ib" id="btnPrev" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -278,6 +300,52 @@ svg .dm{opacity:.35}
         <div class="rxrow" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ideas for your progression</h3><span class="rxrow"><span class="seg" id="rxKind" role="group" aria-label="Kind of ideas"></span><span id="rxOnly"></span></span></div>
         <ul class="ideas" id="rxIdeas"></ul>
       </section>
+    </div>
+
+    <!-- progressies: de database met veelvoorkomende akkoordprogressies -->
+    <div id="vProgs" hidden style="display:grid;gap:16px">
+      <section class="card filters" aria-label="Filters">
+        <div class="frow"><span class="lb">Type</span><span class="seg" id="pgGrp" role="group" aria-label="Type"></span></div>
+      </section>
+      <section class="grid" id="pgGrid" aria-label="Progressions"></section>
+      <p class="note" id="pgNote" role="status"></p>
+    </div>
+
+    <!-- één progressie: speler met versies -->
+    <div id="vPg" hidden style="display:grid;gap:16px">
+      <section class="card" aria-label="Player">
+        <div class="ctl">
+          <div class="fld"><span><label for="pgKey">Key</label></span>
+            <div class="krow"><select id="pgKey"></select>
+              <button type="button" class="ib" id="pgRand" title="Random key" aria-label="Random key"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.3" fill="currentColor"/></svg></button></div></div>
+          <div class="fld"><span>Version</span><span class="seg" id="pgVar" role="group" aria-label="Version"></span></div>
+          <div class="fld"><span>Voicings</span><span class="seg" id="pgSet" role="group" aria-label="Voicings"></span></div>
+          <div class="fld"><span>Position</span><span class="seg" id="pgPos" role="group" aria-label="Position on the neck"></span></div>
+          <div class="fld"><span>Labels</span><span class="seg" id="pgLab" role="group" aria-label="Labels on the dots"></span></div>
+        </div>
+        <p class="sethelp" id="pgVarNote" style="max-width:72ch;line-height:1.55"></p>
+        <div class="dgs" id="pgDgs"></div>
+        <div class="tp">
+          <button type="button" class="act pri" id="pgPlay"></button>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgLoop"><i></i></span>Loop</label>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgBass"><i></i></span>Bass</label>
+          <label class="tempo"><span>Tempo</span><input type="range" id="pgTempo" min="40" max="200" step="2" aria-label="Tempo"><output id="pgTempoV" for="pgTempo"></output></label>
+          <button type="button" class="act" id="pgRx">Try in Remix</button>
+          <button type="button" class="act" id="pgST">Open in Scale Trainer</button>
+        </div>
+      </section>
+      <div class="two">
+        <section class="card why" aria-label="About this progression">
+          <h3>About</h3>
+          <p id="pgAbout"></p>
+          <div id="pgSongsW"><h3>Known from</h3><div class="chips" id="pgSongs"></div></div>
+          <div id="pgMovesW"><h3>Related moves</h3><div class="chips" id="pgMoves"></div></div>
+        </section>
+        <section class="card" aria-label="Versions">
+          <h3>All versions</h3>
+          <ul class="ideas" id="pgVars"></ul>
+        </section>
+      </div>
     </div>
 
     <!-- approach map: zeven doelen, elk met vier aanloopakkoorden -->
@@ -341,6 +409,7 @@ svg .dm{opacity:.35}
           <p id="whyTxt"></p>
           <h3>Known from</h3>
           <div class="chips" id="songs"></div>
+          <div id="mvPgW"><h3>In progressions</h3><div class="chips" id="mvPgs"></div></div>
           <h3>Try this</h3>
           <p id="tipTxt"></p>
         </section>
@@ -592,6 +661,159 @@ const MOVES=[
    why:'The 3rd and the 7th tell you what a chord is. In a chain of dominants and ii–Vs they move by a half step or stay put: the 7th of one chord becomes the 3rd of the next. Follow one line, {n:2} – {n:#1} – {n:1} – {n:7}, and you can play through the changes with two notes per chord. Set Labels to Guide tones to see both lines on the neck.',
    tip:'Comp with Shells and let only the 3rd and 7th move. Then sing or play the orange line while the band plays.'}
 ];
+
+/* ════════════════════════════════════════════════════════════════════════════
+   JOUW PROGRESSIES — de database met veelvoorkomende akkoordprogressies (knop "Progressions").
+   Een progressie toevoegen: kopieer een blok { … }, plak het eronder en pas het aan.
+   ════════════════════════════════════════════════════════════════════════════
+   id      korte unieke naam, anders dan de zetten (je gekozen toonsoort en versie worden hieronder bewaard)
+   name    naam op het scherm
+   group   'loops' · 'classic' · 'blues' · 'minor' · 'jazz'   (het filter bovenaan)
+   key     begintoonsoort;  minor:true = mineurtoonsoort
+   vars    versies: ['Naam', 'trappen', 'korte uitleg', 'zet-id']. De eerste is de basis. Het zet-id (mag weg) zegt welke
+           zet deze versie gebruikt: dan staat er "Uses the move …" bij, en de zet toont omgekeerd "In progressions". Trappen schrijf je zoals bij de zetten
+           (sus2, sus4, add9, 7, maj7, 9, 13, slash-akkoorden zoals V/7 = V met de 7e trap in de bas, (2) = twee maten …).
+           Akkoorden die anders zijn dan in de basis worden oranje gemarkeerd.
+   tempo   BPM;  band (mag weg) 'swing' · 'bossa' · 'ballad' voor de Scale Trainer
+   songs   nummers waarin je hem hoort;  moves (mag weg) id's van zetten die erbij horen maar in geen enkele versie zitten
+   about   uitleg. {c1} {c2} … {n:3} {key} werken hier ook, voor de versie die open staat. */
+const PROGRESSIONS=[
+  /* ── vier-akkoordloops ── */
+  {id:'pg-axis',name:'Pop axis',group:'loops',key:'C',tempo:84,
+   vars:[['Basic','I V vi IV','Four plain triads.'],
+     ['Colour','Iadd9 Vsus4 vi7 IVmaj7','add9, sus4, m7 and maj7: the same loop, more open and shimmering.'],
+     ['Bass line','I V/7 vi IV','{c2} with its 3rd in the bass, so the bass walks down {n:1} – {n:7} – {n:6}.','descending-bass']],
+   songs:['Let It Be · The Beatles','With or Without You · U2','No Woman, No Cry · Bob Marley','Someone Like You · Adele'],
+   about:'Probably the most used loop in pop. Home, away to V, a minor shade on vi, and IV leads back home. Start the same four chords on vi and you get the “sensitive” version.'},
+  {id:'pg-sensitive',name:'Sensitive loop',group:'loops',key:'C',tempo:88,
+   vars:[['Basic','vi IV I V','Four plain triads.'],
+     ['Colour','vi7 IVmaj7 Iadd9 Vsus4','Softer and more open: m7, maj7, add9 and a sus4 that never quite resolves.'],
+     ['Bass line','vi IV I V/7','{c4} with its 3rd in the bass: {n:7} falls a half step back to {n:6} when the loop starts again.','descending-bass']],
+   songs:['Zombie · The Cranberries','Save Tonight · Eagle-Eye Cherry'],
+   about:'The pop axis started on the minor chord. Same four chords, but beginning on vi makes the loop sound darker and more urgent.'},
+  {id:'pg-one-four-six-five',name:'I – IV – vi – V',group:'loops',key:'C',tempo:92,
+   vars:[['Basic','I IV vi V','Four plain triads.'],
+     ['Colour','I IVmaj9 vi7 Vsus4','The alternate shapes: a maj9 on IV, m7 on vi and a sus4 on V.'],
+     ['Sus','I IVsus2 vi Vsus2','sus2 chords on IV and V: no 3rd, so they ring open and neutral.'],
+     ['Bass line','I IV vi V/7','{c4} with its 3rd in the bass: {n:7} leads up a half step into {n:1}.']],
+   songs:[],
+   about:'The axis chords in another order. IV comes straight after home, and ending the loop on V makes it want to start again.'},
+  {id:'pg-royal-road',name:'Royal road',group:'loops',key:'C',tempo:92,
+   vars:[['Basic','IV V iii vi','Four plain triads.'],
+     ['Colour','IVmaj7 V7 iii7 vi7','The way it is usually played: with 7th chords.'],
+     ['Bass line','IV V iii vi/5','{c4} over {n:5}, so the bass climbs back towards {n:4}.']],
+   songs:[],
+   about:'The “royal road” of J-pop and anime. It never touches the home chord: it climbs IV – V and then slips into minor with iii – vi. That is why it sounds yearning instead of settled.'},
+
+  /* ── klassiekers ── */
+  {id:'pg-fifties',name:'Fifties progression',group:'classic',key:'C',tempo:76,
+   vars:[['Basic','I vi IV V','Four plain triads.'],
+     ['Colour','Imaj7 vi7 IVmaj7 V7','7th chords: smoother and a little jazzy.'],
+     ['Bass line','I vi/3 IV V','{c2} over {n:3}: the bass climbs {n:1} – {n:3} – {n:4} – {n:5}.'],
+     ['Jazz turnaround','I vi ii7 V7','IV becomes ii7: the same function, but now it is a ii – V back home. Try making vi a VI7 next.','vi7-turnaround']],
+   songs:['Stand by Me · Ben E. King','Every Breath You Take · The Police','Earth Angel · The Penguins'],
+   moves:['vi7-turnaround'],
+   about:'The doo-wop progression. It is the pop axis with the chords in a rounder order: home, its relative minor, then IV – V to lead back.'},
+  {id:'pg-canon',name:'Canon',group:'classic',key:'D',tempo:72,
+   vars:[['Basic','I V vi iii IV I IV V','Eight plain triads.'],
+     ['Bass line','I V/7 vi iii/5 IV I/3 IV V','The famous version: slash chords let the bass walk down {n:1} – {n:7} – {n:6} – {n:5} – {n:4} – {n:3}.','descending-bass'],
+     ['Colour','Iadd9 V vi7 iii7 IVmaj7 Iadd9 IVmaj7 Vsus4','add9, m7 and maj7 for a modern, open sound.']],
+   songs:['Canon in D · Pachelbel','Basket Case · Green Day'],
+   moves:['descending-bass'],
+   about:'Pachelbel’s eight chords. Every pair is a 4th apart, and the bass falls step by step. Countless pop songs borrow the first half: I – V – vi – iii.'},
+  {id:'pg-three-chord',name:'Three-chord trick',group:'classic',key:'A',tempo:120,
+   vars:[['Basic','I IV V IV','Three plain triads.'],
+     ['Rock ’n’ roll','I7 IV7 V7 IV7','Dominant 7ths everywhere: the bluesy rock ’n’ roll sound.'],
+     ['Sus','Iadd9 IVsus2 Vsus4 IVsus2','Open, ringing versions for strumming.'],
+     ['Pedal','I IV/1 V/1 IV/1','Everything over {n:1}: a pedal point. The bass stays home while the chords move.']],
+   songs:['Wild Thing · The Troggs','La Bamba · Ritchie Valens','Twist and Shout · The Beatles'],
+   about:'The three main chords of a key: home (I), away (IV) and tension (V). With these three you can play thousands of songs.'},
+
+  /* ── blues & rock ── */
+  {id:'pg-twelve-bar',name:'12-bar blues',group:'blues',key:'A',tempo:96,band:'swing',
+   vars:[['Basic','I7(4) IV7(2) I7(2) V7 IV7 I7 V7','Four bars of I, two of IV, two of I, then V – IV – I and a turnaround on V.'],
+     ['Quick change','I7 IV7 I7(2) IV7(2) I7(2) V7 IV7 I7 V7','Bar 2 already visits IV and comes back.'],
+     ['Colour','I9(4) IV9(2) I9(2) V9 IV9 I13 V7#9','9ths and 13ths for a jazzy blues, and a 7♯9 (the Hendrix chord) in the turnaround.']],
+   songs:['Johnny B. Goode · Chuck Berry','Sweet Home Chicago · Robert Johnson','Pride and Joy · Stevie Ray Vaughan'],
+   about:'Twelve bars, three chords, all dominant 7ths. In the blues even the home chord is a 7th chord: that bluesy tension never fully resolves.'},
+  {id:'pg-minor-blues',name:'Minor blues',group:'blues',key:'B',minor:true,tempo:84,
+   vars:[['Basic','i7(4) iv7(2) i7(2) bVI7 V7 i7(2)','The 12-bar form in minor. Bar 9 goes to ♭VI7, a half step above V7.'],
+     ['Colour','i9(4) iv9(2) i9(2) bVI9 V7#9 i9(2)','m9 chords and a 7♯9 on V for more bite.']],
+   songs:['The Thrill Is Gone · B.B. King'],
+   about:'The blues in a minor key. {c4} slides down a half step into {c5}, and that tension pulls back to {c6}.'},
+  {id:'pg-rock-flat-seven',name:'Rock ♭VII',group:'blues',key:'D',tempo:100,
+   vars:[['Basic','I bVII IV I','Three major triads.','mixolydian'],
+     ['Colour','Iadd9 bVIIadd9 IVadd9 I','add9 on every chord: big, open and ringing.'],
+     ['Bass line','I bVII IV/6 I','{c3} over {n:6}: the bass walks down {n:1} – {n:b7} – {n:6}.']],
+   songs:['Sweet Home Alabama · Lynyrd Skynyrd','Sympathy for the Devil · The Rolling Stones'],
+   moves:['mixolydian'],
+   about:'The ♭VII chord comes from the Mixolydian mode. There is no leading tone pulling home, so the loop rolls on forever: classic rock.'},
+
+  /* ── mineur ── */
+  {id:'pg-aeolian',name:'Aeolian rock',group:'minor',key:'A',minor:true,tempo:100,
+   vars:[['Basic','i bVII bVI bVII','Four plain triads, all from natural minor.'],
+     ['Colour','i7 bVIIadd9 bVImaj7 bVIIsus4','m7, add9, maj7 and sus4: darker and more spacious.'],
+     ['Bass line','i bVII bVI bVII/2','The last chord over {n:2}, so the bass climbs a step back into {n:1}.']],
+   songs:['All Along the Watchtower · Bob Dylan / Jimi Hendrix','Stairway to Heaven (solo) · Led Zeppelin'],
+   about:'Rocking between minor home and the two major chords below it. No V chord, no leading tone: it sounds modal and heavy.'},
+  {id:'pg-andalusian',name:'Andalusian cadence',group:'minor',key:'A',minor:true,tempo:100,
+   vars:[['Basic','i bVII bVI V','Four triads walking down.','andalusian'],
+     ['Colour','i bVII bVImaj7 V7','A maj7 on ♭VI and a dominant 7th on V for more pull back to i.','andalusian']],
+   songs:['Hit the Road Jack · Ray Charles','Runaway · Del Shannon'],
+   moves:['andalusian'],
+   about:'The bass falls {n:1} – {n:b7} – {n:b6} – {n:5}. The major V at the end (from harmonic minor) makes the loop start again with tension.'},
+  {id:'pg-minor-cadence',name:'Minor i – iv – V',group:'minor',key:'E',minor:true,tempo:80,
+   vars:[['Basic','i iv V i','Harmonic minor: a major V with a leading tone.'],
+     ['Natural','i iv v i','Natural minor: v is minor, so there is no leading tone. Softer and more folky.'],
+     ['Colour','i9 iv7 V7b9 i','m9, m7 and a V7♭9: the jazz way of saying the same thing.'],
+     ['Bass line','i iv V/7 i','{c3} with its 3rd in the bass: {n:7} rises a half step into {n:1}.']],
+   songs:[],moves:['minor-two-five'],
+   about:'The basic cadence in minor. Compare V and v: the raised 7th, {n:7}, is what makes the ending sound final.'},
+  {id:'pg-epic-minor',name:'Epic minor',group:'minor',key:'D',minor:true,tempo:84,
+   vars:[['Basic','i bVI bVII i','Three triads, all from natural minor.','flat-six-seven'],
+     ['Colour','iadd9 bVImaj7 bVIIsus4 i','add9, maj7 and sus4: a film-score sound.'],
+     ['Pedal','i bVI/1 bVII/1 i','Everything over {n:1}: the chords climb while the bass stays put. Big tension.']],
+   songs:[],
+   about:'Minor home, then two major chords that climb {n:b6} – {n:b7} back to {n:1}: the minor version of the ♭VI – ♭VII – I move. Heroic and dark at the same time.'},
+
+  /* ── jazz & soul ── */
+  {id:'pg-two-five-one',name:'ii – V – I',group:'jazz',key:'C',tempo:120,band:'swing',
+   vars:[['Basic','ii7 V7 Imaj7(2)','The three 7th chords of the jazz cadence.'],
+     ['Colour','ii9 V13 Imaj9(2)','9ths and 13ths: the extensions a jazz pianist would add.'],
+     ['Altered','ii7 V7alt Imaj7(2)','An altered dominant: maximum tension right before home.'],
+     ['Soul','ii7 IV/5 Imaj7(2)','{c2} is the “soul V”: a IV chord over {n:5}. Softer than a dominant, very gospel and neo-soul.']],
+   songs:['Autumn Leaves · Joseph Kosma','Honeysuckle Rose · Fats Waller'],
+   moves:['tritone-sub','backdoor','related-two-five'],
+   about:'The most important progression in jazz. Roots fall in 5ths, {n:2} – {n:5} – {n:1}, and the 7th of each chord falls a half step to the 3rd of the next.'},
+  {id:'pg-rhythm',name:'I – vi – ii – V',group:'jazz',key:'Bb',tempo:132,band:'swing',
+   vars:[['Basic','I vi ii V','Four plain triads.'],
+     ['Colour','Imaj7 vi7 ii7 V7','7th chords: the jazz turnaround.'],
+     ['Secondary','I6 VI7 ii7 V7','vi becomes VI7, a secondary dominant that pulls into ii.','vi7-turnaround'],
+     ['Passing °7','I #I°7 ii7 V7','A diminished chord a half step above I: the bass climbs {n:1} – {n:#1} – {n:2}.','dim-passing']],
+   songs:['Heart and Soul · Hoagy Carmichael','Blue Moon · Rodgers & Hart','I Got Rhythm · George Gershwin'],
+   moves:['vi7-turnaround','dim-passing'],
+   about:'The turnaround: two bars that lead home and loop forever. Every chord is a 5th above the next, so the roots fall in 5ths back to I.'},
+  {id:'pg-cycle',name:'Circle of fifths',group:'jazz',key:'A',minor:true,tempo:120,band:'swing',
+   vars:[['Basic','i iv bVII bIII bVI ii° V i','All chords of the key, each a 5th below the previous one.'],
+     ['Colour','i7 iv7 bVII7 bIIImaj7 bVImaj7 iiø7 V7 i7','The jazz version: 7th chords on every step. It ends with a minor ii – V – i.','minor-two-five']],
+   songs:['Fly Me to the Moon · Bart Howard','Autumn Leaves · Joseph Kosma','I Will Survive · Gloria Gaynor'],
+   moves:['minor-two-five'],
+   about:'The roots walk down in 5ths through every chord of the key. Halfway it passes the relative major ({c4}), and it ends with a minor ii – V – i.'},
+  {id:'pg-ragtime',name:'Ragtime cycle',group:'jazz',key:'C',tempo:132,band:'swing',
+   vars:[['Basic','III7 VI7 II7 V7 I(2)','A chain of dominants, each the V of the next.','secondary-dominant'],
+     ['Colour','III7b9 VI7b9 II9 V13 I6(2)','♭9s, 9ths and 13ths for a richer, swinging sound.'],
+     ['Tritone subs','III7 bIII7 II7 bII7 I6(2)','Every other dominant swapped for its tritone sub: the bass slides down by half steps.','sub-five']],
+   songs:['Sweet Georgia Brown · Ben Bernie','Alice’s Restaurant · Arlo Guthrie'],
+   moves:['secondary-dominant','sub-five'],
+   about:'Secondary dominants, one after another: {c1} is the V of {c2}, which is the V of {c3}, and so on until the music lands on {c5}.'},
+  {id:'pg-stepping-down',name:'Stepping down',group:'jazz',key:'Eb',tempo:80,band:'ballad',
+   vars:[['Basic','IV iii ii I','Four triads stepping down the scale.'],
+     ['Colour','IVmaj7 iii7 ii7 Imaj7','7th chords: the neo-soul version.'],
+     ['Lush','IVmaj9 iii7 ii9 Imaj9','9ths on top for a lush, smooth sound.'],
+     ['Bass line','IVmaj7 I/3 ii7 IV/5','{c2} and {c4} are slash chords: the bass goes {n:4} – {n:3} – {n:2} – {n:5}.']],
+   songs:[],moves:['neo-soul-slide'],
+   about:'Every chord a step lower: {n:4} – {n:3} – {n:2} – {n:1}. Parallel 7th chords sliding down are a neo-soul and R&B favourite.'}
+];
 </script>
 <script>
 /* ════════════════════════════════════════════════════════════════════════════
@@ -642,6 +864,12 @@ const T={
     apAllNote:'The same approach before every chord of your progression. Each chord gives up some of its time.',apOpts:'ii and dominant colour: set in the Approach map.',inMap:'Approach map',showAll:'Show all',count:n=>`${n} idea${n===1?'':'s'}`,stHint:'Your progressions from the Scale Trainer are not visible here; in Safari or Firefox, open the files from the same folder or type the chords.',
     untitled:'My progression'},
   tryRemix:'Try in Remix',
+  nav:{lib:'Moves',progs:'Progressions',remix:'Remix',map:'Approach map'},backMoves:'‹ All moves',
+  pg:{title:'Progressions',sub:'Common chord progressions, each in several versions: plain, with colour chords, and with a moving bass.',
+    groups:{all:'All',loops:'Four-chord loops',classic:'Classics',blues:'Blues & rock',minor:'Minor',jazz:'Jazz & soul'},
+    uses:n=>`Uses the move: ${n} ›`,usesShort:n=>`Move: ${n}`,inProgs:'In progressions',
+    count:n=>`${n} progressions`,none:'No progressions in this group.',back:'‹ All progressions',use:'Play this',using:'Playing',
+    bad:(n,v,t)=>`${n} (${v}): “${t}” isn’t a chord I know, so this version is left out.`},
   map:{title:'Approach map',sub:'Every chord of the key, and four ways to lead into it.',
     how:'Each column is a chord of the key (bottom). Above it: four chords that lead into it. Bottom row of the box: the related ii and the secondary dominant V7. Top row: their tritone substitutes, a tritone away. Any ii can go to any V (the dashed lines). Click a chord to choose a route, then press Play. The orange line follows the guide tones: the 3rds and 7ths that move by the smallest steps.',
     ii:{hd:'m7♭5',m7:'m7'},dom:{plain:'7',colour:'Coloured'},
@@ -1021,8 +1249,23 @@ const LIB=(typeof MOVES!=='undefined'&&Array.isArray(MOVES)?MOVES:[]).filter((mv
   mv._rules=(Array.isArray(mv.remix)?mv.remix:[]).map(r=>{const x=parseRule(r);if(!x)PROBLEMS.push(T.badRule(mv.name,r));return x;}).filter(Boolean);
   return true;});
 const STYLES=['pop','soul','jazz','modal','approach'];
+/* progressies inlezen: elke versie wordt een kleine "zet" ({key, minor, _c}), zodat realize() en de voicings gewoon werken */
+const PGRPS=['loops','classic','blues','minor','jazz'];
+const PROGS=(typeof PROGRESSIONS!=='undefined'&&Array.isArray(PROGRESSIONS)?PROGRESSIONS:[]).filter((p,i,all)=>{
+  if(!p||typeof p.id!=='string'||!p.id||all.findIndex(x=>x&&x.id===p.id)!==i||LIB.some(m=>m.id===p.id))return false;
+  p.name=String(p.name||p.id);p.minor=!!p.minor;
+  const k=String(p.key||'').replace('♭','b').replace('♯','#');p.key=keyList(p).includes(k)?k:p.minor?'A':'C';
+  p.vars=(Array.isArray(p.vars)?p.vars:[]).map(v=>{if(!Array.isArray(v))return null;const c=compile({chords:v[1]});
+    if(c.bad.length){PROBLEMS.push(T.pg.bad(p.name,v[0],c.bad[0]));return null;}
+    return c.ch.length?{name:String(v[0]||''),note:String(v[2]||''),move:LIB.some(m=>m.id===v[3])?v[3]:null,key:p.key,minor:p.minor,_c:c}:null;}).filter(Boolean);
+  if(!p.vars.length)return false;
+  p.group=PGRPS.includes(p.group)?p.group:'loops';p.tempo=Math.min(200,Math.max(40,+p.tempo||100));
+  /* gerelateerde zetten: eerst die uit de versies, dan de losse */
+  p.songs=Array.isArray(p.songs)?p.songs:[];
+  p.moves=[...new Set([...p.vars.map(v=>v.move),...(Array.isArray(p.moves)?p.moves:[])])].filter(id=>LIB.some(m=>m.id===id));
+  return true;});
 
-const API={QUAL,parseRoman,compile,realize,candidates,voiceLead,LIB,PROBLEMS,ivLab,toneName,nName,KEYS_MAJ,KEYS_MIN,keyList,
+const API={QUAL,parseRoman,compile,realize,candidates,voiceLead,LIB,PROGS,PROBLEMS,ivLab,toneName,nName,KEYS_MAJ,KEYS_MIN,keyList,
   parseSym,parseProg,detectKey,parseKey,keyName,progR,parseRule,applyRule,ideasFor,chordText,approachBox,approachList,guideLine,guideIv,ROUTES,approachIdeas,withApproaches};
 if(typeof module!=='undefined'&&module.exports){module.exports=API;}
 if(typeof document==='undefined'||!document.getElementById('vMove'))return;
@@ -1032,9 +1275,14 @@ const KEY='chordMoves.v1',LOGKEY='chordMoves.log',SUMKEY='practiceRoom.movesSum'
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 const DEF={theme:'auto',view:'lib',cur:null,style:'all',mood:'any',set:'barre',pos:'mid',labels:'int',loop:true,bass:true,keys:{},tempo:{},prog:{},
   mine:[],rx:{src:'draft',text:'C G Am F',name:'',key:'auto',tempo:96,undo:null,only:null,kind:'all'},
-  map:{key:'C',t:1,route:'ii-V',ii:'hd',dom:'plain',tempo:100}};   /* map = Approach map */   /* mine = je bewaarde progressies voor Remix */
+  map:{key:'C',t:1,route:'ii-V',ii:'hd',dom:'plain',tempo:100},   /* map = Approach map */   /* mine = je bewaarde progressies voor Remix */
+  pg:{cur:null,grp:'all',v:{},keys:{},tempo:{}},navOpen:[]};   /* pg = de progressie-database (versie, toonsoort en tempo per progressie); navOpen = open groepen in de zijbalk */
 function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),read(KEY)||{});
-  s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';s.view=['move','remix','map'].includes(s.view)?s.view:'lib';
+  s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';s.view=['move','remix','map','progs','pg'].includes(s.view)?s.view:'lib';
+  const pg=s.pg&&typeof s.pg==='object'?s.pg:{},obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+  s.pg={cur:PROGS.some(p=>p.id===pg.cur)?pg.cur:null,grp:['all',...PGRPS].includes(pg.grp)?pg.grp:'all',v:obj(pg.v),keys:obj(pg.keys),tempo:obj(pg.tempo)};
+  if(s.view==='pg'&&!s.pg.cur)s.view='progs';
+  s.navOpen=Array.isArray(s.navOpen)?s.navOpen.filter(x=>STYLES.includes(x)):[];
   const mp=s.map&&typeof s.map==='object'?s.map:{};s.map={key:KEYS_MAJ.includes(mp.key)?mp.key:'C',t:[0,1,2,3,4,5,6].includes(mp.t)?mp.t:1,route:ROUTES.includes(mp.route)?mp.route:'ii-V',
     ii:mp.ii==='m7'?'m7':'hd',dom:mp.dom==='colour'?'colour':'plain',tempo:Math.min(200,Math.max(40,+mp.tempo||100))};
   s.mine=Array.isArray(s.mine)?s.mine.filter(x=>x&&typeof x.id==='string'&&typeof x.text==='string').map(x=>({id:x.id,name:String(x.name||'').slice(0,60),text:x.text.slice(0,600),key:typeof x.key==='string'?x.key:'auto'})):[];
@@ -1186,13 +1434,19 @@ const rnLine=mv=>mv._c.ch.map(c=>c.rn).join('  ');
 function seg(host,items,cur,key){host.innerHTML=items.map(([v,l])=>'<button type="button" data-'+key+'="'+esc(v)+'" aria-pressed="'+(v===cur)+'">'+esc(l)+'</button>').join('');}
 
 /* ── zijbalk ── */
-function renderNav(){
-  let h='<button type="button" data-nav="lib"'+(S.view==='lib'?' aria-current="true"':'')+'><span>'+esc(T.allMoves)+'</span></button>'
-    +'<button type="button" data-nav="remix"'+(S.view==='remix'?' aria-current="true"':'')+'><span>'+esc(T.rx.title)+'</span></button>'
-    +'<button type="button" data-nav="map"'+(S.view==='map'?' aria-current="true"':'')+'><span>'+esc(T.map.title)+'</span></button>';
-  STYLES.forEach(st=>{const ms=LIB.filter(m=>m.style===st);if(!ms.length)return;
-    h+='<div class="gh">'+esc(T.styles[st])+'</div>'+ms.map(m=>'<button type="button" data-id="'+esc(m.id)+'"'+(S.view==='move'&&S.cur===m.id?' aria-current="true"':'')+'><span>'+esc(m.name)+'</span>'+dots(m.id)+'</button>').join('');});
-  $('#mvNav').innerHTML=h;}
+/* bovenaan: de onderdelen van Chord Moves (ingesprongen onder de app-link); daaronder de zetten per stijl, in- en uitklapbaar */
+const NAVIC={lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  progs:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/>',
+  remix:'<path d="M4 7h11l-3-3M20 17H9l3 3"/>',map:'<rect x="3" y="3" width="18" height="12" rx="2"/><path d="M3 9h18M12 3v12M12 15v6M9 18l3 3 3-3"/>'};
+const CHEV='<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function renderNav(){const v=S.view,on=k=>k==='lib'?v==='lib'||v==='move':k==='progs'?v==='progs'||v==='pg':v===k;
+  const learned=LIB.filter(m=>isLearned(m.id)).length,cnt={lib:learned+'/'+LIB.length,progs:String(PROGS.length)};
+  $('#toolNav').innerHTML=['lib','progs','remix','map'].map(k=>'<button type="button" data-nav="'+k+'"'+(on(k)?' aria-current="true"':'')+'>'
+    +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">'+NAVIC[k]+'</svg><span>'+esc(T.nav[k])+'</span>'+(cnt[k]?'<small>'+cnt[k]+'</small>':'')+'</button>').join('');
+  $('#mvNav').innerHTML=STYLES.map(st=>{const ms=LIB.filter(m=>m.style===st);if(!ms.length)return'';
+    const has=v==='move'&&ms.some(m=>m.id===S.cur),l=ms.filter(m=>isLearned(m.id)).length;
+    return'<details data-st="'+st+'"'+(S.navOpen.includes(st)?' open':'')+'><summary'+(has?' class="has"':'')+'>'+CHEV+'<span>'+esc(T.styles[st])+'</span><small>'+l+'/'+ms.length+'</small></summary><div>'
+      +ms.map(m=>'<button type="button" data-id="'+esc(m.id)+'"'+(v==='move'&&S.cur===m.id?' aria-current="true"':'')+'><span>'+esc(m.name)+'</span>'+dots(m.id)+'</button>').join('')+'</div></details>';}).join('');}
 
 /* ── bibliotheek ── */
 function filtered(){return LIB.filter(m=>(S.style==='all'||m.style===S.style)&&(S.mood==='any'||m.mood.includes(S.mood)));}
@@ -1257,6 +1511,10 @@ function renderMove(){
   $('#rgTempo').value=tempoOf(mv);$('#tempoV').textContent=T.bpm(tempoOf(mv));
   $('#whyTxt').innerHTML=fill(mv.why,R);
   $('#songs').innerHTML=mv.songs.map(s=>'<span class="chip">'+esc(s)+'</span>').join('');
+  /* progressies (en welke versie) waarin deze zet zit */
+  const uses=PROGS.flatMap(p=>p.vars.map((v,i)=>({p,v,i})).filter(x=>x.v.move===mv.id));
+  $('#mvPgW').hidden=!uses.length;
+  $('#mvPgs').innerHTML=uses.map(x=>'<button type="button" class="chip" data-pg="'+esc(x.p.id)+'" data-v="'+x.i+'">'+esc(x.p.name+(x.i?' · '+x.v.name:''))+'</button>').join('');
   $('#tipTxt').innerHTML=fill(mv.tip,R);
   renderStages();syncTransport();}
 function renderStages(){if(!CUR||!CUR.mv)return;const mv=CUR.mv,s=stagesOf(mv.id),p=prog(mv.id);
@@ -1269,7 +1527,7 @@ function renderStages(){if(!CUR||!CUR.mv)return;const mv=CUR.mv,s=stagesOf(mv.id
 const loadingTxt='Loading sounds…';
 function syncTransport(){const full=PL&&PL.mode==='full',line=PL&&PL.mode==='line',ld=PL&&PL.loading;
   const set=(b,on,lab)=>{if(!b)return;b.innerHTML=(on?ICON.stop:ICON.play)+'<span>'+esc(on&&ld?loadingTxt:on?T.stop:lab)+'</span>';b.setAttribute('aria-pressed',!!on);};
-  set($('#btnPlay'),full,T.play);set($('#btnLine'),line,T.line);set($('#rxPlay'),full,T.play);set($('#mapPlay'),full,T.play);set($('#mapLineBtn'),line,T.line);}
+  set($('#btnPlay'),full,T.play);set($('#btnLine'),line,T.line);set($('#rxPlay'),full,T.play);set($('#pgPlay'),full,T.play);set($('#mapPlay'),full,T.play);set($('#mapLineBtn'),line,T.line);}
 function mark(i,box){box=box||(CUR&&CUR.box)||'#dgs';document.querySelectorAll(box+' .dg').forEach(e=>e.classList.toggle('on',+e.dataset.i===i));
   const ln={'#dgs':'#line','#mapDgs':'#mapLine'}[box];if(ln)document.querySelectorAll(ln+' b').forEach(e=>e.classList.toggle('on',+e.dataset.k===i));}
 
@@ -1386,20 +1644,84 @@ function mapToScale(){if(!CUR||CUR.box!=='#mapDgs')return;stopPlay();const R=CUR
     chords:R.chords.map(c=>c.st+(c.bars===1?'':'('+c.bars+')')).join(' '),tempo:S.map.tempo,style:'swing'}));}
 function openMap(){stopPlay();S.view='map';save();act();render();window.scrollTo&&window.scrollTo({top:0});}
 
+/* ── progressies ── */
+const pgById=id=>PROGS.find(p=>p.id===id);
+const pgKeyOf=p=>keyList(p).includes(S.pg.keys[p.id])?S.pg.keys[p.id]:p.key;
+const pgVarOf=p=>{const i=+S.pg.v[p.id]||0;return i>0&&i<p.vars.length?i:0;};
+const pgTempoOf=p=>Math.min(200,Math.max(40,+S.pg.tempo[p.id]||p.tempo));
+const pgRn=p=>p.vars[0]._c.ch.map(c=>c.rn).join('  ');
+function renderProgs(){
+  $('#h1').textContent=T.pg.title;$('#sub').textContent=T.pg.sub;
+  seg($('#pgGrp'),[['all',T.pg.groups.all],...PGRPS.map(g=>[g,T.pg.groups[g]])],S.pg.grp,'grp');
+  const L=PROGS.filter(p=>S.pg.grp==='all'||p.group===S.pg.grp);
+  $('#pgGrid').innerHTML=L.map(p=>'<button type="button" class="tile" data-pg="'+esc(p.id)+'">'
+    +'<span class="fam">'+esc(T.pg.groups[p.group])+'</span><b>'+esc(p.name)+'</b><span class="rn mono">'+esc(pgRn(p))+'</span>'
+    +(p.songs[0]?'<span class="song">'+esc(p.songs[0])+'</span>':'')
+    +'<span class="ft"><span>'+esc(p.vars.map(x=>x.name).join(' · '))+'</span></span></button>').join('');
+  $('#pgNote').textContent=(L.length?T.pg.count(L.length)+'.':T.pg.none)+(PROBLEMS.length?' '+PROBLEMS.join(' '):'');}
+function pgCur(){const p=pgById(S.pg.cur);if(!p){CUR=null;return;}
+  const R=realize(p.vars[pgVarOf(p)],pgKeyOf(p));
+  CUR={R,V:voiceLead(R,S.set,S.pos),box:'#pgDgs',pg:p,tempo:()=>pgTempoOf(p),onPlay(){logMove(p.name);}};}
+/* akkoorden van een versie als chips; wat anders is dan de basis wordt oranje */
+function pgChips(R,base){const same=base&&base.chords.length===R.chords.length;
+  return R.chords.map((c,i)=>chip(Object.assign({},c,{chg:!!(same&&base!==R&&base.chords[i].sym!==c.sym)}))).join('');}
+function renderPg(){const p=CUR.pg,R=CUR.R,k=pgKeyOf(p),vi=pgVarOf(p),v=p.vars[vi];
+  $('#h1').textContent=p.name;$('#sub').textContent=pgRn(p).replace(/  /g,' – ')+' · '+T.pg.groups[p.group];
+  $('#pgKey').innerHTML=keyList(p).map(x=>'<option value="'+x+'"'+(x===k?' selected':'')+'>'+esc(keyPretty(x)+' '+(p.minor?T.minor:T.major))+'</option>').join('');
+  seg($('#pgVar'),p.vars.map((x,i)=>[String(i),x.name]),String(vi),'var');
+  seg($('#pgSet'),Object.entries(T.sets),S.set,'set');seg($('#pgPos'),Object.entries(T.pos),S.pos,'pos');seg($('#pgLab'),Object.entries(T.lab),S.labels,'lab');
+  $('#pgVarNote').innerHTML=fill(v.note,R)+(CUR.V.some(x=>x.v.fb)?' '+esc(T.fallback(T.sets[S.set])):'')
+    +(v.move?' <button type="button" class="lnk" style="margin:0" data-open="'+esc(v.move)+'">'+esc(T.pg.uses(moveById(v.move).name))+'</button>':'');
+  $('#pgDgs').innerHTML=diagrams(R,CUR.V);
+  $('#pgLoop').checked=S.loop;$('#pgBass').checked=S.bass;$('#pgTempo').value=pgTempoOf(p);$('#pgTempoV').textContent=T.bpm(pgTempoOf(p));
+  $('#pgAbout').innerHTML=fill(p.about,R);
+  $('#pgSongsW').hidden=!p.songs.length;$('#pgSongs').innerHTML=p.songs.map(s=>'<span class="chip">'+esc(s)+'</span>').join('');
+  $('#pgMovesW').hidden=!p.moves.length;$('#pgMoves').innerHTML=p.moves.map(id=>'<button type="button" class="chip" data-open="'+esc(id)+'">'+esc(moveById(id).name)+'</button>').join('');
+  const base=vi===0?R:realize(p.vars[0],k);
+  $('#pgVars').innerHTML=p.vars.map((x,i)=>{const Rx=i===vi?R:i===0?base:realize(x,k);
+    return'<li class="idea'+(i===vi?' on':'')+'"><div class="ih"><b>'+esc(x.name)+'</b>'
+      +(x.move?'<button type="button" class="lnk" data-open="'+esc(x.move)+'">'+esc(T.pg.usesShort(moveById(x.move).name))+'</button>':'')+'</div><div class="prog">'+pgChips(Rx,base)+'</div>'
+      +(x.note?'<p class="note" style="grid-column:1">'+fill(x.note,Rx)+'</p>':'')
+      +'<div class="ia"><button type="button" class="act'+(i===vi?' pri':'')+'" data-var="'+i+'">'+esc(i===vi?T.pg.using:T.pg.use)+'</button></div></li>';}).join('');
+  syncTransport();}
+function openProgs(){stopPlay();S.view='progs';save();act();render();window.scrollTo&&window.scrollTo({top:0});}
+function openPg(id){if(!pgById(id))return;stopPlay();S.pg.cur=id;S.view='pg';save();act();render();window.scrollTo&&window.scrollTo({top:0});}
+/* versie of toonsoort wisselen mag tijdens het spelen: de speler leest CUR steeds opnieuw */
+function pgUpdate(){act();save();pgCur();renderPg();}
+function pgSetVar(i){const p=CUR&&CUR.pg;if(!p||!p.vars[i])return;S.pg.v[p.id]=i;pgUpdate();}
+function pgSetKey(k){const p=CUR&&CUR.pg;if(!p||!keyList(p).includes(k))return;S.pg.keys[p.id]=k;pgUpdate();}
+function pgRandKey(){const p=CUR&&CUR.pg;if(!p)return;const all=keyList(p).filter(x=>x!==pgKeyOf(p));pgSetKey(all[Math.floor(Math.random()*all.length)]);}
+/* naar Remix: de progressie (in deze toonsoort en versie) wordt je concept; Undo brengt het vorige concept terug */
+function pgToRemix(){const p=CUR&&CUR.pg;if(!p)return;const txt=chordText(CUR.R.chords);
+  if(S.rx.text!==txt)S.rx.undo=S.rx.text;S.rx.text=txt;S.rx.src='draft';S.rx.name=(p.name+' · '+p.vars[pgVarOf(p)].name).slice(0,60);
+  S.rx.key=pgKeyOf(p)+(p.minor?'m':'');S.rx.tempo=pgTempoOf(p);logMove(p.name);openRemix(null);}
+function pgToScale(){const p=CUR&&CUR.pg;if(!p)return;const R=CUR.R;stopPlay();
+  const d={name:p.name+' · '+p.vars[pgVarOf(p)].name+' · '+nName(R.tonic)+(p.minor?' minor':''),
+    chords:R.chords.map(c=>c.st+(c.bars===1?'':'('+(c.bars===.5?'½':c.bars)+')')).join(' '),tempo:pgTempoOf(p)};if(p.band)d.style=p.band;
+  logMove(p.name);act();save();logDirty=true;logSave();
+  location.href='toonladder-trainer.html#add='+encodeURIComponent(JSON.stringify(d));}
+
 /* ── weergave wisselen ── */
 function render(){
-  const v=S.view==='move'&&moveById(S.cur)?'move':['remix','map'].includes(S.view)?S.view:'lib';
+  const v=S.view==='move'&&moveById(S.cur)?'move':S.view==='pg'&&pgById(S.pg.cur)?'pg':['remix','map','progs'].includes(S.view)?S.view:'lib';
+  S.view=v;
   $('#vLib').hidden=v!=='lib';$('#vMove').hidden=v!=='move';$('#vRemix').hidden=v!=='remix';$('#vMap').hidden=v!=='map';$('#btnMap').hidden=v==='map';
-  $('#btnBack').hidden=v==='lib';$('#btnPrev').hidden=v!=='move';$('#btnNext').hidden=v!=='move';$('#btnRemix').hidden=v==='remix';
+  $('#vProgs').hidden=v!=='progs';$('#vPg').hidden=v!=='pg';$('#btnProgs').hidden=v==='progs';
+  $('#btnBack').hidden=v==='lib';$('#btnBack').textContent=v==='pg'?T.pg.back:T.backMoves;
+  $('#btnPrev').hidden=$('#btnNext').hidden=v!=='move'&&v!=='pg';$('#btnRemix').hidden=v==='remix';
   if(v==='lib'){CUR=null;$('#h1').textContent=T.title;const n=LIB.filter(m=>isLearned(m.id)).length;$('#sub').textContent=T.sub+' '+T.count(LIB.length,n)+'.';renderLib();}
   else if(v==='move'){compute();renderMove();}
+  else if(v==='progs'){CUR=null;renderProgs();}
+  else if(v==='pg'){pgCur();renderPg();}
   else if(v==='map'){mapCur();renderMap();}
   else{RX.prev=-1;rxCompute();renderRemix();}
   renderNav();applyTheme();}
-function openMove(id){if(!moveById(id))return;stopPlay();S.cur=id;S.view='move';save();act();render();
-  window.scrollTo&&window.scrollTo({top:0});}
+function openMove(id){const mv=moveById(id);if(!mv)return;stopPlay();S.cur=id;S.view='move';
+  if(!S.navOpen.includes(mv.style))S.navOpen.push(mv.style);   /* de groep van deze zet openklappen in de zijbalk */
+  save();act();render();window.scrollTo&&window.scrollTo({top:0});}
 function openLib(){stopPlay();S.view='lib';save();render();}
-function step(d){const L=LIB,i=L.findIndex(m=>m.id===S.cur);openMove(L[mod(i+d,L.length)].id);}
+function step(d){if(S.view==='pg'){const i=PROGS.findIndex(p=>p.id===S.pg.cur);openPg(PROGS[mod(i+d,PROGS.length)].id);return;}
+  const L=LIB,i=L.findIndex(m=>m.id===S.cur);openMove(L[mod(i+d,L.length)].id);}
 function surprise(){const pool=LIB.filter(m=>!isLearned(m.id)&&m.id!==S.cur),P=pool.length?pool:LIB.filter(m=>m.id!==S.cur);
   if(P.length)openMove(P[Math.floor(Math.random()*P.length)].id);}
 function setKey(k){const mv=CUR&&CUR.mv;if(!mv||!keyList(mv).includes(k))return;S.keys[mv.id]=k;save();compute();renderMove();}
@@ -1412,13 +1734,31 @@ function toScale(){const mv=CUR.mv,R=CUR.R;stopPlay();
   prog(mv.id).u=1;logMove(mv.name);act();save();logDirty=true;logSave();
   location.href='toonladder-trainer.html#add='+encodeURIComponent(JSON.stringify(d));}
 /* voicings of positie gewijzigd: opnieuw rekenen in de weergave die open staat */
-function reVoice(){act();save();if(S.view==='remix'){rxCur();renderRemix();}else if(S.view==='map'){mapCur();renderMap();}else{compute();renderMove();}}
-function reLabel(){save();if(S.view==='remix')renderRxBoard();else if(S.view==='map')renderMap();else renderMove();}
+function reVoice(){act();save();if(S.view==='remix'){rxCur();renderRemix();}else if(S.view==='map'){mapCur();renderMap();}else if(S.view==='pg'){pgCur();renderPg();}else{compute();renderMove();}}
+function reLabel(){save();if(S.view==='remix')renderRxBoard();else if(S.view==='map')renderMap();else if(S.view==='pg')renderPg();else renderMove();}
 
 /* ═══════════ 6. START ═══════════ */
 function bind(){
   $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
-  $('#btnBack').addEventListener('click',openLib);
+  $('#btnBack').addEventListener('click',()=>{if(S.view==='pg')openProgs();else openLib();});
+  $('#btnProgs').addEventListener('click',openProgs);
+  /* progressies */
+  $('#pgGrp').addEventListener('click',e=>{const b=e.target.closest('[data-grp]');if(!b)return;S.pg.grp=b.dataset.grp;save();renderProgs();});
+  $('#pgGrid').addEventListener('click',e=>{const b=e.target.closest('[data-pg]');if(b)openPg(b.dataset.pg);});
+  $('#pgKey').addEventListener('change',e=>pgSetKey(e.target.value));
+  $('#pgRand').addEventListener('click',pgRandKey);
+  $('#pgVar').addEventListener('click',e=>{const b=e.target.closest('[data-var]');if(b)pgSetVar(+b.dataset.var);});
+  $('#pgVars').addEventListener('click',e=>{const o=e.target.closest('[data-open]'),b=e.target.closest('[data-var]');if(o)openMove(o.dataset.open);else if(b)pgSetVar(+b.dataset.var);});
+  ['#pgMoves','#pgVarNote'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openMove(b.dataset.open);}));
+  $('#mvPgs').addEventListener('click',e=>{const b=e.target.closest('[data-pg]');if(!b)return;S.pg.v[b.dataset.pg]=+b.dataset.v||0;openPg(b.dataset.pg);});
+  $('#pgTempo').addEventListener('input',e=>{const p=CUR&&CUR.pg;if(!p)return;S.pg.tempo[p.id]=+e.target.value;$('#pgTempoV').textContent=T.bpm(+e.target.value);});
+  $('#pgTempo').addEventListener('change',save);
+  $('#pgRx').addEventListener('click',pgToRemix);$('#pgST').addEventListener('click',pgToScale);
+  /* zijbalk: onderdelen, en welke stijlgroepen open staan */
+  $('#toolNav').addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(!b)return;const k=b.dataset.nav;
+    if(k==='lib')openLib();else if(k==='progs')openProgs();else if(k==='remix')openRemix();else openMap();});
+  $('#mvNav').addEventListener('toggle',e=>{const d=e.target,st=d&&d.dataset&&d.dataset.st;if(!st)return;const i=S.navOpen.indexOf(st);
+    if(d.open&&i<0)S.navOpen.push(st);else if(!d.open&&i>=0)S.navOpen.splice(i,1);else return;save();},true);
   $('#btnPrev').addEventListener('click',()=>step(-1));$('#btnNext').addEventListener('click',()=>step(1));
   $('#btnSurprise').addEventListener('click',surprise);
   $('#btnRemix').addEventListener('click',()=>openRemix());$('#btnMap').addEventListener('click',openMap);
@@ -1432,24 +1772,23 @@ function bind(){
   $('#mapTempo').addEventListener('input',e=>{S.map.tempo=+e.target.value;$('#mapTempoV').textContent=T.bpm(S.map.tempo);});
   $('#mapTempo').addEventListener('change',save);
   $('#mapST').addEventListener('click',mapToScale);
-  $('#mvNav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-    if(b.dataset.nav==='lib')openLib();else if(b.dataset.nav==='remix')openRemix();else if(b.dataset.nav==='map')openMap();else openMove(b.dataset.id);});
+  $('#mvNav').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(b)openMove(b.dataset.id);});
   $('#grid').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)openMove(b.dataset.id);});
   $('#segStyle').addEventListener('click',e=>{const b=e.target.closest('[data-style]');if(!b)return;S.style=b.dataset.style;save();renderLib();});
   $('#moodChips').addEventListener('click',e=>{const b=e.target.closest('[data-mood]');if(!b)return;S.mood=b.dataset.mood;save();renderLib();});
   /* zetkaart */
   $('#selKey').addEventListener('change',e=>setKey(e.target.value));
   $('#btnRandKey').addEventListener('click',randKey);
-  ['#segSet','#rxSet','#mapSet'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-set]');if(!b)return;S.set=b.dataset.set;reVoice();}));
-  ['#segPos','#rxPos','#mapPos'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-pos]');if(!b)return;S.pos=b.dataset.pos;reVoice();}));
-  ['#segLab','#mapLab'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;S.labels=b.dataset.lab;reLabel();}));
-  ['#dgs','#rxDgs','#mapDgs'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('.dg');if(b)playChord(+b.dataset.i);}));
+  ['#segSet','#rxSet','#mapSet','#pgSet'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-set]');if(!b)return;S.set=b.dataset.set;reVoice();}));
+  ['#segPos','#rxPos','#mapPos','#pgPos'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-pos]');if(!b)return;S.pos=b.dataset.pos;reVoice();}));
+  ['#segLab','#mapLab','#pgLab'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;S.labels=b.dataset.lab;reLabel();}));
+  ['#dgs','#rxDgs','#mapDgs','#pgDgs'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('.dg');if(b)playChord(+b.dataset.i);}));
   const playBtn=()=>{if(PL&&PL.mode==='full')stopPlay();else playStart('full');};
-  $('#btnPlay').addEventListener('click',playBtn);$('#rxPlay').addEventListener('click',playBtn);$('#mapPlay').addEventListener('click',playBtn);
+  $('#btnPlay').addEventListener('click',playBtn);$('#rxPlay').addEventListener('click',playBtn);$('#mapPlay').addEventListener('click',playBtn);$('#pgPlay').addEventListener('click',playBtn);
   $('#mapLineBtn').addEventListener('click',()=>{if(PL&&PL.mode==='line')stopPlay();else playStart('line');});
   $('#btnLine').addEventListener('click',()=>{if(PL&&PL.mode==='line')stopPlay();else playStart('line');});
-  ['#tgLoop','#rxLoop','#mapLoop'].forEach(id=>$(id).addEventListener('change',e=>{S.loop=e.target.checked;save();}));
-  ['#tgBass','#rxBass','#mapBass'].forEach(id=>$(id).addEventListener('change',e=>{S.bass=e.target.checked;save();}));
+  ['#tgLoop','#rxLoop','#mapLoop','#pgLoop'].forEach(id=>$(id).addEventListener('change',e=>{S.loop=e.target.checked;save();}));
+  ['#tgBass','#rxBass','#mapBass','#pgBass'].forEach(id=>$(id).addEventListener('change',e=>{S.bass=e.target.checked;save();}));
   $('#rgTempo').addEventListener('input',e=>{const mv=CUR&&CUR.mv;if(!mv)return;S.tempo[mv.id]=+e.target.value;$('#tempoV').textContent=T.bpm(+e.target.value);});
   $('#rxTempo').addEventListener('input',e=>{S.rx.tempo=+e.target.value;$('#rxTempoV').textContent=T.bpm(S.rx.tempo);});
   ['#rgTempo','#rxTempo'].forEach(id=>$(id).addEventListener('change',save));
@@ -1473,18 +1812,21 @@ function bind(){
     if(a){RX.ab=a.dataset.ab;rxCur();renderRxBoard();return;}
     if(e.target.closest('[data-keep]'))rxKeep();else if(e.target.closest('[data-close]'))rxTry(RX.prev);});
   document.addEventListener('keydown',e=>{
-    if(S.view==='lib'||e.metaKey||e.ctrlKey||e.altKey)return;const tg=e.target,tag=tg&&tg.tagName;
+    if(S.view==='lib'||S.view==='progs'||e.metaKey||e.ctrlKey||e.altKey)return;const tg=e.target,tag=tg&&tg.tagName,nav=S.view==='move'||S.view==='pg';
     if(e.key==='Escape'){stopPlay();return;}
-    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='SUMMARY')return;
     if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(PL)stopPlay();else playStart('full');}
-    else if(S.view==='move'&&e.key==='ArrowRight'){e.preventDefault();step(1);}else if(S.view==='move'&&e.key==='ArrowLeft'){e.preventDefault();step(-1);}});
-  /* een link naar een zet (#minor-four), #remix of #map terwijl de pagina al open is */
-  addEventListener('hashchange',()=>{const h=decodeURIComponent((location.hash||'').slice(1));if(moveById(h))openMove(h);else if(h==='remix')openRemix();else if(h==='map')openMap();});
+    else if(nav&&e.key==='ArrowRight'){e.preventDefault();step(1);}else if(nav&&e.key==='ArrowLeft'){e.preventDefault();step(-1);}});
+  /* een link naar een zet (#minor-four), een progressie (#pg-axis), #progressions, #remix of #map terwijl de pagina al open is */
+  addEventListener('hashchange',()=>{const h=decodeURIComponent((location.hash||'').slice(1));if(moveById(h))openMove(h);else if(pgById(h))openPg(h);
+    else if(h==='progressions')openProgs();else if(h==='remix')openRemix();else if(h==='map')openMap();});
   addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;save();applyTheme();}}});
   $('#keysHint').textContent=T.keysHint;}
 function init(){applyWood();bind();
   /* direct naar een zet: chord-moves.html#minor-four, of naar Remix: chord-moves.html#remix */
-  const h=decodeURIComponent((location.hash||'').slice(1));if(moveById(h)){S.cur=h;S.view='move';}else if(h==='remix'||h==='map')S.view=h;
+  const h=decodeURIComponent((location.hash||'').slice(1));if(moveById(h)){S.cur=h;S.view='move';}else if(pgById(h)){S.pg.cur=h;S.view='pg';}
+  else if(h==='progressions')S.view='progs';else if(h==='remix'||h==='map')S.view=h;
+  {const mv=S.view==='move'&&moveById(S.cur);if(mv&&!S.navOpen.includes(mv.style))S.navOpen.push(mv.style);}
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}   /* in een ingesloten weergave leidt de zijbalk nergens heen */
   render();summary();}
 init();
