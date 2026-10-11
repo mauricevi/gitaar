@@ -259,6 +259,7 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
       <a id="lnkScales" href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span data-t="nav.scales">Scale Trainer</span></a>
       <a href="note-prompter.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
       <a href="chord-moves.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14M10 3v18M14 3v18"/><circle cx="10" cy="12" r="1.4" fill="currentColor"/><circle cx="14" cy="15" r="1.4" fill="currentColor"/></svg><span>Chord Moves</span></a>
+      <a href="tuner.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21h14"/><path d="M12 17V4"/><path d="M8 7l4-3 4 3"/><path d="M6 13h2M16 13h2M7 9.5h1.5M15.5 9.5H17"/></svg><span>Tuner</span></a>
     </nav>
   </aside>
 
@@ -354,7 +355,7 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
               <div><label class="l" for="gGate">Sensitivity</label><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
               <div><label class="l" for="gStab">Note must hold</label><input type="range" id="gStab" min="40" max="300" step="10"><span class="cap" id="gStabV"></span></div>
               <div><label class="l" for="gA4">Tuning (A4)</label><input type="range" id="gA4" min="430" max="450" step="1"><span class="cap" id="gA4V"></span></div>
-              <div><span class="l">Answer with guitar</span><label class="tg"><input type="checkbox" role="switch" id="gAns" aria-label="Answer with guitar"><i></i></label><span class="cap">In Find a note, the note you play counts as clicking that fret. A wrong answer moves on by itself after a moment. Playing also starts the trainer and keeps it from pausing.</span></div>
+              <div><span class="l">Answer with guitar</span><label class="tg"><input type="checkbox" role="switch" id="gAns" aria-label="Answer with guitar"><i></i></label><span class="cap">In Find a note, the note you play counts as clicking that fret. A wrong answer moves on by itself after a moment. Playing keeps the trainer from pausing; while it is paused, playing does nothing.</span></div>
             </div>
             <p class="gstat" id="gStat" role="status"></p>
             <p class="cap" style="margin-top:10px">Tip: turn the gain knob up until the halo around it flashes green or amber when you play hard, never red. Then move Sensitivity so the mark on the meter sits just above the level when you don’t play.</p>
@@ -1178,7 +1179,7 @@ const GTR=(function(){'use strict';
     if(G.answer)toTrainer(m);}
   /* gespeelde noot → antwoord in de trainer (alleen Find a note): de noot bepaalt de fret op de gevraagde snaar */
   function toTrainer(m){try{
-    if(typeof setPaused==='function'&&paused){setPaused(false);return;}   /* gepauzeerd: de eerste noot start de trainer */
+    if(paused)return;                                                      /* gepauzeerd: spelen doet niets, de pauze blijft staan */
     if(typeof armIdle==='function')armIdle();                              /* spelen telt als activiteit */
     if(!q||q.done||q.dir!=='find')return;
     const f=m-OPENM[q.s],cells=MB[q.s]||[];
