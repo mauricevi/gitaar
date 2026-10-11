@@ -196,6 +196,27 @@ details.sx p{margin:6px 0;font-size:14px;color:var(--mut)}
 .set .l{min-width:130px;color:var(--tx);font-size:14px}
 input[type=range]{accent-color:var(--ac);width:180px;max-width:100%}
 .woods{display:inline-flex;flex-wrap:wrap;gap:10px}
+/* gitaaringang (test) */
+.gin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;margin-top:16px}
+@media (max-width:820px){.gin{grid-template-columns:minmax(0,1fr)}}
+.gin select{min-height:36px;border-radius:9px;border:1px solid var(--sep);background:var(--card);color:var(--tx);padding:0 8px;font-size:14px;max-width:100%}
+.gmeter{position:relative;height:14px;width:240px;max-width:100%;border-radius:7px;background:var(--fill);overflow:hidden}
+.gmeter i{position:absolute;left:0;top:0;bottom:0;width:0;background:#30d158;transition:width .05s linear}
+.gmeter i.hot{background:#ff9f0a}.gmeter i.clip{background:#ff453a}
+.gmeter u{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);opacity:.55}
+.gstage{display:grid;justify-items:center;align-content:center;gap:6px;min-height:230px;padding:18px;border-radius:16px;background:var(--fill);text-align:center}
+.gnote{font-size:84px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--mut2);transition:color .1s}
+.gnote sub{font-size:.38em;font-weight:600;vertical-align:baseline;margin-left:2px}
+.gnote.on{color:var(--tx)}.gnote.hit{color:var(--ok)}
+.gtune{position:relative;width:240px;max-width:100%;height:10px;border-radius:5px;background:linear-gradient(90deg,rgba(255,69,58,.35),rgba(48,209,88,.45) 45%,rgba(48,209,88,.45) 55%,rgba(255,69,58,.35))}
+.gtune b{position:absolute;top:-4px;width:3px;height:18px;border-radius:2px;background:var(--tx);left:50%;transform:translateX(-50%);transition:left .08s}
+.gtune::after{content:"";position:absolute;left:50%;top:-6px;bottom:-6px;width:1px;background:var(--mut)}
+.gpos{font-size:14px;color:var(--mut);min-height:1.4em}
+.ghist{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:30px}
+.ghist span{min-width:38px;padding:4px 8px;border-radius:8px;background:var(--card);font-weight:600;font-size:14px}
+.ghist span:first-child{background:var(--okbg);color:var(--ok)}
+.gstat{font-size:13px;color:var(--mut);margin-top:6px}
+.gstat.err{color:var(--bad)}
 .wood{display:grid;justify-items:center;gap:4px;border:0;background:none;cursor:pointer;font-size:12px;color:var(--mut);padding:2px}
 .wood i{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .wood[aria-pressed="true"] i{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ac)}
@@ -309,6 +330,34 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
           <button class="btn" id="btnSess" data-t="ui.resetSess">Reset session</button>
           <button class="btn" id="btnAll"></button>
           <button class="btn" id="btnBk" data-t="ui.backup">Backup (JSON)</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="card panel" id="pGtr">
+      <summary><span>Guitar input</span><span class="cap">Test: play into your audio interface</span></summary>
+      <div class="pbody">
+        <div class="gin">
+          <div>
+            <p class="cap" style="margin:4px 0 14px">Plug your guitar into the instrument input of your audio interface and press Connect. Your browser asks for permission to use the “microphone”: that is how browsers name every audio input. Play single notes; the app shows which note it hears and where it lies on the neck. Nothing is scored yet.</p>
+            <div class="set">
+              <div><span class="l">Input</span><button type="button" class="btn pri" id="gConn">Connect</button><select id="gDev" aria-label="Audio input" hidden></select></div>
+              <div><span class="l">Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span><span class="cap">Scarlett Solo: the guitar jack is input 2. Auto picks the loudest.</span></div>
+              <div><span class="l">Level</span><span class="gmeter" id="gMeter" aria-hidden="true"><i></i><u></u></span><span class="cap" id="gDb">–</span></div>
+              <div><label class="l" for="gGate">Sensitivity</label><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
+              <div><label class="l" for="gStab">Note must hold</label><input type="range" id="gStab" min="40" max="300" step="10"><span class="cap" id="gStabV"></span></div>
+              <div><label class="l" for="gA4">Tuning (A4)</label><input type="range" id="gA4" min="430" max="450" step="1"><span class="cap" id="gA4V"></span></div>
+            </div>
+            <p class="gstat" id="gStat" role="status"></p>
+            <p class="cap" style="margin-top:10px">Tip: turn the gain knob up until the halo around it flashes green or amber when you play hard, never red. Then move Sensitivity so the mark on the meter sits just above the level when you don’t play.</p>
+          </div>
+          <div class="gstage" aria-live="polite">
+            <div class="gnote" id="gNote">–</div>
+            <div class="gtune" aria-hidden="true"><b id="gNeedle"></b></div>
+            <div class="cap" id="gHz">&nbsp;</div>
+            <div class="gpos" id="gPos"></div>
+            <div class="ghist" id="gHist" aria-label="Last notes"></div>
+          </div>
         </div>
       </div>
     </details>
@@ -1025,6 +1074,114 @@ try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
 
 /* ===== START ===== */
 readSharedWood();applyText();applyTheme();applyWood();drawSettings();restart();
+</script>
+<script>
+/* ══ GITAARINGANG (test) ═══════════════════════════════════════════════════════════════════════
+   Je gitaar via je audio-interface (bijv. Focusrite Scarlett Solo, instrumentingang = input 2) → toonhoogte → noot.
+   Werkt met elke audio-ingang die je computer kent; de browser vraagt één keer toestemming ("microfoon").
+   Echo-/ruisonderdrukking en automatische versterking staan uit: die vervormen een gitaarsignaal.
+   Herkenning: YIN-toonhoogtedetectie (op halve samplefrequentie, ruim genoeg tot 1500 Hz). Een noot telt pas als
+   hij een instelbare tijd stabiel is ("Note must hold"); dezelfde noot telt opnieuw na een nieuwe aanslag.
+   Instellingen: localStorage 'practiceRoom.guitarIn' (gedeeld, zodat andere tools dezelfde ingang kunnen gebruiken).
+   Voor later: GTR.onNote(fn) → fn({midi, pc, cents, freq}) bij elke herkende noot. */
+const GTR=(function(){'use strict';
+  const KEY='practiceRoom.guitarIn',OPENM=[40,45,50,55,59,64],SN=['low E','A','D','G','B','high e'];
+  const SHN=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],FLN=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+  const $=s=>document.querySelector(s);
+  const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')||{};}catch(e){return{};}};
+  const G=Object.assign({dev:'',ch:'auto',gate:-48,stable:90,a4:440},load());
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}};
+  const name=pc=>{try{if(typeof short==='function')return short(pc);}catch(e){}return SHN[pc];};
+  let ctx=null,stream=null,src=null,an=[],bufs=[],raf=0,on=false,listeners=[];
+  let cand=null,armed=true,last=null,prevDb=-120,hist=[],peakHold=0;
+
+  /* ── YIN: x = signaal, sr = samplefrequentie → {f, conf} of null ── */
+  let D=null,C=null;
+  function yin(x,sr){const N=x.length,maxT=Math.min(Math.floor(sr/62),N>>1),minT=Math.max(2,Math.floor(sr/1500)),W=N-maxT;
+    if(!D||D.length<maxT+2){D=new Float32Array(maxT+2);C=new Float32Array(maxT+2);}
+    for(let t=1;t<=maxT;t++){let s=0;for(let i=0;i<W;i++){const d=x[i]-x[i+t];s+=d*d;}D[t]=s;}
+    C[0]=1;let run=0;for(let t=1;t<=maxT;t++){run+=D[t];C[t]=run?D[t]*t/run:1;}
+    let t=-1;for(let k=minT;k<maxT;k++){if(C[k]<.15){while(k+1<maxT&&C[k+1]<C[k])k++;t=k;break;}}
+    if(t<0){let b=minT;for(let k=minT;k<maxT;k++)if(C[k]<C[b])b=k;if(C[b]>.3)return null;t=b;}
+    const a=C[t-1],b=C[t],c=C[t+1]||b,den=a-2*b+c,sh=den?(a-c)/(2*den):0;
+    return{f:sr/(t+Math.max(-1,Math.min(1,sh))),conf:1-b};}
+
+  /* ── luisteren ── */
+  async function connect(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('This browser can’t open audio inputs here. Use Chrome or Edge, or open the app via https (GitHub Pages).',true);return;}
+    stop(true);status('Asking for permission…');
+    const want={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}};
+    if(G.dev)want.deviceId={exact:G.dev};
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:want});}
+    catch(e){if(G.dev&&(e.name==='OverconstrainedError'||e.name==='NotFoundError')){G.dev='';save();return connect();}
+      status(e.name==='NotAllowedError'?'Permission was refused. Allow the microphone for this page in the address bar, then press Connect again.':'Could not open the input: '+e.message,true);return;}
+    ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')await ctx.resume();
+    src=ctx.createMediaStreamSource(stream);
+    const n=Math.max(1,Math.min(2,src.channelCount||2)),sp=ctx.createChannelSplitter(2);src.connect(sp);an=[];bufs=[];
+    for(let i=0;i<2;i++){const a=ctx.createAnalyser();a.fftSize=4096;a.smoothingTimeConstant=0;sp.connect(a,i);an.push(a);bufs.push(new Float32Array(a.fftSize));}
+    on=true;cand=null;armed=true;last=null;
+    const tr=stream.getAudioTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{};
+    await fillDevices(st.deviceId);
+    status('Listening to '+(tr?tr.label:'audio input')+' · '+(st.channelCount||n)+' channel'+((st.channelCount||n)===1?'':'s')+' · '+Math.round(ctx.sampleRate/1000)+' kHz');
+    $('#gConn').textContent='Stop';loop();}
+  function stop(quiet){on=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;
+    if(src)try{src.disconnect();}catch(e){}src=null;$('#gConn').textContent='Connect';
+    if(!quiet){status('Stopped.');show(null);}}
+  async function fillDevices(cur){try{const list=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+    const sel=$('#gDev');sel.innerHTML=list.map((d,i)=>'<option value="'+d.deviceId+'">'+(d.label||'Input '+(i+1)).replace(/</g,'&lt;')+'</option>').join('');
+    sel.hidden=!list.length;if(cur)sel.value=cur;}catch(e){}}
+
+  /* ── elke schermverversing: niveau meten, toonhoogte bepalen, stabiele noten doorgeven ── */
+  let tick=0;
+  function loop(){if(!on)return;raf=requestAnimationFrame(loop);
+    const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);let s=0,p=0;const b=bufs[i];for(let k=0;k<b.length;k++){const v=b[k];s+=v*v;const q=v<0?-v:v;if(q>p)p=q;}return{rms:Math.sqrt(s/b.length),peak:p};});
+    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9);
+    meter(db,L.peak);
+    if(++tick%2)return;   /* toonhoogte om de andere keer (~30× per seconde) */
+    const now=performance.now();
+    if(db-prevDb>6)armed=true;prevDb=db;   /* nieuwe aanslag */
+    if(db<G.gate){armed=true;cand=null;show(null,true);return;}
+    const x=bufs[ci],h=new Float32Array(x.length>>1);for(let k=0;k<h.length;k++)h[k]=(x[2*k]+x[2*k+1])/2;   /* halve samplefrequentie */
+    const r=yin(h,ctx.sampleRate/2);
+    if(!r||r.conf<.8||r.f<62||r.f>1500){show(null,true);return;}
+    const mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf),cents=Math.round((mf-m)*100);
+    if(!cand||cand.m!==m)cand={m,t0:now,fired:false};
+    const stable=now-cand.t0>=G.stable;
+    show({m,cents,f:r.f},false,stable);
+    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m,t:now};fire(m,cents,r.f);}}
+  function fire(m,cents,f){const pc=((m%12)+12)%12;hist.unshift(name(pc)+(Math.floor(m/12)-1));hist=hist.slice(0,12);
+    $('#gHist').innerHTML=hist.map(x=>'<span>'+x+'</span>').join('');
+    const el=$('#gNote');el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),350);
+    listeners.forEach(fn=>{try{fn({midi:m,pc,cents,freq:f});}catch(e){}});}
+
+  /* ── scherm ── */
+  function meter(db,peak){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));
+    peakHold=Math.max(peak,peakHold*.96);i.style.width=pct+'%';i.className=peakHold>.98?'clip':peakHold>.7?'hot':'';
+    $('#gDb').textContent=peakHold>.98?'Too loud: turn the gain down':(db>-100?Math.round(db)+' dB':'–');}
+  let lastShow='';
+  function show(n,quiet,stable){const el=$('#gNote');
+    if(!n){if(!quiet){el.textContent='–';el.className='gnote';$('#gHz').innerHTML='&nbsp;';$('#gPos').textContent='';}else el.classList.remove('on');return;}
+    const pc=((n.m%12)+12)%12,key=n.m+'|'+stable;
+    if(key!==lastShow){lastShow=key;el.innerHTML=name(pc)+'<sub>'+(Math.floor(n.m/12)-1)+'</sub>';
+      const pos=OPENM.map((o,s)=>[s,n.m-o]).filter(([,f])=>f>=0&&f<=15).map(([s,f])=>SN[s]+' '+f);
+      $('#gPos').textContent=pos.length?'On the neck: '+pos.join(' · '):'Outside the neck (frets 0–15)';}
+    el.classList.toggle('on',!!stable);
+    $('#gNeedle').style.left=(50+Math.max(-50,Math.min(50,n.cents)))+'%';
+    $('#gHz').textContent=n.f.toFixed(1)+' Hz · '+(n.cents>0?'+':'')+n.cents+' cents';}
+  function status(t,err){const s=$('#gStat');s.textContent=t;s.classList.toggle('err',!!err);}
+  function syncUI(){
+    $('#gCh').innerHTML=[['auto','Auto'],['1','Input 1'],['2','Input 2']].map(([v,l])=>'<button type="button" class="chip" data-ch="'+v+'" aria-pressed="'+(G.ch===v)+'">'+l+'</button>').join('');
+    $('#gGate').value=G.gate;$('#gGateV').textContent=G.gate+' dB';$('#gStab').value=G.stable;$('#gStabV').textContent=G.stable+' ms';
+    $('#gA4').value=G.a4;$('#gA4V').textContent=G.a4+' Hz';$('#gMeter u').style.left=Math.max(0,Math.min(100,(G.gate+72)/72*100))+'%';}
+  function bind(){syncUI();
+    $('#gConn').addEventListener('click',()=>{if(on)stop();else connect();});
+    $('#gDev').addEventListener('change',e=>{G.dev=e.target.value;save();connect();});
+    $('#gCh').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(!b)return;G.ch=b.dataset.ch;save();syncUI();});
+    [['#gGate','gate'],['#gStab','stable'],['#gA4','a4']].forEach(([id,k])=>$(id).addEventListener('input',e=>{G[k]=+e.target.value;save();syncUI();}));
+    if(!window.isSecureContext&&location.protocol!=='file:')status('Audio inputs only work on https or from a file on your computer.',true);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  return{onNote(fn){listeners.push(fn);},get on(){return on;},yin,connect,stop};
+})();
 </script>
 </body>
 </html>
