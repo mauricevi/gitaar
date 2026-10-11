@@ -196,7 +196,14 @@ details.sx p{margin:6px 0;font-size:14px;color:var(--mut)}
 .set .l{min-width:130px;color:var(--tx);font-size:14px}
 input[type=range]{accent-color:var(--ac);width:180px;max-width:100%}
 .woods{display:inline-flex;flex-wrap:wrap;gap:10px}
-/* gitaaringang (test) */
+/* aan/uit-schakelaar (zoals in de andere apps) */
+.tg{position:relative;flex:none;display:inline-flex;cursor:pointer}
+.tg input{position:absolute;opacity:0;width:1px;height:1px}
+.tg i{width:46px;height:28px;border-radius:14px;background:var(--fill);position:relative;transition:background .15s}
+.tg i::after{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .15s}
+.tg input:checked+i{background:#34c759}.tg input:checked+i::after{transform:translateX(18px)}
+.tg:focus-within{outline:3px solid var(--ac);outline-offset:2px;border-radius:14px}
+/* gitaaringang */
 .gin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:22px;margin-top:16px}
 @media (max-width:820px){.gin{grid-template-columns:minmax(0,1fr)}}
 .gin select{min-height:36px;border-radius:9px;border:1px solid var(--sep);background:var(--card);color:var(--tx);padding:0 8px;font-size:14px;max-width:100%}
@@ -335,11 +342,11 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
     </details>
 
     <details class="card panel" id="pGtr">
-      <summary><span>Guitar input</span><span class="cap">Test: play into your audio interface</span></summary>
+      <summary><span>Guitar input</span><span class="cap" id="gSum">Play your answers into your audio interface</span></summary>
       <div class="pbody">
         <div class="gin">
           <div>
-            <p class="cap" style="margin:4px 0 14px">Plug your guitar into the instrument input of your audio interface and press Connect. Your browser asks for permission to use the “microphone”: that is how browsers name every audio input. Play single notes; the app shows which note it hears and where it lies on the neck. Nothing is scored yet.</p>
+            <p class="cap" style="margin:4px 0 14px">Plug your guitar into the instrument input of your audio interface and press Connect. Your browser asks for permission to use the “microphone”: that is how browsers name every audio input. Play single notes; the app shows which note it hears and where it lies on the neck. Switch on Answer with guitar to play your answers in Find a note.</p>
             <div class="set">
               <div><span class="l">Input</span><button type="button" class="btn pri" id="gConn">Connect</button><select id="gDev" aria-label="Audio input" hidden></select></div>
               <div><span class="l">Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span><span class="cap">Scarlett Solo: the guitar jack is input 2. Auto picks the loudest.</span></div>
@@ -347,6 +354,7 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
               <div><label class="l" for="gGate">Sensitivity</label><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
               <div><label class="l" for="gStab">Note must hold</label><input type="range" id="gStab" min="40" max="300" step="10"><span class="cap" id="gStabV"></span></div>
               <div><label class="l" for="gA4">Tuning (A4)</label><input type="range" id="gA4" min="430" max="450" step="1"><span class="cap" id="gA4V"></span></div>
+              <div><span class="l">Answer with guitar</span><label class="tg"><input type="checkbox" role="switch" id="gAns" aria-label="Answer with guitar"><i></i></label><span class="cap">In Find a note, the note you play counts as clicking that fret. A wrong answer moves on by itself after a moment. Playing also starts the trainer and keeps it from pausing.</span></div>
             </div>
             <p class="gstat" id="gStat" role="status"></p>
             <p class="cap" style="margin-top:10px">Tip: turn the gain knob up until the halo around it flashes green or amber when you play hard, never red. Then move Sensitivity so the mark on the meter sits just above the level when you don’t play.</p>
@@ -375,6 +383,7 @@ textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);
         <div class="set">
           <div><span class="l" data-t="ui.newPerDay">New per day</span><span id="uNew" class="seg"></span><span class="cap" data-t="ui.newItems"></span></div>
           <div><span class="l" data-t="ui.dueMark">Mark due notes</span><span id="uDue" class="seg"></span><span class="cap" data-t="ui.dueMarkSub"></span></div>
+          <div><span class="l">Questions</span><span id="uDirs" class="seg"></span><span class="cap">Find only: every question is Find a note, so you can answer everything with your guitar.</span></div>
         </div>
         <div class="grp" data-t="ui.gGrading">Grading</div>
         <div class="set">
@@ -574,7 +583,7 @@ const KEY='fretTrainer.v1';
 /* Oefenlogboek per dag (voor de kalender op Home): {"2026-10-08":{s:seconden,n:antwoorden,ok:goed}}. Eigen opslagsleutel. */
 var FLOG=(()=>{try{return JSON.parse(localStorage.getItem('fretTrainer.log'))||{};}catch(e){return{};}})();
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   /* lokale datum JJJJ-MM-DD */
-const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6};
+const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,findOnly:false,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6};
 const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 function hydrate(r){r=obj(r);const set={...DEF,...obj(r.settings)};
   if(!Array.isArray(set.strings)||set.strings.length!==6)set.strings=[...DEF.strings];
@@ -653,7 +662,9 @@ function record(s,pc,ok,ms,d=cfg().mode){const k=s+':'+pc,t=store.stats[k]||(sto
    Sessie: fout → terug na 2-4 vragen, daarna na ~10. Dagen: Leitner 1/3/7/16/35. */
 const LADDER=[1,3,7,16,35];
 const EASY=.6;
-const dirs=['find','name'];
+/* richtingen in Slim oefenen: Find en Name, of alleen Find (instelling 'Questions', handig als je met de gitaar antwoordt) */
+const ALLDIRS=['find','name'];let dirs=ALLDIRS;
+function setDirs(){dirs=cfg().findOnly?['find']:ALLDIRS;}
 const STAGES=[{s:[0,1],f:5,nat:1},{s:[0,1],f:12,nat:1},{s:[0,1,2,3],f:5,nat:1},{s:[0,1,2,3],f:12,nat:1},{s:[0,1,2,3,4,5],f:12,nat:1},{s:[0,1,2,3,4,5],f:12,nat:0}];
 const today=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(store.off||0);
 const ORDER=(()=>{const o=[];STAGES.forEach((g,i)=>g.s.forEach(s=>{for(let pc=0;pc<12;pc++){
@@ -662,9 +673,9 @@ const STG=new Map(ORDER.map(x=>[x.s+':'+x.pc,x.st]));
 const fmax=(s,cur)=>STAGES.slice(0,cur+1).filter(g=>g.s.includes(s)).reduce((m,g)=>Math.max(m,g.f),0);
 let rl={};
 function dayCheck(){if(store.day.d!==today())store.day={d:today(),newN:0};}
-function migrateSrs(){Object.entries(store.stats).forEach(([k,t])=>dirs.forEach(d=>{const h=t['h'+d[0]],key=k+':'+d;
+function migrateSrs(){Object.entries(store.stats).forEach(([k,t])=>ALLDIRS.forEach(d=>{const h=t['h'+d[0]],key=k+':'+d;
   if(h&&h.length&&!store.srs[key])store.srs[key]={box:h.length>=3&&h.slice(-3).every(x=>x[0])?1:0,due:today(),lapses:0,g:h[h.length-1][0]?2:0};}));}
-dayCheck();migrateSrs();save();
+dayCheck();migrateSrs();save();setDirs();
 const isKnown=(s,pc,d)=>{const e=store.srs[s+':'+pc+':'+d];return !!e&&e.g>=1;};   // Hard (goed maar traag) telt ook als gekend
 /* Stage zakt nooit terug: hoogst bereikte stap wordt onthouden in store.maxSt */
 function autoStage(){let i=0;for(;i<STAGES.length-1;i++){const it=ORDER.filter(x=>x.st===i);let n=0;
@@ -672,7 +683,7 @@ function autoStage(){let i=0;for(;i<STAGES.length-1;i++){const it=ORDER.filter(x
   if(i>store.maxSt){store.maxSt=i;save();}return Math.max(i,store.maxSt);}
 const curStage=()=>cfg().stageSet!=null?Math.min(cfg().stageSet,STAGES.length-1):autoStage();
 function smartItems(){const cur=curStage();return ORDER.filter(x=>x.st<=cur).flatMap(x=>dirs.map(d=>({...x,d,k:x.s+':'+x.pc+':'+d,fm:fmax(x.s,cur)})));}
-const dueKeys=()=>{const cs=curStage();return Object.keys(store.srs).filter(k=>{const[s,pc]=k.split(':');return store.srs[k].due<=today()&&!sess.seen[k]&&STG.get(s+':'+pc)<=cs;});};
+const dueKeys=()=>{const cs=curStage();return Object.keys(store.srs).filter(k=>{const[s,pc,d]=k.split(':');return dirs.includes(d)&&store.srs[k].due<=today()&&!sess.seen[k]&&STG.get(s+':'+pc)<=cs;});};
 const isDue=(s,pc)=>dirs.some(d=>{const e=store.srs[s+':'+pc+':'+d];return e&&e.due<=today();});
 function dueUI(){dayCheck();const dk=dueKeys().length,sm=cfg().mode==='smart';$('#sDue').textContent=dk;$('#dueWrap').hidden=!sm&&!Object.keys(store.srs).length;$('#pgw').hidden=!sm;if(!sm)return;
   const done=Object.keys(sess.seen).length,nw=Math.min(Math.max(0,cfg().newPerDay-store.day.newN),smartItems().filter(x=>!store.srs[x.k]).length),tot=done+dk+nw+Object.keys(rl).length;
@@ -837,7 +848,7 @@ function buildAnswers(sm){const c=cfg(),ans=$('#answers');ans.innerHTML='';
     if(sm?(STAGES[curStage()].nat&&!isNat(pc)):(c.notes==='nat'&&!isNat(pc)||c.notes==='acc'&&isNat(pc)))continue;
     const b=document.createElement('button');b.className='chip';b.textContent=full(pc);b.dataset.pc=pc;
     b.onclick=()=>{if(q&&q.dir==='name')answer(pc);};ans.append(b);}}
-function newQ(){clearTimeout(timer);const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick(),dir=sm?(it&&it.d):c.mode;
+function newQ(){clearTimeout(timer);setDirs();const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick(),dir=sm?(it&&it.d):c.mode;
   $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#fb').hidden=true;
   MB=buildBoard($('#board'),onCell,true);$('#board').dataset.m=dir||'find';
   buildAnswers(sm);const ans=$('#answers');ans.classList.toggle('ghost',dir!=='name');$('#kh').classList.toggle('ghost',dir!=='name');ans.setAttribute('aria-hidden',dir!=='name');
@@ -998,6 +1009,7 @@ function drawSettings(){const O=T.opt;
   seg('#uMap','map',[['mast',O.mast],['speed',O.speed],['acc',O.accuracy]],renderStats);
   seg('#uNew','newPerDay',[[3,'3'],[6,'6'],[10,'10'],[20,'20']],restart);
   seg('#uDue','dueMark',[[true,O.on],[false,O.off]],renderStats);
+  seg('#uDirs','findOnly',[[false,'Find and Name'],[true,'Find only']],()=>{setDirs();renderStats();if(cfg().mode==='smart'&&(!q||q.dir==='name'))newQ();});
   woodSel();fretSel();filUI();}
 /* Statische teksten uit TEXT invullen (elementen met data-t / data-ta) */
 const pathGet=p=>p.split('.').reduce((o,k)=>o&&o[k],TEXT);
@@ -1090,7 +1102,7 @@ const GTR=(function(){'use strict';
   const SHN=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],FLN=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
   const $=s=>document.querySelector(s);
   const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')||{};}catch(e){return{};}};
-  const G=Object.assign({dev:'',ch:'auto',gate:-48,stable:90,a4:440},load());
+  const G=Object.assign({dev:'',ch:'auto',gate:-48,stable:90,a4:440,answer:false},load());
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}};
   const name=pc=>{try{if(typeof short==='function')return short(pc);}catch(e){}return SHN[pc];};
   let ctx=null,stream=null,src=null,an=[],bufs=[],raf=0,on=false,listeners=[];
@@ -1124,9 +1136,9 @@ const GTR=(function(){'use strict';
     const tr=stream.getAudioTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{};
     await fillDevices(st.deviceId);
     status('Listening to '+(tr?tr.label:'audio input')+' · '+(st.channelCount||n)+' channel'+((st.channelCount||n)===1?'':'s')+' · '+Math.round(ctx.sampleRate/1000)+' kHz');
-    $('#gConn').textContent='Stop';loop();}
+    $('#gConn').textContent='Stop';syncUI();loop();}
   function stop(quiet){on=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;
-    if(src)try{src.disconnect();}catch(e){}src=null;$('#gConn').textContent='Connect';
+    if(src)try{src.disconnect();}catch(e){}src=null;$('#gConn').textContent='Connect';syncUI();
     if(!quiet){status('Stopped.');show(null);}}
   async function fillDevices(cur){try{const list=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
     const sel=$('#gDev');sel.innerHTML=list.map((d,i)=>'<option value="'+d.deviceId+'">'+(d.label||'Input '+(i+1)).replace(/</g,'&lt;')+'</option>').join('');
@@ -1162,7 +1174,18 @@ const GTR=(function(){'use strict';
   function fire(m,cents,f){const pc=((m%12)+12)%12;hist.unshift(name(pc)+(Math.floor(m/12)-1));hist=hist.slice(0,12);
     $('#gHist').innerHTML=hist.map(x=>'<span>'+x+'</span>').join('');
     const el=$('#gNote');el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),350);
-    listeners.forEach(fn=>{try{fn({midi:m,pc,cents,freq:f});}catch(e){}});}
+    listeners.forEach(fn=>{try{fn({midi:m,pc,cents,freq:f});}catch(e){}});
+    if(G.answer)toTrainer(m);}
+  /* gespeelde noot → antwoord in de trainer (alleen Find a note): de noot bepaalt de fret op de gevraagde snaar */
+  function toTrainer(m){try{
+    if(typeof setPaused==='function'&&paused){setPaused(false);return;}   /* gepauzeerd: de eerste noot start de trainer */
+    if(typeof armIdle==='function')armIdle();                              /* spelen telt als activiteit */
+    if(!q||q.done||q.dir!=='find')return;
+    const f=m-OPENM[q.s],cells=MB[q.s]||[];
+    if(f<0||f>=cells.length){status('That note is not on the '+SN[q.s]+' string (frets 0–'+(cells.length-1)+').');return;}
+    const ok=(OPEN[q.s]+f)%12===q.pc;answer(null,q.s,f);
+    if(!ok){clearTimeout(timer);timer=setTimeout(()=>{if(q&&q.done)newQ();},1800);}   /* fout: even het goede antwoord tonen, dan door */
+  }catch(e){}}
 
   /* ── scherm ── */
   function meter(db,peak){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));
@@ -1182,15 +1205,19 @@ const GTR=(function(){'use strict';
   function syncUI(){
     $('#gCh').innerHTML=[['auto','Auto'],['1','Input 1'],['2','Input 2']].map(([v,l])=>'<button type="button" class="chip" data-ch="'+v+'" aria-pressed="'+(G.ch===v)+'">'+l+'</button>').join('');
     $('#gGate').value=G.gate;$('#gGateV').textContent=G.gate+' dB';$('#gStab').value=G.stable;$('#gStabV').textContent=G.stable+' ms';
-    $('#gA4').value=G.a4;$('#gA4V').textContent=G.a4+' Hz';$('#gMeter u').style.left=Math.max(0,Math.min(100,(G.gate+72)/72*100))+'%';}
+    $('#gA4').value=G.a4;$('#gA4V').textContent=G.a4+' Hz';$('#gAns').checked=!!G.answer;
+    $('#gSum').textContent=on?(G.answer?'Listening · answers Find a note':'Listening'):'Play your answers into your audio interface';$('#gMeter u').style.left=Math.max(0,Math.min(100,(G.gate+72)/72*100))+'%';}
   function bind(){syncUI();
     $('#gConn').addEventListener('click',()=>{if(on)stop();else connect();});
     $('#gDev').addEventListener('change',e=>{G.dev=e.target.value;save();connect();});
     $('#gCh').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(!b)return;G.ch=b.dataset.ch;save();syncUI();});
+    $('#gAns').addEventListener('change',e=>{G.answer=e.target.checked;save();syncUI();if(G.answer&&!on)connect();});
+    /* stond Answer with guitar aan: bij de eerste klik op de pagina weer verbinden (de browser wil een klik voordat er geluid mag) */
+    if(G.answer)addEventListener('pointerdown',function once(e){removeEventListener('pointerdown',once,true);if(!on&&!e.target.closest('#gConn'))connect();},true);
     [['#gGate','gate'],['#gStab','stable'],['#gA4','a4']].forEach(([id,k])=>$(id).addEventListener('input',e=>{G[k]=+e.target.value;save();syncUI();}));
     if(!window.isSecureContext&&location.protocol!=='file:')status('Audio inputs only work on https or from a file on your computer.',true);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
-  return{onNote(fn){listeners.push(fn);},get on(){return on;},yin,connect,stop};
+  return{onNote(fn){listeners.push(fn);},get on(){return on;},yin,connect,stop,_play:toTrainer};   /* _play(midi): alleen voor testen */
 })();
 </script>
 </body>
