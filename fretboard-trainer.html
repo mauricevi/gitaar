@@ -1082,6 +1082,7 @@ readSharedWood();applyText();applyTheme();applyWood();drawSettings();restart();
    Echo-/ruisonderdrukking en automatische versterking staan uit: die vervormen een gitaarsignaal.
    Herkenning: YIN-toonhoogtedetectie (op halve samplefrequentie, ruim genoeg tot 1500 Hz). Een noot telt pas als
    hij een instelbare tijd stabiel is ("Note must hold"); dezelfde noot telt opnieuw na een nieuwe aanslag.
+   Springt de herkenning tijdens het uitklinken naar een boventoon (octaaf hoger), dan blijft het dezelfde noot.
    Instellingen: localStorage 'practiceRoom.guitarIn' (gedeeld, zodat andere tools dezelfde ingang kunnen gebruiken).
    Voor later: GTR.onNote(fn) → fn({midi, pc, cents, freq}) bij elke herkende noot. */
 const GTR=(function(){'use strict';
@@ -1093,7 +1094,7 @@ const GTR=(function(){'use strict';
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}};
   const name=pc=>{try{if(typeof short==='function')return short(pc);}catch(e){}return SHN[pc];};
   let ctx=null,stream=null,src=null,an=[],bufs=[],raf=0,on=false,listeners=[];
-  let cand=null,armed=true,last=null,prevDb=-120,hist=[],peakHold=0;
+  let cand=null,armed=true,last=null,prevDb=-120,hist=[],peakHold=0,floor=1;
 
   /* ── YIN: x = signaal, sr = samplefrequentie → {f, conf} of null ── */
   let D=null,C=null;
@@ -1137,18 +1138,27 @@ const GTR=(function(){'use strict';
     const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);let s=0,p=0;const b=bufs[i];for(let k=0;k<b.length;k++){const v=b[k];s+=v*v;const q=v<0?-v:v;if(q>p)p=q;}return{rms:Math.sqrt(s/b.length),peak:p};});
     const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9);
     meter(db,L.peak);
+    /* aanslag herkennen op een kort venster (~20 ms): duidelijk luider dan het niveau vlak ervoor = nieuwe aanslag,
+       ook als de vorige noot nog klinkt */
+    {const x=bufs[ci],n=Math.min(1024,x.length);let s=0;for(let k=x.length-n;k<x.length;k++)s+=x[k]*x[k];const sh=Math.sqrt(s/n);
+      if(sh>floor*1.6&&20*Math.log10(sh||1e-9)>G.gate){armed=true;cand=null;}
+      floor=sh<floor?sh:floor+(sh-floor)*.04;}
     if(++tick%2)return;   /* toonhoogte om de andere keer (~30× per seconde) */
     const now=performance.now();
-    if(db-prevDb>6)armed=true;prevDb=db;   /* nieuwe aanslag */
+    if(db-prevDb>6)armed=true;prevDb=db;   /* nieuwe aanslag (grof) */
     if(db<G.gate){armed=true;cand=null;show(null,true);return;}
     const x=bufs[ci],h=new Float32Array(x.length>>1);for(let k=0;k<h.length;k++)h[k]=(x[2*k]+x[2*k+1])/2;   /* halve samplefrequentie */
     const r=yin(h,ctx.sampleRate/2);
     if(!r||r.conf<.8||r.f<62||r.f>1500){show(null,true);return;}
-    const mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf),cents=Math.round((mf-m)*100);
-    if(!cand||cand.m!==m)cand={m,t0:now,fired:false};
+    let mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf);
+    /* boventoon van de noot die nog klinkt (grondtoon sterft vaak eerder uit dan het octaaf erboven):
+       zonder nieuwe aanslag telt een sprong van een octaaf, octaaf + kwint of twee octaven niet als nieuwe noot */
+    if(last&&!armed&&[12,19,24,-12].includes(m-last.m)){const d=m-last.m;mf-=d;m=last.m;}
+    const cents=Math.round((mf-m)*100);
+    if(!cand||cand.m!==m)cand={m,t0:now,fired:last&&last.m===m&&!armed};
     const stable=now-cand.t0>=G.stable;
-    show({m,cents,f:r.f},false,stable);
-    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m,t:now};fire(m,cents,r.f);}}
+    const fq=G.a4*Math.pow(2,(mf-69)/12);show({m,cents,f:fq},false,stable);
+    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m,t:now};fire(m,cents,fq);}}
   function fire(m,cents,f){const pc=((m%12)+12)%12;hist.unshift(name(pc)+(Math.floor(m/12)-1));hist=hist.slice(0,12);
     $('#gHist').innerHTML=hist.map(x=>'<span>'+x+'</span>').join('');
     const el=$('#gNote');el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),350);
