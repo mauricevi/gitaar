@@ -239,7 +239,7 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
           <div class="row"><span class="lb">Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span><span class="cap">Scarlett Solo: guitar = input 2</span></div>
           <div class="row"><span class="lb">Level</span><span class="meter" id="gMeter" aria-hidden="true"><i></i><u></u></span><span class="cap" id="gDb">–</span></div>
           <div class="row"><label class="lb" for="gGate">Sensitivity</label><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
-          <div class="row"><label class="lb" for="gStab">Note must hold</label><input type="range" id="gStab" min="30" max="200" step="5"><span class="cap" id="gStabV"></span></div>
+          <div class="row"><label class="lb" for="gStab">Note must hold</label><input type="range" id="gStab" min="20" max="150" step="5"><span class="cap" id="gStabV"></span></div>
           <p class="stat" id="gStat" role="status"></p>
         </div>
       </details>
@@ -358,7 +358,7 @@ const chordName=c=>ROOTN[c.root]+QUAL[c.q].lbl;
 
 /* ═══════════ 2. OPSLAG ═══════════ */
 const DEF_SET={lat:.04,latCal:false,ptempo:80,ladder:0,loop:true,swing:true,follow:true,labels:'deg',
-  snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false};
+  hold:50,snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false};
 const newId=()=>'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const isInt=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
 function fixLick(l){if(!l||typeof l!=='object')return null;
@@ -549,9 +549,9 @@ function nearBass(pc,ref){let best=null;for(let m=28;m<=43;m++)if(mod(m,12)===pc
    (hammer-on, pull-off, slide) het moment dat de toonhoogte wisselde. */
 const IN=(function(){
   const G=Object.assign({dev:'',ch:'auto',gate:-48,stable:90,a4:440},read(GKEY)||{});
-  const saveG=()=>{const cur=read(GKEY)||{};write(GKEY,Object.assign(cur,{dev:G.dev,ch:G.ch,gate:G.gate,stable:G.stable}));};
+  const saveG=()=>{const cur=read(GKEY)||{};write(GKEY,Object.assign(cur,{dev:G.dev,ch:G.ch,gate:G.gate}));};
   let ctx=null,stream=null,src=null,an=[],bufs=[],on=false,raf=0,tick=0;
-  let cand=null,armed=true,last=null,prevDb=-120,peakHold=0,floor=1,lastOn=-9,attackAt=null,sounding=null;
+  let cand=null,armed=true,last=null,peakHold=0,lastOn=-9,attackAt=null,sounding=null,pend=null,missed=0;
   const noteL=new Set(),onsetL=new Set();
   let D=null,C=null;
   function yin(x,sr){const N=x.length,maxT=Math.min(Math.floor(sr/62),N>>1),minT=Math.max(2,Math.floor(sr/1500)),W=N-maxT;
@@ -586,29 +586,39 @@ const IN=(function(){
   /* het tijdstip van de aanslag: het eerste blokje van 128 samples (in de laatste 2048) dat boven de drempel komt */
   function onsetTime(x,thr,now,sr){const B=128,n=x.length,nb=16;let k=-1;
     for(let b=nb-1;b>=0;b--){const st=n-(nb-b)*B;let s=0;for(let i=st;i<st+B;i++)s+=x[i]*x[i];if(Math.sqrt(s/B)>=thr)k=b;else if(k>=0)break;}
-    if(k<0)k=nb-8;return now-((nb-k)*B)/sr;}
+    if(k<0)k=nb-4;return now-((nb-k)*B)/sr;}
+  const rmsOf=(x,a,b)=>{let s=0;for(let i=a;i<b;i++)s+=x[i]*x[i];return Math.sqrt(s/(b-a));};
   function endNote(t){if(sounding&&sounding.end==null)sounding.end=t;sounding=null;}
+  /* een aanslag zonder herkende noot (te kort, of de toonhoogte bleef wankelen): neem de toonhoogte die na de aanslag
+     het vaakst gemeten werd, op het tijdstip van de aanslag */
+  function rescue(){const P=pend;pend=null;if(!P||P.fired)return;let best=null,bn=0;P.votes.forEach((n,m)=>{if(n>bn){bn=n;best=m;}});
+    if(best!=null&&bn>=2){armed=false;last={m:best};cand={m:best,t0:performance.now(),at:P.at,fired:true};fire(best,P.at,true);}else missed++;}
   function loop(){if(!on)return;raf=requestAnimationFrame(loop);const now=ctx.currentTime,sr=ctx.sampleRate;
-    const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);let s=0,p=0;const b=bufs[i];for(let k=0;k<b.length;k++){const v=b[k];s+=v*v;const q=v<0?-v:v;if(q>p)p=q;}return{rms:Math.sqrt(s/b.length),peak:p};});
-    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9);
+    const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);const b=bufs[i];let p=0;for(let k=0;k<b.length;k++){const q=b[k]<0?-b[k]:b[k];if(q>p)p=q;}return{rms:rmsOf(b,b.length-2048,b.length),peak:p};});
+    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9),x=bufs[ci],N=x.length,gl=Math.pow(10,G.gate/20);
     meter(db,L.peak);
-    /* aanslag: kort venster (~20 ms) duidelijk luider dan het niveau vlak ervoor, ook als de vorige noot nog klinkt */
-    {const x=bufs[ci],n=1024;let s=0;for(let k=x.length-n;k<x.length;k++)s+=x[k]*x[k];const sh=Math.sqrt(s/n),gl=Math.pow(10,G.gate/20);
-      if(sh>floor*1.6&&sh>gl){if(now-lastOn>.08){const t=onsetTime(x,Math.max(floor*1.6,gl),now,sr);lastOn=now;attackAt=t;onsetL.forEach(fn=>{try{fn(t);}catch(e){}});}armed=true;cand=null;}
-      floor=sh<floor?sh:floor+(sh-floor)*.04;}
+    /* aanslag: de nieuwste ~10 ms zijn duidelijk luider dan ~45 ms eerder (zelfde buffer, dus geen geheugen dat
+       achterloopt); één keer per aanslag, ook als de vorige noot nog klinkt */
+    const eNew=rmsOf(x,N-512,N),eOld=rmsOf(x,N-2560,N-2048);
+    if(eNew>gl&&eNew>eOld*1.7&&now-lastOn>.07){rescue();const t=onsetTime(x,Math.max(eOld*1.7,gl),now,sr);
+      lastOn=now;attackAt=t;armed=true;cand=null;pend={at:t,t:now,votes:new Map(),fired:false};onsetL.forEach(fn=>{try{fn(t);}catch(e){}});}
+    if(pend&&now-pend.t>.32)rescue();
     if(++tick%2)return;
-    if(db-prevDb>6)armed=true;prevDb=db;
-    if(db<G.gate){armed=true;cand=null;endNote(now);show(null,true);return;}
-    const x=bufs[ci],h=new Float32Array(x.length>>1);for(let k=0;k<h.length;k++)h[k]=(x[2*k]+x[2*k+1])/2;
+    if(db<G.gate){rescue();armed=true;cand=null;endNote(now);show(null,true);return;}
+    if(now-lastOn<.025)return;   /* vlak na de aanslag: het venster bevat nog de vorige noot */
+    /* toonhoogte op de laatste 2048 samples (~45 ms): reageert snel op een nieuwe noot, ook bij legato */
+    const h=new Float32Array(1024);for(let k=0;k<1024;k++)h[k]=(x[N-2048+2*k]+x[N-2047+2*k])/2;
     const r=yin(h,sr/2);
-    if(!r||r.conf<.8||r.f<62||r.f>1500){show(null,true);return;}
+    if(!r||r.f<62||r.f>1500){show(null,true);return;}
     let mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf);
     if(last&&!armed&&[12,19,24,-12].includes(m-last.m)){mf-=m-last.m;m=last.m;}
+    if(pend&&!pend.fired&&r.conf>.6)pend.votes.set(m,(pend.votes.get(m)||0)+1);
+    if(r.conf<.8){show(null,true);return;}
     const cents=Math.round((mf-m)*100);
-    if(!cand||cand.m!==m)cand={m,t0:performance.now(),at:armed&&attackAt!=null&&now-attackAt<.35?attackAt:now-.045,fired:last&&last.m===m&&!armed};
-    const stable=performance.now()-cand.t0>=G.stable;show({m,cents},false,stable);
-    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m};attackAt=null;fire(m,cand.at);}}
-  function fire(m,at){endNote(at);const ev={m,at,end:null};sounding=ev;noteL.forEach(fn=>{try{fn(ev);}catch(e){}});}
+    if(!cand||cand.m!==m)cand={m,t0:performance.now(),at:armed&&attackAt!=null&&now-attackAt<.35?attackAt:now-.03,fired:last&&last.m===m&&!armed};
+    const stable=performance.now()-cand.t0>=S.hold;show({m,cents},false,stable);
+    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m};attackAt=null;if(pend)pend.fired=true;fire(m,cand.at);}}
+  function fire(m,at,rescued){endNote(at);const ev={m,at,end:null,rescued:!!rescued};sounding=ev;noteL.forEach(fn=>{try{fn(ev);}catch(e){}});}
   function meter(db,peak){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));peakHold=Math.max(peak,peakHold*.96);
     i.style.width=pct+'%';i.className=peakHold>.98?'clip':peakHold>.7?'hot':'';$('#gDb').textContent=peakHold>.98?'Too loud: turn the gain down':(db>-100?Math.round(db)+' dB':'–');}
   let lastShow='';
@@ -618,17 +628,19 @@ const IN=(function(){
     el.classList.toggle('on',!!stable);}
   function syncUI(){
     $('#gCh').innerHTML=[['auto','Auto'],['1','Input 1'],['2','Input 2']].map(([v,l])=>'<button type="button" data-ch="'+v+'" aria-pressed="'+(G.ch===v)+'">'+l+'</button>').join('');
-    $('#gGate').value=G.gate;$('#gGateV').textContent=G.gate+' dB';$('#gStab').value=G.stable;$('#gStabV').textContent=G.stable+' ms';
+    $('#gGate').value=G.gate;$('#gGateV').textContent=G.gate+' dB';$('#gStab').value=S.hold;$('#gStabV').textContent=S.hold+' ms';
     $('#gMeter u').style.left=Math.max(0,Math.min(100,(G.gate+72)/72*100))+'%';
     $('#gSum').textContent=on?'listening':'not connected · Record connects by itself';}
   $('#gConn').addEventListener('click',()=>{if(on)stop();else connect();});
   $('#gDev').addEventListener('change',e=>{G.dev=e.target.value;saveG();connect();});
   $('#gCh').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(!b)return;G.ch=b.dataset.ch;saveG();syncUI();});
-  [['#gGate','gate'],['#gStab','stable']].forEach(([id,k])=>$(id).addEventListener('input',e=>{G[k]=+e.target.value;saveG();syncUI();}));
+  $('#gGate').addEventListener('input',e=>{G.gate=+e.target.value;saveG();syncUI();});
+  $('#gStab').addEventListener('input',e=>{S.hold=+e.target.value;save();syncUI();});
   syncUI();
   if(!window.isSecureContext&&location.protocol!=='file:')status('Audio inputs only work on https or from a file on your computer.',true);
   return{connect,stop,get on(){return on;},
     onNote(fn){noteL.add(fn);return()=>noteL.delete(fn);},onOnset(fn){onsetL.add(fn);return()=>onsetL.delete(fn);},
+    get missed(){return missed;},resetMissed(){missed=0;},
     _fire:(m,at)=>fire(m,at),_onset:t=>onsetL.forEach(fn=>fn(t))};   /* _fire/_onset: alleen voor testen */
 })();
 
@@ -642,7 +654,7 @@ async function recStart(into){if(REC){recStop();return;}stopPlay();if(CAL)return
   const a=audio(),spb=60/L.bpm,t0=a.currentTime+.15+4*spb;
   REC={id:L.id,into:!!into,created,t0,spb,end:L.bars?t0+L.bars*4*spb:t0+16*4*spb,beat:-4,ev:[],raf:0,
     off:IN.onNote(ev=>{if(REC&&ev.at>REC.t0-4*REC.spb-.05){REC.ev.push(ev);streamAdd(ev.m);}})};
-  REC.iv=setInterval(recTick,25);recTick();$('#stream').innerHTML='';sel=null;S.sel=-1;renderAll();recUI();}
+  IN.resetMissed();REC.iv=setInterval(recTick,25);recTick();$('#stream').innerHTML='';sel=null;S.sel=-1;renderAll();recUI();}
 function recTick(){const R=REC;if(!R)return;const now=actx.currentTime;
   while(R.t0+R.beat*R.spb<Math.min(now+.15,R.end-.01)){click(R.t0+R.beat*R.spb,mod(R.beat,4)===0,R.beat<0);R.beat++;}
   if(now>R.end+.35)recFinish();}
@@ -661,7 +673,9 @@ function recFinish(){const R=REC;if(!R)return;
   if(R.into)pushUndo(L);else if(R.created)pushUndo(L,{added:L.id,prev:R.created.prev});
   finger(q,L.pos);L.raw=raw;L.notes=q.map(n=>({t:n.t,d:n.d,s:n.s,f:n.f,lock:false}));R.created=null;
   recEnd(R);$('#recL').textContent=q.length+' notes';
-  toast('Recorded '+q.length+' notes'+(R.into?'. Undo brings back the previous version.':'. Check the fingering below.'));}
+  const miss=IN.missed,res=R.ev.filter(e=>e.rescued).length;
+  toast('Recorded '+q.length+' notes'+(miss?'. '+miss+' attack'+(miss===1?'':'s')+' had no clear pitch: let the notes ring a little longer, or turn the input up.':R.into?'. Undo brings back the previous version.':'. Check the fingering below.'),miss>0);
+  void res;}
 function recUI(){const R=REC,bs=$$('#beats i');if(!R){bs.forEach(b=>b.className='');$('#btnRec').classList.remove('on');$('#btnRec').textContent='● Record';return;}
   R.raf=requestAnimationFrame(recUI);const now=actx.currentTime-(actx.outputLatency||0),b=Math.floor((now-R.t0)/R.spb),bi=mod(b,4);
   bs.forEach((el,i)=>el.className=now>=R.t0-4*R.spb&&i===bi?(b<0?'cnt':'on'):'');
