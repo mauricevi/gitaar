@@ -18,7 +18,7 @@
       zelf gekozen ("Play from"). Het octaaf: zo dicht mogelijk bij de opgenomen positie, of een octaaf hoger/lager.
    4. Oefenen: de lick over een progressie, met piano, bas en klik (backing-sounds.js, mag ontbreken), in een loop en
       eventueel elke ronde een paar BPM sneller.
-   Opslag: 'practiceRoom.lickLab' (licks en instellingen). Gedeeld: 'practiceRoom.guitarIn' (ingang, kanaal, gevoeligheid),
+   Opslag: 'practiceRoom.lickLab' (licks en instellingen). Gedeeld: 'practiceRoom.guitarIn' (ingang, kanaal, gevoeligheid + auto),
    'practiceRoom.theme' (thema) en 'practiceRoom.board' (houtsoort van het fretbord).
    ════════════════════════════════════════════════════════════════════════════ */
 :root{
@@ -238,7 +238,7 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
           <div class="row"><span class="lb">Input</span><button type="button" class="act pri" id="gConn">Connect</button><select id="gDev" aria-label="Audio input" hidden></select></div>
           <div class="row"><span class="lb">Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span><span class="cap">Scarlett Solo: guitar = input 2</span></div>
           <div class="row"><span class="lb">Level</span><span class="meter" id="gMeter" aria-hidden="true"><i></i><u></u></span><span class="cap" id="gDb">–</span></div>
-          <div class="row"><label class="lb" for="gGate">Sensitivity</label><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
+          <div class="row"><label class="lb" for="gGate">Sensitivity</label><span class="seg" id="gGateMode" role="group" aria-label="Sensitivity mode"></span><input type="range" id="gGate" min="-72" max="-20" step="1"><span class="cap" id="gGateV"></span></div>
           <div class="row"><label class="lb" for="gStab">Note must hold</label><input type="range" id="gStab" min="20" max="150" step="5"><span class="cap" id="gStabV"></span></div>
           <p class="stat" id="gStat" role="status"></p>
         </div>
@@ -548,10 +548,16 @@ function nearBass(pc,ref){let best=null;for(let m=28;m<=43;m++)if(mod(m,12)===pc
    tijdstip van zijn aanslag op de klok van de AudioContext (gezocht in blokjes van 128 samples), of bij legato
    (hammer-on, pull-off, slide) het moment dat de toonhoogte wisselde. */
 const IN=(function(){
-  const G=Object.assign({dev:'',ch:'auto',gate:-48,stable:90,a4:440},read(GKEY)||{});
-  const saveG=()=>{const cur=read(GKEY)||{};write(GKEY,Object.assign(cur,{dev:G.dev,ch:G.ch,gate:G.gate}));};
-  let ctx=null,stream=null,src=null,an=[],bufs=[],on=false,raf=0,tick=0;
-  let cand=null,armed=true,last=null,peakHold=0,lastOn=-9,attackAt=null,sounding=null,pend=null,missed=0;
+  const G=Object.assign({dev:'',ch:'auto',gate:-48,gauto:true,stable:90,a4:440},read(GKEY)||{});
+  const saveG=()=>{const cur=read(GKEY)||{};write(GKEY,Object.assign(cur,{dev:G.dev,ch:G.ch,gate:G.gate,gauto:G.gauto}));};
+  let ctx=null,stream=null,src=null,an=[],bufs=[],on=false,raf=0;
+  let cand=null,armed=true,last=null,peakHold=0,loud=0,lastOn=-9,attackAt=null,sounding=null,pend=null,missed=0;
+  /* automatische gevoeligheid: de ruisvloer is het zachtste niveau dat we zien (stijgt langzaam, ~0,25 dB/s, zodat hij
+     een hardere brom volgt); de drempel ligt 18 dB daarboven, tussen -66 dB (lager telt het loslaten van een snaar mee)
+     en -36 dB. Een vaste -48 dB lag maar 2-10 dB onder een zacht
+     gespeelde noot, waardoor uitklinkende noten en zachte aanslagen wegvielen. */
+  let nf=1e-3,nfT=0,autoGate=-48;
+  const gate=()=>G.gauto?autoGate:G.gate;
   const noteL=new Set(),onsetL=new Set();
   let D=null,C=null;
   function yin(x,sr){const N=x.length,maxT=Math.min(Math.floor(sr/62),N>>1),minT=Math.max(2,Math.floor(sr/1500)),W=N-maxT;
@@ -573,7 +579,7 @@ const IN=(function(){
     ctx=audio();if(ctx.state==='suspended')await ctx.resume();
     src=ctx.createMediaStreamSource(stream);const sp=ctx.createChannelSplitter(2);src.connect(sp);an=[];bufs=[];
     for(let i=0;i<2;i++){const a=ctx.createAnalyser();a.fftSize=4096;a.smoothingTimeConstant=0;sp.connect(a,i);an.push(a);bufs.push(new Float32Array(a.fftSize));}
-    on=true;cand=null;armed=true;last=null;
+    on=true;cand=null;armed=true;last=null;nf=1e-3;nfT=0;loud=0;
     const tr=stream.getAudioTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{};await fillDevices(st.deviceId);
     status('Listening to '+(tr?tr.label:'audio input')+' · '+Math.round(ctx.sampleRate/1000)+' kHz');
     $('#gConn').textContent='Stop';syncUI();loop();return true;}
@@ -595,16 +601,19 @@ const IN=(function(){
     if(best!=null&&bn>=2){armed=false;last={m:best};cand={m:best,t0:performance.now(),at:P.at,fired:true};fire(best,P.at,true);}else missed++;}
   function loop(){if(!on)return;raf=requestAnimationFrame(loop);const now=ctx.currentTime,sr=ctx.sampleRate;
     const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);const b=bufs[i];let p=0;for(let k=0;k<b.length;k++){const q=b[k]<0?-b[k]:b[k];if(q>p)p=q;}return{rms:rmsOf(b,b.length-2048,b.length),peak:p};});
-    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9),x=bufs[ci],N=x.length,gl=Math.pow(10,G.gate/20);
-    meter(db,L.peak);
+    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9),x=bufs[ci],N=x.length;
+    nf=Math.min(Math.max(L.rms,1e-6),nf*(1+.03*Math.min(1,now-nfT)));nfT=now;
+    const ag=Math.round(Math.max(-66,Math.min(-36,20*Math.log10(nf)+18)));if(ag!==autoGate){autoGate=ag;if(G.gauto)showGate();}
+    const gdb=gate(),gl=Math.pow(10,gdb/20);
+    meter(db,L.peak,gdb);
     /* aanslag: de nieuwste ~10 ms zijn duidelijk luider dan ~45 ms eerder (zelfde buffer, dus geen geheugen dat
        achterloopt); één keer per aanslag, ook als de vorige noot nog klinkt */
     const eNew=rmsOf(x,N-512,N),eOld=rmsOf(x,N-2560,N-2048);
     if(eNew>gl&&eNew>eOld*1.7&&now-lastOn>.07){rescue();const t=onsetTime(x,Math.max(eOld*1.7,gl),now,sr);
       lastOn=now;attackAt=t;armed=true;cand=null;pend={at:t,t:now,votes:new Map(),fired:false};onsetL.forEach(fn=>{try{fn(t);}catch(e){}});}
     if(pend&&now-pend.t>.32)rescue();
-    if(++tick%2)return;
-    if(db<G.gate){rescue();armed=true;cand=null;endNote(now);show(null,true);return;}
+    /* toonhoogte elk frame (niet om het andere): bij snelle 16den haalt een noot zo vaker "Note must hold" */
+    if(db<gdb){rescue();armed=true;cand=null;endNote(now);show(null,true);return;}
     if(now-lastOn<.025)return;   /* vlak na de aanslag: het venster bevat nog de vorige noot */
     /* toonhoogte op de laatste 2048 samples (~45 ms): reageert snel op een nieuwe noot, ook bij legato */
     const h=new Float32Array(1024);for(let k=0;k<1024;k++)h[k]=(x[N-2048+2*k]+x[N-2047+2*k])/2;
@@ -619,8 +628,12 @@ const IN=(function(){
     const stable=performance.now()-cand.t0>=S.hold;show({m,cents},false,stable);
     if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m};attackAt=null;if(pend)pend.fired=true;fire(m,cand.at);}}
   function fire(m,at,rescued){endNote(at);const ev={m,at,end:null,rescued:!!rescued};sounding=ev;noteL.forEach(fn=>{try{fn(ev);}catch(e){}});}
-  function meter(db,peak){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));peakHold=Math.max(peak,peakHold*.96);
-    i.style.width=pct+'%';i.className=peakHold>.98?'clip':peakHold>.7?'hot':'';$('#gDb').textContent=peakHold>.98?'Too loud: turn the gain down':(db>-100?Math.round(db)+' dB':'–');}
+  /* te zacht: de hardste piek van de laatste paar seconden blijft onder -20 dBFS terwijl je speelt */
+  function meter(db,peak,gdb){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));peakHold=Math.max(peak,peakHold*.96);loud=Math.max(peak,loud*.999);
+    i.style.width=pct+'%';i.className=peakHold>.98?'clip':peakHold>.7?'hot':'';
+    $('#gDb').textContent=peakHold>.98?'Too loud: turn the gain down':db>-100?Math.round(db)+' dB'+(db>gdb&&loud<.1?' · quiet: turn the gain up':''):'–';}
+  function showGate(){const g=gate();$('#gGate').value=g;$('#gGateV').textContent=(G.gauto?'auto · ':'')+g+' dB';
+    $('#gMeter u').style.left=Math.max(0,Math.min(100,(g+72)/72*100))+'%';}
   let lastShow='';
   function show(n,quiet,stable){const el=$('#gNote');
     if(!n){if(!quiet){el.textContent='–';el.className='gnote';lastShow='';}else el.classList.remove('on');return;}
@@ -628,13 +641,14 @@ const IN=(function(){
     el.classList.toggle('on',!!stable);}
   function syncUI(){
     $('#gCh').innerHTML=[['auto','Auto'],['1','Input 1'],['2','Input 2']].map(([v,l])=>'<button type="button" data-ch="'+v+'" aria-pressed="'+(G.ch===v)+'">'+l+'</button>').join('');
-    $('#gGate').value=G.gate;$('#gGateV').textContent=G.gate+' dB';$('#gStab').value=S.hold;$('#gStabV').textContent=S.hold+' ms';
-    $('#gMeter u').style.left=Math.max(0,Math.min(100,(G.gate+72)/72*100))+'%';
+    $('#gGateMode').innerHTML=[[true,'Auto'],[false,'Manual']].map(([v,l])=>'<button type="button" data-auto="'+v+'" aria-pressed="'+(G.gauto===v)+'">'+l+'</button>').join('');
+    showGate();$('#gStab').value=S.hold;$('#gStabV').textContent=S.hold+' ms';
     $('#gSum').textContent=on?'listening':'not connected · Record connects by itself';}
   $('#gConn').addEventListener('click',()=>{if(on)stop();else connect();});
   $('#gDev').addEventListener('change',e=>{G.dev=e.target.value;saveG();connect();});
   $('#gCh').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(!b)return;G.ch=b.dataset.ch;saveG();syncUI();});
-  $('#gGate').addEventListener('input',e=>{G.gate=+e.target.value;saveG();syncUI();});
+  $('#gGateMode').addEventListener('click',e=>{const b=e.target.closest('[data-auto]');if(!b)return;G.gauto=b.dataset.auto==='true';saveG();syncUI();});
+  $('#gGate').addEventListener('input',e=>{G.gate=+e.target.value;G.gauto=false;saveG();syncUI();});
   $('#gStab').addEventListener('input',e=>{S.hold=+e.target.value;save();syncUI();});
   syncUI();
   if(!window.isSecureContext&&location.protocol!=='file:')status('Audio inputs only work on https or from a file on your computer.',true);
