@@ -266,6 +266,8 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
       </div>
       <div class="viewbar">
         <span class="cap">Labels</span><span class="seg" id="vLab" role="group" aria-label="Labels on the neck"></span>
+        <span class="cap">Whole lick</span><span class="seg" role="group" aria-label="Move the whole lick">
+          <button type="button" id="mvDn" title="Same shape, one string lower (toward low E)">String ↓</button><button type="button" id="mvUp" title="Same shape, one string higher (toward high e)">String ↑</button><button type="button" id="mvOctDn" title="Same strings, an octave lower">Octave ↓</button><button type="button" id="mvOctUp" title="Same strings, an octave higher">Octave ↑</button></span>
         <span class="sp"></span>
         <button type="button" class="act pri" id="btnOne">▶ Play over this chord</button>
       </div>
@@ -296,7 +298,7 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
       <h3>How it works</h3>
       <ol>
         <li><b>Set up first:</b> the chord you play the lick over, the position (where your index finger sits), a slow tempo and the rhythm grid. Press <b>Record</b>: one bar of clicks, then play. Notes in the count-in bar become pickups.</li>
-        <li><b>Check the fingering.</b> The app puts every note on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also be moved earlier or later, deleted, or added by clicking the neck.</li>
+        <li><b>Check the fingering.</b> The app puts every note on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also be moved earlier or later, deleted, or added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher: the same notes on other strings, or an octave higher or lower when that is what fits. <b>Octave ↓ / ↑</b> moves it 12 frets.</li>
         <li><b>Pick a chord.</b> The whole shape slides up or down the neck, so your fingers do exactly the same thing. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> lets you choose any other degree.</li>
         <li><b>Practise</b> the lick over a progression with piano, bass and click. Turn on a few BPM per round to build speed.</li>
       </ol>
@@ -808,6 +810,7 @@ function renderView(){const L=lick(),c=chordAt(S.sel),P=place(L,c),fam=QUAL[c.q]
   const n=sel!=null?L.notes[sel]:null;
   $('#selWhat').innerHTML=n?'<b>Note '+(sel+1)+' of '+L.notes.length+'</b> · '+esc(nOct(midiOf(n)+P.d,flat))+' · '+SLONG[n.s]+' string, fret '+(n.f+P.d)+(n.lock?' · fixed':''):(L.notes.length?'Click a note to edit it.':'');
   ['#eLeft','#eRight','#eStr','#eDel'].forEach(s=>$(s).disabled=!n||!!REC);
+  [['#mvDn',-1,0],['#mvUp',1,0],['#mvOctDn',0,-1],['#mvOctUp',0,1]].forEach(([s,ds,ko])=>$(s).disabled=!!REC||!shapeMove(L,ds,ko));
   $('#eAdd').checked=!!S.add;$('#board').classList.toggle('board-add',!!S.add);
   $('#vLab').innerHTML=[['deg','Degree'],['ord','Order'],['note','Note']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.labels===v)+'">'+l+'</button>').join('');
   $('#btnOne').disabled=!L.notes.length;}
@@ -890,6 +893,22 @@ function moveNote(dir){const L=lick();if(sel==null)return;const n=L.notes[sel],t
 function otherString(){const L=lick();if(sel==null)return;const n=L.notes[sel],cs=cands(midiOf(n),L.pos);if(cs.length<2){toast('This note fits on only one string.');return;}
   const i=cs.findIndex(c=>c.s===n.s),nx=cs[(i+1)%cs.length];edit(()=>{n.s=nx.s;n.f=nx.f;n.lock=true;});
   const P=place(L,chordAt(S.sel));toast(SLONG[nx.s]+' string, fret '+(nx.f+P.d)+(boxCost(nx.f,L.pos)?' (outside your position)':''));}
+/* de hele vorm een snaar opschuiven (ds = ±1) of een octaaf (ds = 0, ko = ±1). Bij een andere snaar blijven de noten
+   gelijk of gaan ze allemaal een octaaf omhoog/omlaag: we nemen de variant die op de hals past en het dichtst bij de
+   huidige plek ligt, maar liever geen losse snaren als de lick die nu niet heeft (dan is het niet meer dezelfde vorm).
+   A5 A8 D7 G5 → een snaar lager: E10 E13 A12 D10 (zelfde noten); een snaar hoger: D12 D15 G14 B13 (octaaf hoger). */
+function shapeMove(L,ds,ko){if(!L.notes.length||L.notes.some(n=>n.s+ds<0||n.s+ds>5))return null;
+  const avg=a=>a.reduce((x,y)=>x+y,0)/a.length,f0=L.notes.map(n=>n.f),m0=avg(f0),open=f0.includes(0);
+  const base=L.notes.map(n=>n.f+OPEN[n.s]-OPEN[n.s+ds]);let best=null;
+  (ds?[-12,0,12]:[12*ko]).forEach(k=>{const fs=base.map(f=>f+k);if(Math.min(...fs)<0||Math.max(...fs)>MAXF)return;
+    const cost=Math.abs(avg(fs)-m0)+(!open&&fs.includes(0)?20:0);if(!best||cost<best.cost)best={k,fs,cost,d:Math.round(avg(fs)-m0)};});
+  return best;}
+function moveShape(ds,ko){const L=lick(),mv=shapeMove(L,ds,ko);
+  if(!mv){toast(ds?'The lick doesn’t fit one string '+(ds<0?'lower':'higher')+'.':'The lick doesn’t fit an octave '+(ko<0?'lower':'higher')+' on the neck.',true);return;}
+  edit(L=>{L.notes.forEach((n,i)=>{n.s+=ds;n.f=mv.fs[i];});L.pos=clamp(L.pos+mv.d,0,14);
+    if(mv.k&&L.raw)L.raw.forEach(r=>{r.m+=mv.k;});});
+  const fr=(mv.d>0?'+':'−')+Math.abs(mv.d)+' fret'+(Math.abs(mv.d)===1?'':'s');
+  toast(ds?'One string '+(ds<0?'lower':'higher')+(mv.k?', an octave '+(mv.k>0?'higher':'lower'):', same notes')+' · '+fr+'.':'An octave '+(ko<0?'lower':'higher')+' · '+fr+'.');}
 function delNote(){const L=lick();if(sel==null)return;edit(L=>{L.notes.splice(sel,1);fixDur(L);if(sel>=L.notes.length)sel=L.notes.length?L.notes.length-1:null;});}
 function addAt(s,fShown){const L=lick(),P=place(L,chordAt(S.sel)),f=fShown-P.d;
   if(f<0||f>MAXF){toast('That spot is off the neck for the recorded lick.');return;}
@@ -949,6 +968,8 @@ $('#board').addEventListener('click',e=>{const d=e.target.closest('.dot'),cell=e
 $('#eLeft').addEventListener('click',()=>moveNote(-1));
 $('#eRight').addEventListener('click',()=>moveNote(1));
 $('#eStr').addEventListener('click',otherString);
+$('#mvDn').addEventListener('click',()=>moveShape(-1,0));$('#mvUp').addEventListener('click',()=>moveShape(1,0));
+$('#mvOctDn').addEventListener('click',()=>moveShape(0,-1));$('#mvOctUp').addEventListener('click',()=>moveShape(0,1));
 $('#eDel').addEventListener('click',delNote);
 $('#eAdd').addEventListener('change',e=>{S.add=e.target.checked;save();renderView();});
 $('#vLab').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.labels=b.dataset.v;save();renderView();});
