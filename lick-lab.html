@@ -250,7 +250,6 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
       <div class="chips" id="chips" role="group" aria-label="Chord"></div>
       <div class="from" id="fromRow">
         <label class="cap" for="fromSel">Play from</label><select id="fromSel"></select>
-        <span class="seg" role="group" aria-label="Octave"><button type="button" id="octDn">Octave ↓</button><button type="button" id="octUp">Octave ↑</button></span>
       </div>
       <p class="info" id="viewInfo"></p>
       <div class="scroll"><div id="tab"></div></div>
@@ -298,7 +297,7 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica N
       <h3>How it works</h3>
       <ol>
         <li><b>Set up first:</b> the chord you play the lick over, the position (where your index finger sits), a slow tempo and the rhythm grid. Press <b>Record</b>: one bar of clicks, then play. Notes in the count-in bar become pickups.</li>
-        <li><b>Check the fingering.</b> The app puts every note on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also be moved earlier or later, deleted, or added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher: the same notes on other strings, or an octave higher or lower when that is what fits. <b>Octave ↓ / ↑</b> moves it 12 frets.</li>
+        <li><b>Check the fingering.</b> The app puts every note on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also be moved earlier or later, deleted, or added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher: the same notes on other strings, or an octave higher or lower when that is what fits. <b>Octave ↓ / ↑</b> moves it 12 frets: on the recorded chord the lick itself, on another chord only where you play it over that chord.</li>
         <li><b>Pick a chord.</b> The whole shape slides up or down the neck, so your fingers do exactly the same thing. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> lets you choose any other degree.</li>
         <li><b>Practise</b> the lick over a progression with piano, bass and click. Turn on a few BPM per round to build speed.</li>
       </ol>
@@ -791,7 +790,7 @@ function renderView(){const L=lick(),c=chordAt(S.sel),P=place(L,c),fam=QUAL[c.q]
   const fr=$('#fromRow');fr.hidden=!!c.ref;
   if(!c.ref){$('#fromSel').innerHTML='<option value="auto">Auto · the '+deg(P.auto,fam)+' ('+nn(c.root+P.auto,flat)+')</option>'
       +Array.from({length:12},(_,o)=>'<option value="'+o+'">the '+deg(o,fam)+' ('+nn(c.root+o,flat)+')</option>').join('');
-    $('#fromSel').value=c.from==null?'auto':String(c.from);$('#octDn').disabled=!P.canDn;$('#octUp').disabled=!P.canUp;}
+    $('#fromSel').value=c.from==null?'auto':String(c.from);}
   /* uitleg */
   const lickName=chordName(L),dTxt=P.d===0?'same frets':(P.d>0?'+':'−')+Math.abs(P.d)+' fret'+(Math.abs(P.d)===1?'':'s'),br=boxRange(L.pos);
   let info;
@@ -810,7 +809,9 @@ function renderView(){const L=lick(),c=chordAt(S.sel),P=place(L,c),fam=QUAL[c.q]
   const n=sel!=null?L.notes[sel]:null;
   $('#selWhat').innerHTML=n?'<b>Note '+(sel+1)+' of '+L.notes.length+'</b> · '+esc(nOct(midiOf(n)+P.d,flat))+' · '+SLONG[n.s]+' string, fret '+(n.f+P.d)+(n.lock?' · fixed':''):(L.notes.length?'Click a note to edit it.':'');
   ['#eLeft','#eRight','#eStr','#eDel'].forEach(s=>$(s).disabled=!n||!!REC);
-  [['#mvDn',-1,0],['#mvUp',1,0],['#mvOctDn',0,-1],['#mvOctUp',0,1]].forEach(([s,ds,ko])=>$(s).disabled=!!REC||!shapeMove(L,ds,ko));
+  [['#mvDn',-1,0],['#mvUp',1,0]].forEach(([s,ds])=>$(s).disabled=!!REC||!shapeMove(L,ds,0));
+  /* octaaf: bij de opname schuift de lick zelf, over een akkoord alleen de plek van de lick op dat akkoord */
+  $('#mvOctDn').disabled=!!REC||(c.ref?!shapeMove(L,0,-1):!P.canDn);$('#mvOctUp').disabled=!!REC||(c.ref?!shapeMove(L,0,1):!P.canUp);
   $('#eAdd').checked=!!S.add;$('#board').classList.toggle('board-add',!!S.add);
   $('#vLab').innerHTML=[['deg','Degree'],['ord','Order'],['note','Note']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.labels===v)+'">'+l+'</button>').join('');
   $('#btnOne').disabled=!L.notes.length;}
@@ -958,8 +959,6 @@ $('#btnReRec').addEventListener('click',()=>recStart(true));
 
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-ci]');if(!b||b.disabled)return;S.sel=+b.dataset.ci;sel=null;save();renderChips();renderView();});
 $('#fromSel').addEventListener('change',e=>{const v=e.target.value;setOver(S.sel,{from:v==='auto'?null:+v,oct:0});renderChips();renderView();});
-$('#octDn').addEventListener('click',()=>{const c=chordAt(S.sel);if(!c.ref){setOver(S.sel,{oct:(c.oct||0)-1});renderView();}});
-$('#octUp').addEventListener('click',()=>{const c=chordAt(S.sel);if(!c.ref){setOver(S.sel,{oct:(c.oct||0)+1});renderView();}});
 $('#tab').addEventListener('click',e=>{const g=e.target.closest('.nt');if(g)selectNote(+g.dataset.i,true);});
 $('#board').addEventListener('click',e=>{const d=e.target.closest('.dot'),cell=e.target.closest('.cell');
   if(S.add&&(d||cell)){const t=d||cell;addAt(+t.dataset.s,+t.dataset.f);return;}
@@ -969,7 +968,9 @@ $('#eLeft').addEventListener('click',()=>moveNote(-1));
 $('#eRight').addEventListener('click',()=>moveNote(1));
 $('#eStr').addEventListener('click',otherString);
 $('#mvDn').addEventListener('click',()=>moveShape(-1,0));$('#mvUp').addEventListener('click',()=>moveShape(1,0));
-$('#mvOctDn').addEventListener('click',()=>moveShape(0,-1));$('#mvOctUp').addEventListener('click',()=>moveShape(0,1));
+function octave(dir){const c=chordAt(S.sel);if(c.ref){moveShape(0,dir);return;}
+  const P=place(lick(),c);if(dir<0?!P.canDn:!P.canUp)return;setOver(S.sel,{oct:(c.oct||0)+dir});renderView();}
+$('#mvOctDn').addEventListener('click',()=>octave(-1));$('#mvOctUp').addEventListener('click',()=>octave(1));
 $('#eDel').addEventListener('click',delNote);
 $('#eAdd').addEventListener('change',e=>{S.add=e.target.checked;save();renderView();});
 $('#vLab').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.labels=b.dataset.v;save();renderView();});
