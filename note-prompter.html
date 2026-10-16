@@ -410,7 +410,40 @@ function voices(){if(!TTS)return[];return TTS.getVoices().filter(v=>/^en/i.test(
   .map(v=>({v,sc:(/natural/i.test(v.name)?4:0)+(/online/i.test(v.name)?2:0)+(/google/i.test(v.name)?1.5:0)+(/en[-_](us|gb)/i.test(v.lang)?1:0)+(v.localService?0:.5)}))
   .sort((a,b)=>b.sc-a.sc||a.v.name.localeCompare(b.v.name)).map(x=>x.v);}
 function curVoice(){const L=voices();return L.find(v=>v.name===S.voice.name)||L[0]||null;}
-function say(it,force){if(!TTS||!it||!(S.voice.on||force))return;
+/* Meegeleverde stemmen (voice/<naam>/*.mp3, opgenomen met de Edge "Natural"-stemmen): werken ook in Firefox, zonder systeemstem.
+   Zinnen worden uit korte klanken gebouwd: noot [or noot] akkoord, daarna "root on the"/"on the" + snaar. */
+const CLIP_VOICES=[['Aria','Aria · Natural (US)'],['Jenny','Jenny · Natural (US)'],['Guy','Guy · Natural (US)'],['Ryan','Ryan · Natural (UK)']];
+const CLIP_Q={'':'maj',m:'m',dim:'dim',aug:'aug',sus2:'sus2',sus4:'sus4','6':'6',m6:'m6',maj7:'maj7',m7:'m7','7':'7','m7♭5':'m7b5',dim7:'dim7','m(maj7)':'mmaj7','7sus4':'7sus4',maj9:'maj9',m9:'m9','9':'9','7♭9':'7b9','7♯9':'7s9','7alt':'7alt'};
+const SAMPLE={name:{main:'A♭'},t:'maj7',s:1};   /* voorbeeldzin voor de teststem */
+const clipBuf={};let actx=null,clipSrc=[],clipGen=0,clipOK=true;
+const clipName=()=>{const n=S.voice.name;if(/^clip:/.test(n))return n.slice(5);
+  if(n===''&&clipOK&&!voices().some(v=>/natural/i.test(v.name)))return CLIP_VOICES[0][0];return null;};   /* geen eigen keuze en geen Edge-stem: gebruik de meegeleverde */
+function clipLoad(vn,k){const id=vn+'/'+k;
+  return clipBuf[id]||(clipBuf[id]=fetch('voice/'+vn+'/'+k+'.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();})
+    .then(b=>new Promise((ok,no)=>actx.decodeAudioData(b,ok,no))).then(buf=>{      /* stilte vooraan/achteraan weghalen */
+      const d=buf.getChannelData(0),th=.012,pad=Math.round(buf.sampleRate*.015);let a=0,z=d.length-1;
+      while(a<z&&Math.abs(d[a])<th)a++;while(z>a&&Math.abs(d[z])<th)z--;
+      return{buf,from:Math.max(0,a-pad)/buf.sampleRate,to:Math.min(d.length,z+pad)/buf.sampleRate};}));}
+function clipKeys(it){const t=it.t?typeOf(it.t):null,nk=n=>'n_'+n[0]+(n[1]==='♭'?'f':n[1]==='♯'?'s':'');
+  const L=[[nk(it.name.main),.05]];
+  if(it.name.alt)L.push(['w_or',.05],[nk(it.name.alt),.05]);
+  if(t){const q=CLIP_Q[t[1]];if(!q)return null;L.push(['q_'+q,.3]);}
+  if(it.s!=null)L.push([t?'w_root':'w_on',.03],['s'+it.s,.1]);
+  return L;}
+function sayClips(it,vn){const L=clipKeys(it);if(!L)return false;
+  try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume();}catch(e){return false;}
+  const gen=++clipGen;clipStop();
+  Promise.all(L.map(([k])=>clipLoad(vn,k))).then(cl=>{if(gen!==clipGen)return;
+    const r=S.voice.rate,g=actx.createGain();g.gain.value=S.voice.vol;g.connect(actx.destination);let t=actx.currentTime+.04;
+    cl.forEach((c,i)=>{const s=actx.createBufferSource();s.buffer=c.buf;s.playbackRate.value=r;s.connect(g);
+      s.start(t,c.from,c.to-c.from);clipSrc.push(s);t+=(c.to-c.from)/r+L[i][1]/r;});
+  }).catch(()=>{if(gen!==clipGen)return;clipOK=false;S.voice.name===('clip:'+vn)&&(S.voice.name='');renderVoice();say(it,true);});   /* niet gelukt (bv. offline): systeemstem */
+  return true;}
+function clipStop(){clipSrc.forEach(s=>{try{s.stop();}catch(e){}});clipSrc=[];}
+function say(it,force){if(!it||!(S.voice.on||force))return;
+  if(typeof it!=='string'){const vn=clipName();if(vn&&sayClips(it,vn)){if(TTS)TTS.cancel();return;}}
+  clipGen++;clipStop();
+  if(!TTS)return;
   try{TTS.cancel();const u=new SpeechSynthesisUtterance(typeof it==='string'?it:spoken(it)),v=curVoice();
     if(v){u.voice=v;u.lang=v.lang;}else u.lang='en-US';u.rate=S.voice.rate;u.volume=S.voice.vol;u.pitch=1;TTS.speak(u);}catch(e){}}
 setInterval(()=>{if(!t0)return;const s=Math.floor((Date.now()-t0)/1000);$('#tm').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},1000);
@@ -440,20 +473,22 @@ const ICON_SPK={on:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
 function renderVoice(){const V=S.voice,L=voices(),cur=curVoice();
   const b=$('#btnVoice'),l=V.on?'Voice on (V)':'Voice off (V)';b.innerHTML=ICON_SPK[V.on?'on':'off'];b.title=l;b.setAttribute('aria-label',l);b.setAttribute('aria-pressed',V.on);
   $('#vOn').checked=V.on;$('#vRate').value=V.rate;$('#vRateV').textContent=V.rate.toFixed(2)+'×';$('#vVol').value=V.vol;
-  $('#vName').innerHTML=L.length?L.map(v=>'<option value="'+esc(v.name)+'">'+esc(v.name.replace(/^Microsoft /,'').replace(/ - English \((.*)\)$/,' · $1').replace('United States','US').replace('United Kingdom','UK'))+'</option>').join(''):'<option value="">No English voice found</option>';
-  if(cur)$('#vName').value=cur.name;
-  $('#vNote').textContent=!TTS?'This browser can’t speak. Try Edge or Firefox.':!L.length?'No English voices found yet. In Windows, add one under Settings → Time & language → Speech.':
+  const cn=clipName();
+  $('#vName').innerHTML=(clipOK?'<optgroup label="Built-in (works in every browser)">'+CLIP_VOICES.map(([id,l])=>'<option value="clip:'+id+'">'+esc(l)+'</option>').join('')+'</optgroup>':'')
+    +(L.length?'<optgroup label="This device">'+L.map(v=>'<option value="'+esc(v.name)+'">'+esc(v.name.replace(/^Microsoft /,'').replace(/ - English \((.*)\)$/,' · $1').replace('United States','US').replace('United Kingdom','UK'))+'</option>').join('')+'</optgroup>':'');
+  $('#vName').value=cn?'clip:'+cn:cur?cur.name:'';
+  $('#vNote').textContent=cn?'Built-in voices are recordings of the Edge “Natural” voices, so they sound the same in Firefox.':!TTS?'This browser can’t speak. Try Edge or Firefox.':!L.length?'No English voices found yet. In Windows, add one under Settings → Time & language → Speech.':
     /natural/i.test(cur?cur.name:'')?'':'Tip: in Edge, the voices called “Natural” sound the clearest.';}
-function setVoice(on){S.voice.on=on;save();renderVoice();if(on)say(hist[hi]||'Voice on.',true);else if(TTS)TTS.cancel();}
+function setVoice(on){S.voice.on=on;save();renderVoice();if(on)say(hist[hi]||'Voice on.',true);else{clipGen++;clipStop();if(TTS)TTS.cancel();}}
 function bindVoice(){
   $('#btnVoice').addEventListener('click',()=>setVoice(!S.voice.on));
   $('#vOn').addEventListener('change',e=>setVoice(e.target.checked));
-  $('#vName').addEventListener('change',e=>{S.voice.name=e.target.value;save();say(hist[hi]||'This is my voice.',true);});
+  $('#vName').addEventListener('change',e=>{S.voice.name=e.target.value;save();say(hist[hi]||SAMPLE,true);});
   $('#vRate').addEventListener('input',e=>{S.voice.rate=+e.target.value;$('#vRateV').textContent=S.voice.rate.toFixed(2)+'×';save();});
-  $('#vRate').addEventListener('change',()=>say(hist[hi]||'A-flat major seven. Root on the A-string.',true));
+  $('#vRate').addEventListener('change',()=>say(hist[hi]||SAMPLE,true));
   $('#vVol').addEventListener('input',e=>{S.voice.vol=+e.target.value;save();});
   $('#vAbc').addEventListener('click',()=>say('A. B. C. D. E. F. G. A-flat. E-flat. F-sharp. A, minor.',true));
-  $('#vTest').addEventListener('click',()=>say(hist[hi]||'A-flat major seven. Root on the A-string.',true));
+  $('#vTest').addEventListener('click',()=>say(hist[hi]||SAMPLE,true));
   if(TTS&&'onvoiceschanged' in TTS)TTS.onvoiceschanged=renderVoice;}   /* stemmen laden soms pas later */
 /* instellingen gewijzigd: nieuwe ronde */
 function changed(){bag=[];save();renderSetup();if(hi<0)show(null);}

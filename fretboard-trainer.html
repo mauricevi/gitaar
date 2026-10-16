@@ -577,8 +577,10 @@ const SH=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
 const FL=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
 const NAT=[0,2,4,5,7,9,11], isNat=pc=>NAT.includes(pc);
 const $=s=>document.querySelector(s);
-const full=pc=>isNat(pc)?SH[pc]:cfg().acc==='flat'?FL[pc]:cfg().acc==='both'?SH[pc]+' / '+FL[pc]:SH[pc];
-const short=pc=>cfg().acc==='flat'?FL[pc]:SH[pc];
+let qAcc=null;   // Smart practice: per vraag willekeurig 'sharp' of 'flat' (50/50); anders de instelling
+const accOf=()=>qAcc||cfg().acc;
+const full=pc=>isNat(pc)?SH[pc]:accOf()==='flat'?FL[pc]:accOf()==='both'?SH[pc]+' / '+FL[pc]:SH[pc];
+const short=pc=>accOf()==='flat'?FL[pc]:SH[pc];
 
 /* ===== 2. STORE (localStorage, veilig met try/catch) ===== */
 const KEY='fretTrainer.v1';
@@ -851,10 +853,11 @@ function buildAnswers(sm){const c=cfg(),ans=$('#answers');ans.innerHTML='';
     const b=document.createElement('button');b.className='chip';b.textContent=full(pc);b.dataset.pc=pc;
     b.onclick=()=>{if(q&&q.dir==='name')answer(pc);};ans.append(b);}}
 function newQ(){clearTimeout(timer);setDirs();const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick(),dir=sm?(it&&it.d):c.mode;
+  qAcc=sm?(Math.random()<.5?'sharp':'flat'):null;
   $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#fb').hidden=true;
   MB=buildBoard($('#board'),onCell,true);$('#board').dataset.m=dir||'find';
   buildAnswers(sm);const ans=$('#answers');ans.classList.toggle('ghost',dir!=='name');$('#kh').classList.toggle('ghost',dir!=='name');ans.setAttribute('aria-hidden',dir!=='name');
-  $('#kh').textContent=T.keys((sm?!STAGES[curStage()].nat:c.notes!=='nat')?(c.acc==='flat'?'♭':'♯'):'');
+  $('#kh').textContent=T.keys((sm?!STAGES[curStage()].nat:c.notes!=='nat')?(accOf()==='flat'?'♭':'♯'):'');
   if(!it){q=null;if(sm)showSum();else{$('#cap').textContent='';$('#prompt').textContent=T.noNotes;}scoreboard();return;}
   lastKey=sm?it.k:noteOf(it);recentN.push(noteOf(it));if(recentN.length>6)recentN.shift();
   q={...it,dir,fr:sm?fretsFor(it.s,it.pc,0,12):fretsFor(it.s,it.pc),done:false,t0:paused?null:performance.now()};
@@ -1028,7 +1031,7 @@ $('#btnPause').onclick=$('#btnStart').onclick=()=>setPaused(!paused);
 /* Benoemen met het toetsenbord: letter = natuurlijke noot, Shift+letter = ♯ (of ♭ bij notatie ♭) */
 document.addEventListener('keydown',e=>{if(!q||q.done||paused||q.dir!=='name'||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1||typing(e))return;
   const L='CDEFGAB'.indexOf(e.key.toUpperCase());if(L<0)return;
-  const pc=(NAT[L]+(e.shiftKey?(cfg().acc==='flat'?11:1):0))%12;
+  const pc=(NAT[L]+(e.shiftKey?(accOf()==='flat'?11:1):0))%12;
   if(!document.querySelector(`#answers .chip[data-pc="${pc}"]`))return;
   e.preventDefault();answer(pc);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pop').hidden){popShow(false);return;}

@@ -649,7 +649,7 @@ const TEXT={
                    ending:'Ending',endingSub:'With Loop off, the band lands on a final chord.',
                    fscale:'Band follows your scales',fscaleSub:'Piano colours and bass passing notes come from the scale you chose per chord. Off: standard choices.'},
         beatsLabel:'Beat',loop:'Loop',edit:'Edit',done:'Done',
-        keysHint:'← → previous / next chord · Shift-click a second chord (or Shift + → / ←) to compare · Space plays the chord · Esc stops',
+        keysHint:'← → previous / next chord · Shift-click a second chord (or Shift + → / ←) to compare · Space starts / stops the backing · double-click a chord to edit · Esc stops',
         cmp:{title:'Comparing',with:'Compare with next chord',stop:'Stop comparing',swap:'Swap A and B',swapShort:'Swap',kind:'Compare',
              scales:'Scales',tones:'Chord tones',mixed:'Scale → chord',
              kindHelp:{scales:'Scale of A next to scale of B.',tones:'Chord tones of A next to chord tones of B.',mixed:'Scale of A next to the chord tones of B: where your line resolves to.'},
@@ -1659,7 +1659,7 @@ function bindBoardUI(){
       if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();if(!D.list.length)return;const d=e.key==='ArrowRight'?1:-1,n=D.list.length;
         if(e.shiftKey){let c=mod((D.pcmp?D.cmpIdx:D.idx)+d,n);if(c===D.idx)c=mod(c+d,n);compareWith(c);}   /* Shift + pijl: vergelijk met het volgende/vorige akkoord */
         else selectChord(mod(D.idx+d,n));}
-      else if(e.key===' '&&!/^(BUTTON|A)$/.test(t.tagName)){e.preventDefault();if(D.Bfull)playScale('B',D.Bfull);}
+      else if(e.key===' '&&(!/^(BUTTON|A)$/.test(t.tagName)||t.classList.contains('tile'))){e.preventDefault();if(e.repeat)return;(progPlayer.on||progPlayer.loading)?progStop():progPlay();}   /* spatie = band starten/stoppen */
       else if(e.key==='Escape'){if(bandOpen){bandOpen=false;renderHead();return;}progStop();stopPlay();if(D.pcmp){state.view.cmp=null;update();}}
       return;}
     if(e.key==='ArrowRight'){e.preventDefault();stepPos(1);}
@@ -2423,6 +2423,7 @@ function bindProgUI(){
   $('#progList').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b)openProg(b.dataset.prog);});
   $('#btnNew').addEventListener('click',()=>openSheet('new'));
   document.addEventListener('click',e=>{if(bandOpen&&!e.target.closest('.bandw')){bandOpen=false;if(D&&D.prog)renderHead();}});
+  document.querySelector('main').addEventListener('dblclick',e=>{if(!editing&&D&&D.prog&&e.target.closest('.tw .tile')){editing=true;update();}});   /* dubbelklik op een akkoord = bewerkmodus */
   document.querySelector('main').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&(b.closest('#progBar,#progCard,#insp')||(b.closest('#formMap'))))act(b.dataset.a,b,e);});
   /* tijdens het slepen meteen het nieuwe tempo laten horen (de band leest het tempo per tel) */
   document.querySelector('main').addEventListener('input',e=>{const t=e.target,p=curProg();if(p&&t.id==='pTempo'&&t.value!=='')p.tempo=clamp(t.value,40,240);});
