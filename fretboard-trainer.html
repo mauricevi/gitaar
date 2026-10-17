@@ -514,7 +514,7 @@ const TEXT={
   summary:o=>`Answered <b>${o.n}</b> (${o.pct} correct) · Again ${o.g[0]} · Hard ${o.g[1]} · Good ${o.g[2]} · Easy ${o.g[3]} · newly learned <b>${o.nw}</b> · due tomorrow <b>${o.m}</b> · Enter = next day`,
   todayProg:(d,t)=>`${d} of ${t} today`,
   filtersFollow:'Filters follow the learning path in Smart practice',
-  filNotes:{nat:'Naturals',both:'Naturals + ♯/♭',acc:'♯/♭ only'}, filAcc:{sharp:'♯',flat:'♭',both:'♯/♭'},
+  filNotes:{nat:'Naturals',both:'Naturals + ♯/♭',acc:'♯/♭ only'}, filAcc:{sharp:'♯',flat:'♭',both:'♯ or ♭ (random)'},
   filFrets:(a,b)=>`frets ${a}–${b}`, filWeak:'weak spots only', all:'All',
   stringTitle:s=>`${s} string`,
   noNote:'Start a session to see the history of each note here.',
@@ -534,7 +534,7 @@ const TEXT={
       gBehaviour:'Behaviour',autoPause:'Auto-pause',autoPauseSub:'when idle',tabPause:'Tab switch',tabPauseSub:'pause when the tab is hidden',
       sound:'Sound',onCorrect:'On correct'},
   woods:{rosewood:'Rosewood',ebony:'Ebony',pauferro:'Pau ferro',maple:'Maple',custom:'Custom'},
-  opt:{on:'On',off:'Off',nat:'Naturals only',both:'Naturals + ♯/♭',acc:'♯/♭ only',sharp:'♯',flat:'♭',bothAcc:'both',
+  opt:{on:'On',off:'Off',nat:'Naturals only',both:'Naturals + ♯/♭',acc:'♯/♭ only',sharp:'♯',flat:'♭',bothAcc:'random',
        weakOnly:'Weak spots only',guitar:'Guitar tone',ping:'Chime',weakest:'Weakest',strongest:'Strongest',fastest:'Fastest',
        mast:'Mastery',speed:'Speed',accuracy:'Accuracy'},
   weakNote:v=>`Weak = score below ${v}% (accuracy + speed; recent attempts count more).`,
@@ -577,7 +577,7 @@ const SH=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
 const FL=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
 const NAT=[0,2,4,5,7,9,11], isNat=pc=>NAT.includes(pc);
 const $=s=>document.querySelector(s);
-let qAcc=null;   // Smart practice: per vraag willekeurig 'sharp' of 'flat' (50/50); anders de instelling
+let qAcc=null;   // per vraag willekeurig 'sharp' of 'flat' (Smart practice, of notatie 'random'); anders de instelling
 const accOf=()=>qAcc||cfg().acc;
 const full=pc=>isNat(pc)?SH[pc]:accOf()==='flat'?FL[pc]:accOf()==='both'?SH[pc]+' / '+FL[pc]:SH[pc];
 const short=pc=>accOf()==='flat'?FL[pc]:SH[pc];
@@ -853,7 +853,7 @@ function buildAnswers(sm){const c=cfg(),ans=$('#answers');ans.innerHTML='';
     const b=document.createElement('button');b.className='chip';b.textContent=full(pc);b.dataset.pc=pc;
     b.onclick=()=>{if(q&&q.dir==='name')answer(pc);};ans.append(b);}}
 function newQ(){clearTimeout(timer);setDirs();const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick(),dir=sm?(it&&it.d):c.mode;
-  qAcc=sm?(Math.random()<.5?'sharp':'flat'):null;
+  qAcc=sm||c.acc==='both'?(Math.random()<.5?'sharp':'flat'):null;   // 'both' = per vraag willekeurig ♯ of ♭, nooit beide tegelijk
   $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#fb').hidden=true;
   MB=buildBoard($('#board'),onCell,true);$('#board').dataset.m=dir||'find';
   buildAnswers(sm);const ans=$('#answers');ans.classList.toggle('ghost',dir!=='name');$('#kh').classList.toggle('ghost',dir!=='name');ans.setAttribute('aria-hidden',dir!=='name');
