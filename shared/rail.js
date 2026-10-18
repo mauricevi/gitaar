@@ -8,14 +8,15 @@
    en zet de palissander-verlopen #rw (diagram, staand) en #rwh (hele hals, liggend) in de pagina.
    De link naar Home krijgt id="lnkHome" (apps zetten daar hun logboek in, zie homeLink()).
    Chord Moves staat bewust niet in de balk.
+   Overgang: klik in de balk → html.pr-leave (warme afdekking uit room.css), dan navigeren; achtergrond klaar → LOOK.ready().
    ════════════════════════════════════════════════════════════════════════════ */
 const ROOM={
   /* [app-id, bestand, naam, icoon (SVG-inhoud, viewBox 0 0 24 24)] */
   apps:[
     ['room','index.html','Practice Room','<path d="M4 11 12 4l8 7v9H4z"/><path d="M9.5 20v-5h5v5"/>'],
     null,
-    ['fretboard','fretboard-trainer.html','Fretboard Trainer','<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M3 10h18M3 14h18M8 6v12M13 6v12M18 6v12"/>'],
-    ['scale-trainer','toonladder-trainer.html','Scale Trainer','<path d="M3 18c3 0 3-4 6-4s3 4 6 4 3-12 6-12"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="18" r="1.2"/>'],
+    ['fretboard','fretboard-trainer.html','Fretboard Trainer','<path d="M3 18c3 0 3-4 6-4s3 4 6 4 3-12 6-12"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="18" r="1.2"/>'],
+    ['scale-trainer','toonladder-trainer.html','Scale Trainer','<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M3 10h18M3 14h18M8 6v12M13 6v12M18 6v12"/>'],
     ['chord-finder','chord-finder.html','Chord Finder','<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 7h14M9.7 3v18M14.3 3v18M5 11h14M5 15h14"/><circle cx="12" cy="9" r="1.4" fill="currentColor"/><circle cx="16.6" cy="13" r="1.4" fill="currentColor"/>'],
     ['lick-lab','lick-lab.html','Lick Lab','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'],
     ['note-prompter','note-prompter.html','Note Prompter','<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M9 21h6M12 17v4"/><path d="M10 13V8l4 2.5z"/>'],
@@ -44,8 +45,22 @@ const ROOM={
       if(!x||!('filter' in x)){ph.classList.add('live');ph.style.backgroundImage='url('+src+')';return;}   /* terugval: CSS-filter */
       ROOM.cv=cv;let t=0;addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(ROOM.bgDraw,150);});}
     if(ROOM.img&&ROOM.img.dataset.src===src){ROOM.bgDraw();return;}
-    const img=new Image();img.dataset.src=src;img.onload=()=>{if(ROOM.img!==img)return;ROOM.bgDraw();if(!ROOM.cv.parentNode)ph.appendChild(ROOM.cv);};
+    const img=new Image();img.dataset.src=src;img.onload=img.onerror=()=>{if(ROOM.img!==img)return;ROOM.bgDraw();if(!ROOM.cv.parentNode)ph.appendChild(ROOM.cv);ROOM.ready();};
     ROOM.img=img;img.src=src;},
+  /* achtergrond staat er: de warme afdekking (room.css, body::after) mag wegvloeien */
+  ready(){if(typeof LOOK!=='undefined')LOOK.ready();else document.documentElement.classList.add('pr-ready');},
+
+  /* weggaan via de balk: afdekking terug (dezelfde warme kleur waarmee Home en de trainers beginnen), dan navigeren.
+     Bij hover alvast de pagina en zijn beeld ophalen. */
+  leave(nav){const pre=new Set();
+    nav.addEventListener('mouseover',e=>{const a=e.target.closest('a[href]');if(!a||pre.has(a.href))return;pre.add(a.href);
+      const l=document.createElement('link');l.rel='prefetch';l.href=a.href;document.head.appendChild(l);
+      const id=(ROOM.apps.find(x=>x&&a.getAttribute('href')===ROOM.base+x[1])||[])[0];
+      if(id==='room')new Image().src=ROOM.base+'home/room.png';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
+    nav.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+      e.preventDefault();const R=document.documentElement;if(R.classList.contains('pr-leave'))return;R.classList.add('pr-leave');
+      let done=false;const go=()=>{if(done)return;done=true;location.href=a.href;};setTimeout(go,280);});
+    addEventListener('pageshow',()=>document.documentElement.classList.remove('pr-leave'));},   /* terug met Vorige (bfcache) */
 
   /* korrel: 180×180 tegeltje, licht en donker door elkaar (zelfde niveau als de schets) */
   tile(w,h,px){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),im=x.createImageData(w,h);
@@ -65,7 +80,8 @@ const ROOM={
     el.addEventListener('click',e=>{const b=e.target.closest('[data-col]');if(!b)return;const o=b.dataset.col==='open';set(o);if(onChange)onChange(o);});},
 
   init(){const nav=document.querySelector('nav.rail');
-    if(nav){ROOM.app=nav.dataset.app||'';ROOM.base=nav.dataset.base||'';ROOM.rail(nav);}
-    ROOM.bg();ROOM.textures();ROOM.defs();}
+    if(nav){ROOM.app=nav.dataset.app||'';ROOM.base=nav.dataset.base||'';ROOM.rail(nav);ROOM.leave(nav);}
+    ROOM.bg();ROOM.textures();ROOM.defs();
+    if(!ROOM.img)ROOM.ready();}   /* geen beeld te laden (of CSS-terugval): meteen tonen */
 };
 ROOM.init();

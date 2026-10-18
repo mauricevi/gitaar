@@ -68,4 +68,4 @@ function renderMode(){const m=S.mode;seg($('#segMode'),Object.entries(T.mode),m,
   $('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
   $('#howTxt').innerHTML='<b>'+esc(m==='id'?T.id.sub:m==='prog'?T.pg.sub:T.sub)+'</b> '+esc(m==='prog'?T.pg.how:m==='id'?T.id.how:T.how);
   renderCol();
-  if(m==='find')update();if(m==='id')renderId();if(m==='prog')pgRender();else pgStop();}   /* Labels en Bass zijn gedeeld: Finder bijwerken */
+  if(m==='find')update();if(m==='id')renderId();if(m==='prog')pgRender();else{pgStop();pgClose();}}   /* Labels en Bass zijn gedeeld: Finder bijwerken */

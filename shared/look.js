@@ -43,11 +43,17 @@ const LOOK={
   init(){LOOK.ROWS.find(r=>r.k==='font').o=Object.entries(LOOK.FONTS).map(([k,f])=>[k,f[0]]);
     LOOK.ROWS.find(r=>r.k==='decor').o=LOOK.DECOR;
     LOOK.S=LOOK.load();LOOK.apply();
+    setTimeout(LOOK.ready,900);   /* terugval: de afdekking gaat ook weg als de achtergrond niet (snel) laadt */
     addEventListener('keydown',e=>{
       if(e.key==='Escape'&&LOOK.box&&!LOOK.box.hidden){LOOK.toggle(false);return;}
       if((e.key!=='s'&&e.key!=='S')||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
       const t=e.target;if(t&&(t.closest&&t.closest('input,textarea,select,[contenteditable="true"]')))return;
       e.preventDefault();LOOK.toggle();});},
+
+  /* aankomen: de pagina begint onder een warme afdekking (room.css, body::after, dezelfde kleur als de sluier van Home);
+     shared/rail.js roept dit aan zodra de achtergrond getekend is → even later vloeit de afdekking weg
+     (setTimeout, geen rAF: die wacht in een verborgen tabblad). */
+  ready(){setTimeout(()=>document.documentElement.classList.add('pr-ready'),30);},
 
   /* ── opslag ── */
   load(){const s={decor:{}};LOOK.ROWS.forEach(r=>{if(r.k&&r.k!=='decor')s[r.k]=r.d;});let raw=null;

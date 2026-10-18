@@ -11,7 +11,8 @@
    HOME · Practice Room (de kamer)
    Eén schermvullend beeld (home/room.png). Elk object in de kamer is een link naar een trainer.
    · Klikzones en labelplekken staan in "JOUW INSTELLINGEN" onderaan (TOOLS: spot + at).
-   · Druk op E: bewerkmodus. Klik punten rond een object; de coördinaten verschijnen rechtsonder.
+   · Druk op E: bewerkmodus. Labels slepen; punten klikken rond een object en "Use zone" = nieuwe klikzone.
+     Dat zijn overrides in practiceRoom.room (pos/zone, per bestandsnaam) bovenop TOOLS; "Copy as TOOLS code" maakt ze vast.
    · Druk op S: geheim menu (lettertype, labels, dag/nacht, beweging). Bewaard in deze browser (practiceRoom.room).
    · Beweging, zonder het beeld zelf te vervormen: lampjes flakkeren/pulseren, stof in de zonnestraal,
      damp uit de mok, zzz bij de kat, af en toe vogels achter het raam. Alles in SCENE (hoort bij dit beeld). Uit: motion:false.
@@ -36,8 +37,16 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--glow);outline-offse
 .brand h1,.lab b,.big b,.calh h2,.cst b,.setbox h3{font-weight:var(--dw)}
 
 /* ── scène: het beeld bedekt altijd het hele venster; alles erin schaalt mee (posities in % van het beeld) ── */
-.scene{position:fixed;inset:0;overflow:hidden;background:#1a110a;transition:opacity .35s ease,filter .35s ease}
-body.leave .scene{opacity:0;filter:blur(6px)}
+.scene{position:fixed;inset:0;overflow:hidden;background:#1a110a;transition:filter .4s ease,transform .4s ease}
+/* overgang naar een trainer: de kamer wordt iets onscherp en een warme sluier (zelfde kleur als --bg van shared/room.css)
+   komt eroverheen; de trainer begint in diezelfde kleur en laat hem weer wegvloeien. Aankomen op Home: sluier vloeit weg
+   zodra het beeld geladen is. Firefox kent geen View Transitions tussen pagina's, dus gewoon CSS. */
+html{background:#8b5430}
+.veil{position:fixed;inset:0;z-index:40;background:#8b5430;opacity:0;pointer-events:none;transition:opacity .38s ease}
+body.arriving .veil{opacity:1;transition:none}
+body.leave .veil{opacity:1}
+body.leave .scene{filter:blur(4px);transform:scale(1.015)}
+body.leave .brand,body.leave .mini{opacity:0;transition:opacity .25s}
 .room{position:absolute;left:50%;top:50%;width:max(100vw,calc(100vh * var(--ar)));aspect-ratio:var(--ar);transform:translate(-50%,-50%)}
 .art{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
 /* dagdeel */
@@ -59,6 +68,9 @@ svg.hit{position:absolute;inset:0;width:100%;height:100%}
   background:rgba(18,13,10,.76);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.35);
   font-size:calc(clamp(12px,.78vw,15px) * var(--dfs));line-height:1.25;white-space:nowrap;transition:background .25s,border-color .25s,opacity .2s}
 body.lab-hover .lab:not(.on):not(:focus-visible){opacity:0;pointer-events:none}   /* menu: labels alleen bij hover */
+body.lab-idle .lab:not(.on):not(:focus-visible){opacity:0;pointer-events:none;transition:opacity 1.6s ease}   /* menu: vervagen na x s zonder muis */
+body.edit .lab{opacity:1!important;pointer-events:auto!important;cursor:grab;outline:1px dashed var(--teal);outline-offset:2px}   /* bewerkmodus: slepen */
+body.edit .lab.drag{cursor:grabbing;border-color:var(--teal);z-index:3}
 .lab b{display:flex;align-items:center;gap:7px}
 .lab b::before{content:"";width:7px;height:7px;border-radius:50%;background:#5a2723;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);transition:background .15s,box-shadow .15s}   /* rec-lampje: uit */
 .lab.on b::before{background:var(--rec);box-shadow:0 0 6px var(--rec),0 0 14px rgba(255,59,48,.55)}                                                            /* … en aan bij hover */
@@ -72,7 +84,11 @@ body.edit .hp{fill:rgba(79,227,208,.12);stroke:var(--teal);stroke-width:1.5;stro
 body.edit .hbg{pointer-events:all;cursor:crosshair}
 .draft{fill:rgba(255,181,71,.15);stroke:var(--glow);stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
 .edbox{position:fixed;right:16px;bottom:16px;z-index:20;width:420px;padding:14px;border-radius:14px;background:#16120f;border:1px solid var(--teal);font-size:13px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
-.edbox p{margin:0 0 8px;color:var(--mut)}.edbox textarea{width:100%;height:90px;background:#0d0b09;color:var(--tx);border:1px solid var(--line);border-radius:8px;font:12px/1.4 "JetBrains Mono",monospace;padding:8px;resize:vertical}
+.edbox p{margin:0 0 8px;color:var(--mut)}.edbox p b{color:var(--tx)}.edbox .fine{margin:10px 0 0;font-size:12px;color:var(--mut2)}
+.edbox ul{margin:0 0 10px;padding-left:18px;color:var(--mut)}.edbox li{margin:2px 0}
+.edbox select{background:#0d0b09;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit}
+.edbox .calbtn:disabled{opacity:.4;cursor:default}
+.edbox textarea{width:100%;height:60px;background:#0d0b09;color:var(--tx);border:1px solid var(--line);border-radius:8px;font:12px/1.4 "JetBrains Mono",monospace;padding:8px;resize:vertical}
 .edbox .row{display:flex;gap:8px;margin-top:8px;align-items:center}.edbox output{margin-left:auto;color:var(--teal)}
 /* geheim menu (toets S) */
 .setbox{position:fixed;right:16px;top:16px;z-index:21;width:330px;max-height:calc(100vh - 32px);overflow:auto;padding:14px 16px;border-radius:16px;background:#16120f;border:1px solid rgba(255,59,48,.45);font-size:13px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
@@ -88,6 +104,8 @@ body.edit .hbg{pointer-events:all;cursor:crosshair}
 
 /* ── vaste lagen boven de scène ── */
 .brand{position:fixed;left:20px;bottom:18px;z-index:5;padding:10px 18px 11px;border-radius:16px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+body.brand-tr .brand{left:auto;right:20px;bottom:auto;top:18px}   /* menu S: plek van de titel */
+body.brand-tl .brand{bottom:auto;top:18px}
 .brand h1{margin:0;display:flex;align-items:center;gap:10px;font-size:calc(22px * var(--dfs));line-height:1.1}
 .live{width:9px;height:9px;border-radius:50%;background:var(--rec);box-shadow:0 0 6px var(--rec),0 0 16px rgba(255,59,48,.6);animation:rec 2s ease-in-out infinite}   /* rec-lampje: knippert */
 @keyframes rec{0%,52%{opacity:1}62%,92%{opacity:.18;box-shadow:none}}
@@ -150,10 +168,10 @@ dialog.cdlg::backdrop{background:rgba(6,4,3,.5);backdrop-filter:blur(5px)}
 .bk{margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);display:grid;justify-items:center;text-align:center;color:var(--mut)}.bk .prb-row{justify-content:center}
 .prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
 .foot{margin:14px 0 0;font-size:13px;color:var(--mut2);text-align:center}
-@media (prefers-reduced-motion:reduce){.gl i,.live{animation:none}.scene,.lab{transition:none}}
+@media (prefers-reduced-motion:reduce){.gl i,.live{animation:none}.scene,.lab{transition:none}body.leave .scene{filter:none;transform:none}}   /* de sluier vervaagt wel (alleen doorzichtigheid) */
 </style>
 </head>
-<body>
+<body class="arriving">
 <div class="scene" id="scene">
   <div class="room" id="room">
     <img class="art" id="art" alt="" draggable="false">
@@ -189,10 +207,19 @@ dialog.cdlg::backdrop{background:rgba(6,4,3,.5);backdrop-filter:blur(5px)}
   </section>
 </dialog>
 
+<div class="veil" aria-hidden="true"></div>
+
 <div class="edbox" id="edBox" hidden>
-  <p>Edit mode (E to leave). Click around an object to draw a zone; copy the points into <b>spot</b> in TOOLS. Existing zones are dashed.</p>
-  <textarea id="edOut" readonly spellcheck="false"></textarea>
-  <div class="row"><button type="button" class="calbtn" id="edCopy">Copy</button><button type="button" class="calbtn" id="edUndo">Undo point</button><button type="button" class="calbtn" id="edClear">Clear</button><output class="m" id="edPos"></output></div>
+  <p><b>Edit mode</b> · press E to leave</p>
+  <ul>
+    <li><b>Move a label:</b> drag it. It stays there.</li>
+    <li><b>New click zone:</b> click points around an object (dashed = current zones), pick the object below and press <b>Use zone</b>.</li>
+  </ul>
+  <textarea id="edOut" readonly spellcheck="false" placeholder="Points of the new zone appear here"></textarea>
+  <div class="row"><button type="button" class="calbtn" id="edUndo">Undo point</button><button type="button" class="calbtn" id="edClear">Clear</button><output class="m" id="edPos"></output></div>
+  <div class="row"><select id="edFor" aria-label="Object for the new zone"></select><button type="button" class="calbtn" id="edUse">Use zone</button></div>
+  <div class="row"><button type="button" class="calbtn" id="edReset">Reset positions</button><button type="button" class="calbtn" id="edCode">Copy as TOOLS code</button><output id="edMsg"></output></div>
+  <p class="fine">Changes are saved in this browser only. To keep them for good (other browsers too), press <b>Copy as TOOLS code</b> and paste it over <span class="m">const TOOLS</span> in index.html.</p>
 </div>
 
 <div class="setbox" id="setBox" role="dialog" aria-labelledby="setH" hidden>
@@ -297,7 +324,9 @@ const CONFIG={
 /* Trainers: één blok { … } per trainer.
    spot = de klikzone: punten [x,y] rond het object, in pixels van het beeld (druk E op de pagina om ze te tekenen).
    at   = waar het label staat [x,y].
-   live = 'fretboard', 'scales', 'prompter' of 'moves' toont je actuele voortgang in het label. */
+   Makkelijker: druk E op de pagina, sleep de labels en teken zones; "Copy as TOOLS code" geeft dit hele blok terug om hier te plakken.
+   live = 'fretboard', 'scales', 'prompter' of 'moves' toont je actuele voortgang in het label.
+   (Chord Moves, de piano, staat hier bewust niet meer; chord-moves.html en zijn gegevens blijven bestaan.) */
 const TOOLS=[
   {file:'fretboard-trainer.html', name:'Fretboard Trainer', tagline:'Find every note, on every string.', live:'fretboard',
    spot:[[0,240],[42,232],[50,92],[46,64],[64,58],[82,90],[78,232],[102,250],[136,250],[138,88],[150,82],[162,88],[166,252],[194,270],[210,268],[214,110],[222,104],[234,108],[236,268],[254,286],[254,420],[236,428],[198,420],[160,434],[120,432],[100,446],[60,450],[0,447]], at:[126,470]},
@@ -309,8 +338,6 @@ const TOOLS=[
    spot:[[640,778],[662,767],[700,762],[760,764],[784,768],[795,796],[792,824],[700,828],[641,826],[635,800]], at:[716,856]},
   {file:'toonladder-trainer.html', name:'Scale Trainer', tagline:'Scales, arpeggios and progressions.', live:'scales',
    spot:[[1150,381],[1311,376],[1292,497],[1226,501],[1226,700],[1286,756],[1274,763],[1220,714],[1130,754],[1122,746],[1210,700],[1210,499],[1144,491]], at:[1230,352]},
-  {file:'chord-moves.html', name:'Chord Moves', tagline:'New progressions, one move at a time.', live:'moves',
-   spot:[[1312,329],[1384,331],[1454,329],[1530,322],[1556,300],[1592,190],[1635,100],[1665,92],[1672,100],[1672,140],[1622,230],[1600,330],[1672,372],[1672,795],[1580,790],[1556,808],[1540,780],[1478,745],[1430,746],[1272,746],[1268,478],[1312,470]], at:[1365,560]},
   {file:'note-prompter.html', name:'Note Prompter', tagline:'Random notes and chords, on your foot pedal.', live:'prompter',
    spot:[[1410,255],[1428,255],[1452,328],[1387,330]], at:[1419,356]},
 ];
@@ -386,39 +413,63 @@ function summary(t){
   return{line:t.tagline||''};}
 
 /* ══ SCÈNE ══════════════════════════════════════════════════════════════════════ */
-const room=$('#room'),SPOTS=TOOLS.map((t,i)=>Object.assign({id:'t'+i},t)).concat([Object.assign({id:'cal',file:'#calendar'},CALSPOT)]);
+/* key = vaste naam voor de overrides in practiceRoom.room (bestandsnaam; 'cal' = wandkalender), los van de volgorde in TOOLS */
+const room=$('#room'),SPOTS=TOOLS.map((t,i)=>Object.assign({id:'t'+i,key:t.file},t)).concat([Object.assign({id:'cal',key:'cal',file:'#calendar'},CALSPOT)]);
+const atOf=s=>S.pos[s.key]||s.at,spotOf=s=>S.zone[s.key]||s.spot;   /* versleept label / eigen zone (bewerkmodus) gaat vóór TOOLS */
 function buildScene(){
   room.style.setProperty('--ar',W+' / '+H);document.documentElement.style.setProperty('--ar',W/H);
   $('#art').src=IMG;
   $('#gls').innerHTML=SCENE.gl.map(g=>'<div class="gl" style="left:'+px(g.at[0])+';top:'+py(g.at[1])+';width:'+px(2*g.r)+';--a:'+g.a+';--b:'+g.b+'"><i style="--c:'+g.c+';--k:'+g.k+';--d:'+g.d+'s"></i></div>').join('');
-  const pts=s=>s.spot.map(p=>p.join(',')).join(' ');   /* punten van een klikzone */
   const svg=$('#hit');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('preserveAspectRatio','none');
-  svg.innerHTML='<rect class="hbg" width="'+W+'" height="'+H+'"/>'+SPOTS.map(s=>'<polygon class="hp" data-id="'+s.id+'" points="'+pts(s)+'"/>').join('')+'<polygon class="draft" id="draft" points=""/>';
-  renderLabels();}
+  renderZones();renderLabels();}
+function renderZones(){const pts=s=>spotOf(s).map(p=>p.join(',')).join(' ');   /* punten van een klikzone */
+  $('#hit').innerHTML='<rect class="hbg" width="'+W+'" height="'+H+'"/>'+SPOTS.map(s=>'<polygon class="hp" data-id="'+s.id+'" points="'+pts(s)+'"/>').join('')+'<polygon class="draft" id="draft" points=""/>';
+  edShow();}   /* de schets van een nieuwe zone blijft staan */
 function renderLabels(){
-  $('#labs').innerHTML=SPOTS.map(s=>{const sm=s.id==='cal'?{line:TEXT.calSub(streaks(calLogs(),goals()).cur)}:summary(s);
-    return '<a class="lab" href="'+esc(s.file)+'" data-id="'+s.id+'" style="left:'+px(s.at[0])+';top:'+py(s.at[1])+'"><b>'+esc(s.name)+'</b>'
-      +(sm.line?'<small>'+esc(sm.line)+'</small>':'')+(sm.badge?'<span class="bd" aria-label="'+esc(sm.line)+'">'+sm.badge+'</span>':'')+'</a>';}).join('');}
+  $('#labs').innerHTML=SPOTS.map(s=>{const sm=s.id==='cal'?{line:TEXT.calSub(streaks(calLogs(),goals()).cur)}:summary(s),at=atOf(s);
+    return '<a class="lab" href="'+esc(s.file)+'" data-id="'+s.id+'" draggable="false" style="left:'+px(at[0])+';top:'+py(at[1])+'"><b>'+esc(s.name)+'</b>'
+      +(sm.line?'<small>'+esc(sm.line)+'</small>':'')+(sm.badge?'<span class="bd" aria-label="'+esc(sm.line)+'">'+sm.badge+'</span>':'')+'</a>';}).join('');
+  if(active)setActive(active,1);}
 
-/* hover: het label licht op (rec-lampje aan); het beeld blijft zoals het is */
+/* hover: het label licht op (rec-lampje aan); het beeld blijft zoals het is. Meteen de pagina en zijn hoek alvast ophalen. */
 let active=null;
-function setActive(id){if(id===active)return;active=id;
+function setActive(id,force){if(id===active&&!force)return;active=id;
   document.querySelectorAll('.lab').forEach(e=>e.classList.toggle('on',e.dataset.id===id));
-  room.style.cursor=id?'pointer':'';}
-function go(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;
+  room.style.cursor=id?'pointer':'';if(id)prefetch(id);}
+/* vooraf ophalen: de trainer, zijn hoek van de kamer (home/corners/) en de gedeelde schil. Alleen een hint aan de browser. */
+const CORNER={'fretboard-trainer.html':'fretboard','toonladder-trainer.html':'scale-trainer','chord-finder.html':'chord-finder','lick-lab.html':'lick-lab','note-prompter.html':'note-prompter','tuner.html':'tuner'};
+const fetched=new Set();
+function prefetch(id){const s=SPOTS.find(x=>x.id===id);if(!s||s.file[0]==='#'||fetched.has(s.file))return;fetched.add(s.file);
+  const hint=h=>{const l=document.createElement('link');l.rel='prefetch';l.href=h;document.head.appendChild(l);};
+  hint(s.file);if(CORNER[s.file])new Image().src='home/corners/corner-'+CORNER[s.file]+'.jpg';
+  if(CORNER[s.file]&&s.file!=='toonladder-trainer.html'&&!fetched.has('shared')){fetched.add('shared');['shared/room.css','shared/look.js','shared/rail.js'].forEach(hint);}}
+/* weggaan: sluier erover (shared/room.css begint in dezelfde kleur), daarna pas navigeren; terugval na 600 ms */
+let leaving=false;
+function go(id){const s=SPOTS.find(x=>x.id===id);if(!s||leaving)return;
   if(s.file==='#calendar'){openCal();return;}
-  if(reduce){location.href=s.file;return;}
-  document.body.classList.add('leave');setTimeout(()=>{location.href=s.file;},300);}
+  leaving=true;prefetch(id);document.body.classList.add('leave');setActive(null);
+  let done=false;const nav=()=>{if(done)return;done=true;location.href=s.file;};
+  $('.veil').addEventListener('transitionend',e=>{if(e.propertyName==='opacity')nav();});setTimeout(nav,600);}
 function bindScene(){
   const hit=$('#hit'),labs=$('#labs');
   hit.addEventListener('mouseover',e=>{const p=e.target.closest('.hp');if(!edit)setActive(p?p.dataset.id:null);});
   hit.addEventListener('mouseleave',()=>setActive(null));
   hit.addEventListener('click',e=>{if(edit){edClick(e);return;}const p=e.target.closest('.hp');if(p)go(p.dataset.id);});
-  labs.addEventListener('mouseover',e=>{const a=e.target.closest('.lab');setActive(a?a.dataset.id:null);});
+  labs.addEventListener('mouseover',e=>{const a=e.target.closest('.lab');if(!edit)setActive(a?a.dataset.id:null);});
   labs.addEventListener('focusin',e=>{const a=e.target.closest('.lab');if(a)setActive(a.dataset.id);});
   labs.addEventListener('mouseleave',()=>setActive(null));
-  labs.addEventListener('click',e=>{const a=e.target.closest('.lab');if(!a||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();go(a.dataset.id);});
-  addEventListener('pageshow',()=>{document.body.classList.remove('leave');});}   /* terug met de knop Vorige */
+  labs.addEventListener('click',e=>{const a=e.target.closest('.lab');if(!a)return;if(edit){e.preventDefault();return;}
+    if(e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();go(a.dataset.id);});
+  addEventListener('pageshow',()=>{leaving=false;document.body.classList.remove('leave');});   /* terug met de knop Vorige */
+  /* aankomen: warme sluier weg zodra het beeld er is (of na 900 ms) */
+  const art=$('#art'),shown=()=>setTimeout(()=>document.body.classList.remove('arriving'),30);   /* geen rAF: die wacht in een verborgen tabblad */
+  if(art.complete&&art.naturalWidth)shown();else{art.addEventListener('load',shown,{once:true});art.addEventListener('error',shown,{once:true});}
+  setTimeout(shown,900);
+  /* labels vervagen na S.labelFade s zonder muis (0 = nooit); bewegen, een toets of klik haalt ze terug */
+  ['mousemove','pointerdown','keydown','wheel'].forEach(t=>addEventListener(t,wake,{passive:true}));}
+let idleT=0;
+function wake(){clearTimeout(idleT);document.body.classList.remove('lab-idle');
+  if(S.labelFade>0)idleT=setTimeout(()=>{if(!edit)document.body.classList.add('lab-idle');},S.labelFade*1000);}
 
 /* ══ GEHEIM MENU (toets S) ══════════════════════════════════════════════════════
    Opslag: practiceRoom.room (alleen Home schrijft hier). Onleesbaar → kopie naar practiceRoom.room.bad, standaard gebruiken. */
@@ -430,10 +481,12 @@ const FONTS={            /* naam, font-family, gewicht, grootte-factor, letteraf
   handjet:['Handjet','"Handjet"',500,1.15,'0'],
   bricolage:['Bricolage (original)','"Bricolage Grotesque"',700,1,'-.02em']};
 const SKEY='practiceRoom.room';
-const DEF={font:'dotgothic',labels:'always',day:CONFIG.dayNight?'auto':'day',motion:CONFIG.motion!==false,lights:true,dust:true,dustAmount:90,steam:true,zzz:true,zzzStrength:.6,zzzEvery:3.5,birds:true};
+const DEF={font:'dotgothic',labels:'always',labelFade:6,brand:'bl',day:CONFIG.dayNight?'auto':'day',motion:CONFIG.motion!==false,lights:true,dust:true,dustAmount:90,steam:true,zzz:true,zzzStrength:.6,zzzEvery:3.5,birds:true};
 const SETUI=[
   {k:'font',t:'select',l:'Font',o:Object.entries(FONTS).map(([k,f])=>[k,f[0]])},
   {k:'labels',t:'select',l:'Labels',o:[['always','Always visible'],['hover','Only on hover']]},
+  {k:'labelFade',t:'range',l:'Fade labels after (s idle, 0 = never)',min:0,max:30,step:1},
+  {k:'brand',t:'select',l:'Title panel',o:[['bl','Bottom left'],['tl','Top left'],['tr','Top right']]},
   {k:'day',t:'select',l:'Day & night',o:[['auto','Follow the clock'],['day','Always day'],['night','Always night']]},
   {h:'Motion'},
   {k:'motion',t:'check',l:'Motion in the room'},
@@ -445,13 +498,19 @@ const SETUI=[
   {k:'zzzStrength',t:'range',l:'zzz strength',min:.2,max:1,step:.05,sub:1},
   {k:'zzzEvery',t:'range',l:'zzz every (s)',min:1.5,max:10,step:.5,sub:1},
   {k:'birds',t:'check',l:'Birds',sub:1}];
-function loadSet(){const s=Object.assign({},DEF);let raw=null;try{raw=localStorage.getItem(SKEY);}catch(e){}
+/* pos = {key: [x,y]} versleepte labels, zone = {key: [[x,y],…]} eigen klikzones (bewerkmodus); key = bestandsnaam of 'cal' */
+const okPt=p=>Array.isArray(p)&&p.length===2&&p.every(n=>typeof n==='number'&&isFinite(n)),okKey=k=>/^[\w.#-]{1,60}$/.test(k);
+const clampPt=p=>[Math.round(Math.max(0,Math.min(W,p[0]))),Math.round(Math.max(0,Math.min(H,p[1])))];
+const isObj=o=>o&&typeof o==='object'&&!Array.isArray(o);
+function loadSet(){const s=Object.assign({},DEF,{pos:{},zone:{}});let raw=null;try{raw=localStorage.getItem(SKEY);}catch(e){}
   if(raw==null)return s;let o=null;try{o=JSON.parse(raw);}catch(e){}
-  if(!o||typeof o!=='object'||Array.isArray(o)){try{localStorage.setItem(SKEY+'.bad',raw);}catch(e){}return s;}
+  if(!isObj(o)){try{localStorage.setItem(SKEY+'.bad',raw);}catch(e){}return s;}
   SETUI.forEach(u=>{if(!u.k||!(u.k in o))return;const v=o[u.k];
     if(u.t==='check'&&typeof v==='boolean')s[u.k]=v;
     else if(u.t==='select'&&u.o.some(x=>x[0]===v))s[u.k]=v;
     else if(u.t==='range'&&typeof v==='number'&&isFinite(v))s[u.k]=Math.max(u.min,Math.min(u.max,v));});
+  if(isObj(o.pos))Object.keys(o.pos).forEach(k=>{if(okKey(k)&&okPt(o.pos[k]))s.pos[k]=clampPt(o.pos[k]);});
+  if(isObj(o.zone))Object.keys(o.zone).forEach(k=>{const z=o.zone[k];if(okKey(k)&&Array.isArray(z)&&z.length>=3&&z.length<=300&&z.every(okPt))s.zone[k]=z.map(clampPt);});
   return s;}
 let S=loadSet();
 const saveSet=()=>{try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}};
@@ -459,8 +518,9 @@ const moving=()=>S.motion&&!reduce;
 function applySet(){const f=FONTS[S.font]||FONTS.dotgothic,r=document.documentElement.style;
   r.setProperty('--df',f[1]);r.setProperty('--dw',f[2]);r.setProperty('--dfs',f[3]);r.setProperty('--dls',f[4]);
   document.body.classList.toggle('lab-hover',S.labels==='hover');
+  ['bl','tl','tr'].forEach(b=>document.body.classList.toggle('brand-'+b,S.brand===b));
   room.classList.toggle('nolights',!(moving()&&S.lights));
-  applyTod();kickFx();}
+  applyTod();kickFx();wake();}
 function renderSet(){const off=!moving();
   $('#setRows').innerHTML=SETUI.map(u=>{if(u.h)return '<div class="sgh">'+esc(u.h)+'</div>';
     const cls='sr'+(u.sub?' sub':'')+(u.sub&&off?' off':''),v=S[u.k];let c='';
@@ -478,7 +538,7 @@ function bindSet(){const box=$('#setBox');
     S[k]=el.type==='checkbox'?el.checked:el.type==='range'?+el.value:el.value;
     if(el.type==='range')el.nextElementSibling.textContent=el.value;
     saveSet();applySet();if(k==='motion')renderSet();});
-  $('#setReset').onclick=()=>{S=Object.assign({},DEF);saveSet();applySet();renderSet();};}
+  $('#setReset').onclick=()=>{S=Object.assign({},DEF,{pos:S.pos,zone:S.zone});saveSet();applySet();renderSet();};}   /* plekken: "Reset positions" in E */
 
 /* ── dagdeel: n = hoe donker (0…1), m = koel ochtendlicht (0…1) ── */
 const lerpT=(P,h)=>{for(let i=1;i<P.length;i++)if(h<=P[i][0]){const[a,va]=P[i-1],[b,vb]=P[i];return va+(vb-va)*(h-a)/(b-a);}return P[P.length-1][1];};
@@ -554,13 +614,40 @@ function startFx(){
 let edit=false,pts=[];
 const edPt=e=>{const m=$('#hit').getScreenCTM().inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m);return[Math.round(p.x),Math.round(p.y)];};
 function edShow(){$('#draft').setAttribute('points',pts.map(p=>p.join(',')).join(' '));$('#edOut').value=pts.length?JSON.stringify(pts):'';}
-function edClick(e){pts.push(edPt(e));edShow();}
+function edClick(e){pts.push(edPt(e));edShow();$('#edUse').disabled=pts.length<3;}
+const edMsg=t=>{const o=$('#edMsg');o.textContent=t;clearTimeout(edMsg.t);edMsg.t=setTimeout(()=>{o.textContent='';},3000);};
+/* TOOLS + CALSPOT als code, met de huidige plekken en zones erin (om in "JOUW INSTELLINGEN" te plakken) */
+function toolsCode(){const q=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'",J=v=>typeof v==='string'?q(v):JSON.stringify(v);
+  const rest=(o,skip)=>Object.keys(o).filter(k=>!skip.includes(k)).map(k=>k+':'+J(o[k]));
+  const tools=SPOTS.filter(s=>s.id!=='cal').map(s=>{const t=TOOLS[+s.id.slice(1)];
+    return '  {'+rest(t,['spot','at']).join(', ')+',\n   spot:'+JSON.stringify(spotOf(s))+', at:'+JSON.stringify(atOf(s))+'},';});
+  const c=SPOTS.find(s=>s.id==='cal');
+  return 'const TOOLS=[\n'+tools.join('\n')+'\n];\n/* De wandkalender opent je oefenkalender. */\nconst CALSPOT={'+rest(CALSPOT,['spot','at']).join(',')+',spot:'+JSON.stringify(spotOf(c))+',at:'+JSON.stringify(atOf(c))+'};';}
+function copyText(t){const done=()=>edMsg('Copied');
+  try{navigator.clipboard.writeText(t).then(done,()=>fallback());}catch(x){fallback();}
+  function fallback(){const o=$('#edOut'),v=o.value;o.value=t;o.select();try{document.execCommand('copy');done();}catch(e){edMsg('Select and copy the text above');return;}o.value=v;}}
+/* label slepen (alleen in de bewerkmodus); de plek in beeldpixels gaat naar S.pos */
+function edDrag(e){if(!edit||e.button!==0)return;const a=e.target.closest('.lab');if(!a)return;e.preventDefault();
+  const s=SPOTS.find(x=>x.id===a.dataset.id),r=room.getBoundingClientRect(),st=atOf(s),x0=e.clientX,y0=e.clientY;let cur=null;
+  a.setPointerCapture(e.pointerId);a.classList.add('drag');
+  const mv=ev=>{cur=clampPt([st[0]+(ev.clientX-x0)*W/r.width,st[1]+(ev.clientY-y0)*H/r.height]);a.style.left=px(cur[0]);a.style.top=py(cur[1]);$('#edPos').textContent=cur.join(', ');};
+  const up=()=>{a.removeEventListener('pointermove',mv);a.removeEventListener('pointerup',up);a.removeEventListener('pointercancel',up);a.classList.remove('drag');
+    if(!cur)return;if(cur[0]===s.at[0]&&cur[1]===s.at[1])delete S.pos[s.key];else S.pos[s.key]=cur;saveSet();edMsg('Saved');};
+  a.addEventListener('pointermove',mv);a.addEventListener('pointerup',up);a.addEventListener('pointercancel',up);}
 function bindEdit(){
-  addEventListener('keydown',e=>{if(e.key!=='e'&&e.key!=='E'||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea')||$('#calDlg').open)return;
-    edit=!edit;document.body.classList.toggle('edit',edit);$('#edBox').hidden=!edit;setActive(null);});
+  addEventListener('keydown',e=>{if(e.key!=='e'&&e.key!=='E'||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select')||$('#calDlg').open)return;
+    edit=!edit;document.body.classList.toggle('edit',edit);$('#edBox').hidden=!edit;setActive(null);wake();
+    if(edit)$('#edFor').innerHTML=SPOTS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');$('#edUse').disabled=pts.length<3;});
   $('#hit').addEventListener('mousemove',e=>{if(edit)$('#edPos').textContent=edPt(e).join(', ');});
-  $('#edCopy').onclick=()=>{const o=$('#edOut');o.select();try{navigator.clipboard.writeText(o.value);}catch(x){document.execCommand('copy');}};
-  $('#edUndo').onclick=()=>{pts.pop();edShow();};$('#edClear').onclick=()=>{pts=[];edShow();};}
+  $('#labs').addEventListener('pointerdown',edDrag);
+  $('#labs').addEventListener('dragstart',e=>{if(edit)e.preventDefault();});
+  $('#edUndo').onclick=()=>{pts.pop();edShow();$('#edUse').disabled=pts.length<3;};$('#edClear').onclick=()=>{pts=[];edShow();$('#edUse').disabled=true;};
+  $('#edUse').onclick=()=>{const s=SPOTS.find(x=>x.id===$('#edFor').value);if(!s||pts.length<3)return;
+    S.zone[s.key]=pts.map(clampPt);saveSet();pts=[];renderZones();$('#edUse').disabled=true;edMsg('Zone saved');};
+  $('#edReset').onclick=()=>{if(!Object.keys(S.pos).length&&!Object.keys(S.zone).length){edMsg('Nothing to reset');return;}
+    if(!confirm('Put all labels and click zones back where TOOLS has them?'))return;
+    S.pos={};S.zone={};saveSet();renderZones();renderLabels();edMsg('Reset');};
+  $('#edCode').onclick=()=>copyText(toolsCode());}
 
 /* ══ OEFENKALENDER (gelijk aan de vorige Home) ══════════════════════════════════
    Bronnen: logboek van de Fretboard Trainer (fretTrainer.log), van de Scale Trainer (toonladderTrainer:log),

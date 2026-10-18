@@ -30,8 +30,8 @@
         <div class="grow"></div>
       </header>
 
-      <!-- Find voicings: past op één scherm. Akkoord + soort + snarenset bovenaan; de vormen vullen de rest (fitShapes in render.js);
-           de gekozen vorm staat in de kolom rechts (tabblad Chord), de overige filters in Settings → Filters -->
+      <!-- Find voicings: past op één scherm. Akkoord + soort bovenaan, daaronder de uitklapbare strook "Strings & filters"
+           (zelfde onderdeel als in Progression); de vormen vullen de rest (fitShapes in render.js); de gekozen vorm staat in de kolom rechts (tabblad Chord) -->
       <div id="vFind" class="view">
       <section class="paper panel filters" aria-label="Chord and voicing">
         <div class="cin">
@@ -42,16 +42,17 @@
           <span class="seg" id="segRoot" role="group" aria-label="Root"></span>
           <p class="err" id="chordErr" role="status"></p>
         </div>
-        <div class="frow"><span class="lb px">Voicing</span><span class="seg" id="segType" role="group" aria-label="Voicing"></span><span class="help" tabindex="0" aria-label="About this voicing type">?<i id="typeHelp"></i></span></div>
-        <div class="frow"><span class="lb px">Strings</span><div class="chips" id="chStr" role="group" aria-label="Strings"></div></div>
+        <div class="frow"><span class="lb px">Voicing</span><span class="seg" id="segType" role="group" aria-label="Voicing"></span><span class="help" tabindex="0" aria-label="About this voicing type">?<i id="typeHelp"></i></span>
+          <button type="button" class="fbtn" data-fs="find" aria-expanded="false" aria-controls="fsFind"></button></div>
+        <div class="fstrip" id="fsFind" hidden></div>
       </section>
 
-      <!-- alle vormen: zo groot als past; past het niet, dan één groep tegelijk (tabjes) -->
+      <!-- alle vormen: zo groot als past; groepen kiezen met de tabjes of de kopjes (Shift = meer); past het niet, dan één groep tegelijk -->
       <section class="paper panel results" aria-label="Shapes">
         <div class="rhead">
           <h3 id="resCount" class="px"></h3>
           <button type="button" class="lnk" id="btnShowAll">Show all</button>
-          <span class="seg gtabs" id="gTabs" role="group" aria-label="Group" hidden></span>
+          <span class="seg gtabs" id="gTabs" role="group" aria-label="Groups" hidden></span>
           <span class="help" tabindex="0" aria-label="Keys">?<i id="keysHint"></i></span>
           <span class="frow" style="margin-left:auto"><span class="cap">Group by</span><span class="seg" id="segGroup" role="group" aria-label="Group by"></span></span>
         </div>
@@ -78,32 +79,23 @@
         <section class="paper panel input" aria-label="Progression">
           <div class="chords">
             <label for="pgIn" class="vh" id="pgInL"></label>
-            <textarea id="pgIn" rows="2" autocomplete="off" spellcheck="false" autocapitalize="off"></textarea>
+            <textarea id="pgIn" rows="1" autocomplete="off" spellcheck="false" autocapitalize="off"></textarea>
             <div class="from"><select id="pgSt" hidden></select><span class="help dn l" tabindex="0" aria-label="How to type chords">?<i id="pgInHelp"></i></span></div>
           </div>
           <p class="err" id="pgErr" role="status"></p>
           <p class="note" id="pgApprox"></p>
+          <!-- voicingsoort en voice leading op één regel, daaronder de strook "Strings & filters" -->
           <div class="opts">
             <div class="opt"><span class="lb px" id="pgTypeL"></span><span class="seg" id="pgType" role="group" aria-label="Voicing"></span></div>
-          </div>
-          <div class="opts">
             <div class="opt"><span class="lb px" id="pgModeL"></span><span class="seg" id="pgMode" role="group" aria-label="Voice leading"></span><span class="help" tabindex="0" aria-label="About this voice leading">?<i id="pgModeHelp"></i></span></div>
             <div class="opt" id="pgPosRow"><span class="lb px" id="pgPosL"></span><select id="pgPos" aria-label="Position"></select></div>
-            <div class="opt" id="pgStrRow"><span class="lb px" id="pgStrL"></span><div class="chips" id="pgStr" role="group" aria-label="String set"></div></div>
             <div class="opt" id="pgMelRow"><label for="pgMel" class="lb px" id="pgMelL"></label><input id="pgMel" type="text" autocomplete="off" spellcheck="false" autocapitalize="off"><p class="err" id="pgMelErr" role="status"></p></div>
+            <button type="button" class="fbtn" data-fs="prog" aria-expanded="false" aria-controls="fsProg"></button>
           </div>
-          <div class="opts">
-            <div class="opt"><span class="lb px" id="pgLineL"></span><span class="seg" id="pgLine" role="group" aria-label="Bass line"></span><span class="help" tabindex="0" aria-label="About this bass line">?<i id="pgLineHelp"></i></span></div>
-          </div>
+          <div class="fstrip" id="fsProg" hidden></div>
         </section>
 
         <div class="lines" id="pgRows"></div>
-
-        <!-- baslijn van het gekozen akkoord op de hals (Display → Bass line on the neck) -->
-        <section class="paper panel" id="pgBassBox" aria-label="Bass line" hidden>
-          <h3 class="px"><span id="pgBassH"></span><span class="help" tabindex="0" aria-label="About the bass line on the neck">?<i id="pgBassHelp"></i></span></h3>
-          <div class="nk" id="pgBassNeck"></div>
-        </section>
       </div>
      </div>
     </div>
@@ -114,31 +106,23 @@
       <label class="tempo" for="pgTempo"><span id="pgTempoL"></span><input type="range" id="pgTempo" min="40" max="260" step="2"><b class="bpm" id="pgBpm"></b></label>
       <label class="tg"><input type="checkbox" role="switch" id="pgLoop"><i></i><span id="pgLoopL"></span></label>
       <label class="tg"><input type="checkbox" role="switch" id="pgBass"><i></i><span id="pgBassL"></span></label>
+      <!-- meer akkoorden geselecteerd (Ctrl/Shift-klik): acties voor de hele selectie -->
+      <span class="selbar" id="pgSelBar" hidden><b id="pgSelN"></b><button type="button" class="act sm" id="pgSLock"></button><button type="button" class="act sm" id="pgSRefit"></button>
+        <select id="pgSType" aria-label="Voicing for the selection"></select></span>
       <span class="stat" id="pgSum"></span>
+      <!-- uitleg van de stippelring op de kaarten -->
+      <span class="pgkey"><svg viewBox="0 0 22 22" aria-hidden="true"><rect class="wd" width="22" height="22" rx="5"/><circle class="dt i3 hd" cx="11" cy="11" r="7"/></svg><span id="pgHeldL"></span><span class="help l" tabindex="0" aria-label="What the rings mean">?<i id="pgHeldHelp"></i></span></span>
       <span class="help l" tabindex="0" aria-label="Keys">?<i id="pgKeys"></i></span>
     </footer>
   </main>
 
-  <!-- kolom rechts: instellen, niet spelen (in Progression ook het gekozen akkoord) -->
+  <!-- kolom rechts: instellen, niet spelen (in Find voicings ook de gekozen vorm; in Progression alleen Settings) -->
   <aside class="col" id="col" aria-label="Side panel">
     <button type="button" class="ib reopen" data-col="open" title="Show side panel" aria-label="Show side panel"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <div class="colhd">
       <h2 class="px" id="colH">Settings</h2>
       <span class="seg" id="colTabs" role="tablist" hidden><button type="button" data-tab="chord">Chord</button><button type="button" data-tab="set">Settings</button></span>
       <button type="button" class="ib" data-col="shut" title="Hide side panel" aria-label="Hide side panel"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    </div>
-
-    <!-- Progression: het gekozen akkoord (of de selectie), acties, eigen voicingsoort, vormen -->
-    <div id="tabChord" hidden>
-      <section id="pgSide">
-        <h2 id="pgSelH" class="pgselh"></h2>
-        <p class="cap" id="pgSelSub"></p>
-        <p class="note pgst" id="pgState"></p>
-        <div class="pgacts"><button type="button" class="act" id="pgSPlay"></button><button type="button" class="act" id="pgSLock"></button><button type="button" class="act" id="pgSRefit"></button><button type="button" class="act" id="pgSRel" hidden></button></div>
-        <div class="pgsrow"><span class="cap" id="pgSTypeL"></span><span class="seg" id="pgSType" role="group" aria-label="Voicing for the selection"></span></div>
-        <h3 id="pgAltH" class="pgalth"></h3>
-        <div class="dgs" id="pgAlts"></div>
-      </section>
     </div>
 
     <!-- Find voicings: de gekozen vorm, met de hele hals staand (klik = spelen) -->
@@ -160,13 +144,6 @@
     </div>
 
     <div id="tabSet">
-      <div id="setFilter">
-        <h3>Filters</h3>
-        <div class="colf"><span>Lowest note</span><div class="chips" id="chLow" role="group" aria-label="Lowest note"></div></div>
-        <div class="colf"><span>Top note</span><div class="chips" id="chTop" role="group" aria-label="Top note"></div></div>
-        <div class="row"><span>Frets</span><span class="krow"><select id="selFrom" aria-label="From fret"></select><span class="cap">to</span><select id="selTo" aria-label="To fret"></select></span></div>
-      </div>
-
       <div id="setBand">
         <h3>Band</h3>
         <div class="row"><span id="pgStyleL"></span><span class="seg" id="pgStyle" role="group" aria-label="Style"></span></div>
@@ -178,7 +155,6 @@
       <div class="row" id="labRow"><span>Labels</span><span class="seg" id="segLab" role="group" aria-label="Labels"></span></div>
       <div class="row" id="dgSizeL"><span>Diagram size</span><input type="range" id="dgSize" min="80" max="200" step="10"></div>
       <div id="setDisp">
-        <div class="row"><span id="pgBNeckL"></span><label class="tg"><input type="checkbox" role="switch" id="pgBNeck" aria-label="Bass line on the neck"><i></i></label></div>
         <div class="row"><span>Card details <span class="help r" tabindex="0" aria-label="What the cards show">?<i id="pgLegend"></i></span></span><span class="seg" id="segDet" role="group" aria-label="Card details"></span></div>
       </div>
 
@@ -196,6 +172,27 @@
     </div>
   </aside>
 </div>
+
+<!-- Progression: vorm kiezen voor één akkoord. Venster in het midden, de rest dimt; Esc of een klik ernaast sluit (progression.js: pgOpen) -->
+<div class="scrim" id="pgModal" hidden>
+  <section class="paper pgm" role="dialog" aria-modal="true" aria-labelledby="pgMH" tabindex="-1">
+    <div class="pgmh">
+      <button type="button" class="ib" id="pgMPrev"></button>
+      <h2 id="pgMH"></h2>
+      <button type="button" class="ib" id="pgMNext"></button>
+      <p class="cap" id="pgMSub"></p>
+      <div class="pgacts"><button type="button" class="act" id="pgMPlay"></button><button type="button" class="act" id="pgMLock"></button><button type="button" class="act" id="pgMRefit"></button><button type="button" class="act" id="pgMRel" hidden></button></div>
+      <span class="help l" tabindex="0" aria-label="How to choose">?<i id="pgMHelp"></i></span>
+      <button type="button" class="ib" id="pgMX"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="pgmo">
+      <span class="lb px" id="pgMTypeL"></span><span class="seg" id="pgMType" role="group" aria-label="Voicing for this chord"></span>
+      <span class="lb px" id="pgMStrL"></span><span class="seg" id="pgMStr" role="tablist" aria-label="String set"></span>
+      <p class="note pgst" id="pgMState"></p>
+    </div>
+    <div class="pgmb" id="pgMBody"></div>
+  </section>
+</div>
 <!-- volgorde telt: alle scripts delen één scope -->
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
@@ -204,6 +201,7 @@
 <script src="chordfinder/text.js"></script>
 <script src="chordfinder/theory.js"></script>
 <script src="chordfinder/voicings.js"></script>
+<script src="shared/guitar.js"></script>          <!-- zachte jazzgitaar voor de akkoorden (GTR) -->
 <script src="chordfinder/sound.js"></script>
 <script src="chordfinder/render.js"></script>
 <script src="chordfinder/ui.js"></script>

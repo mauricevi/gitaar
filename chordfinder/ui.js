@@ -12,7 +12,11 @@ const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all'
   /* band (fase 4): baslijn, stijl, drums, volume per instrument (0–100), baslijn op de hals */
   pLine:'walk',pStyle:'swing',pDrums:true,pVol:{piano:100,bass:100,drums:80},pBNeck:false,
   dgSize:100,   /* grootte van alle akkoorddiagrammen in procenten (80–200) */
-  colOpen:true,cardDet:'compact'};   /* kolom rechts open/dicht; kaartdetails in Progression: compact (naam, diagram, omkering) of full (+ stemmen en baslijn) */
+  colOpen:true,cardDet:'compact',   /* kolom rechts open/dicht; kaartdetails in Progression: compact (naam, diagram, omkering) of full (+ stemmen en baslijn) */
+  /* strook "Strings & filters" open/dicht (beide modi); filters in Progression: snarenset, omkering (0–3), topnoot (R/3/5/7/x = kleurnoot);
+     favorieten (Find voicings): verschuifbare vormen {q: akkoordsoort, t: voicingsoort, s: snarenset, i: halve tonen boven de grondtoon per noot} */
+  fOpen:false,pgF:{str:'all',inv:'all',top:'all'},favs:[]};
+const PG_TOPS=['R','3','5','7','x'];
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
@@ -40,20 +44,26 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.dgSize=typeof s.dgSize==='number'&&isFinite(s.dgSize)?Math.min(200,Math.max(80,Math.round(s.dgSize/10)*10)):DEF.dgSize;
   Object.keys(DEF.pVol).forEach(k=>{s.pVol[k]=typeof vo[k]==='number'&&isFinite(vo[k])?Math.min(100,Math.max(0,Math.round(vo[k]))):DEF.pVol[k];});
   s.colOpen=s.colOpen!==false;s.cardDet=s.cardDet==='full'?'full':'compact';
+  s.fOpen=!!s.fOpen;
+  /* filters Progression; nog niet bewaard + "Same strings" met een vaste snarenset (pStr, wordt niet meer gelezen) → die set als filter */
+  const own=o&&typeof o==='object'?o:{},pf=own.pgF&&typeof own.pgF==='object'&&!Array.isArray(own.pgF)?own.pgF:own.pMode==='strings'&&/^[1-6]{2,6}$/.test(own.pStr)?{str:own.pStr}:{};
+  s.pgF={str:typeof pf.str==='string'&&/^(all|[1-6]{2,6})$/.test(pf.str)?pf.str:'all',inv:['0','1','2','3'].includes(pf.inv)?pf.inv:'all',top:PG_TOPS.includes(pf.top)?pf.top:'all'};
+  s.favs=(Array.isArray(s.favs)?s.favs:[]).filter(f=>f&&typeof f==='object'&&Object.prototype.hasOwnProperty.call(QUAL,f.q)&&VTYPES.includes(f.t)&&typeof f.s==='string'&&/^[1-6]{2,6}$/.test(f.s)&&
+    Array.isArray(f.i)&&f.i.length===f.s.length&&f.i.every(x=>Number.isInteger(x)&&x>=0&&x<12)).slice(0,300).map(f=>({q:f.q,t:f.t,s:f.s,i:f.i.slice()}));
   return s;}
-let S=load();
+let S=load();favSync();
 (function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema: alleen nog bewaard (de schil is altijd daglicht), niet meer gebruikt */
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
-/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = S.colOpen. In Find voicings en Progression twee tabbladen:
-   Chord (Finder: de gekozen vorm op de hele hals; Progression: gekozen akkoord, acties, vormen) en Settings
-   (Finder: filters; Progression: band, weergave, bewerken); in What's this chord? alleen Settings.
-   Ook hier: wat er per modus te zien is (transportplank alleen in Progression, Labels niet in What's this chord?). */
+/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = S.colOpen. In Find voicings twee tabbladen:
+   Chord (de gekozen vorm op de hele hals) en Settings; in Progression en What's this chord? alleen Settings
+   (Progression: band, weergave, bewerken; een vorm kiezen gaat daar in het venster "choose a shape"). Filters staan nooit hier,
+   maar in de strook "Strings & filters" onder de voicingsoort. Ook: transportplank alleen in Progression, Labels niet in What's this chord?. */
 let colTab='chord';
-function renderCol(){const m=S.mode,pg=m==='prog',tabs=m!=='id',t=tabs?colTab:'set';
-  $('#colTabs').hidden=!tabs;$('#colH').hidden=tabs;$('#tabChord').hidden=!(pg&&t==='chord');$('#tabFind').hidden=!(m==='find'&&t==='chord');$('#tabSet').hidden=t!=='set';
+function renderCol(){const m=S.mode,pg=m==='prog',tabs=m==='find',t=tabs?colTab:'set';
+  $('#colTabs').hidden=!tabs;$('#colH').hidden=tabs;$('#tabFind').hidden=!(tabs&&t==='chord');$('#tabSet').hidden=t!=='set';
   $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));
-  ['#setBand','#setDisp','#setEdit'].forEach(id=>{$(id).hidden=!pg;});$('#setFilter').hidden=m!=='find';$('#labRow').hidden=m==='id';$('#pgTray').hidden=!pg;
+  ['#setBand','#setDisp','#setEdit'].forEach(id=>{$(id).hidden=!pg;});$('#labRow').hidden=m==='id';$('#pgTray').hidden=!pg;
   document.body.dataset.mode=m;
   seg($('#segDet'),Object.entries(T.det),S.cardDet,'det');document.body.dataset.detail=S.cardDet;}
 function colShow(t){colTab=t;renderCol();}
@@ -82,7 +92,7 @@ function derive(){const c=parseChord(S.chord)||parseChord(DEF.chord),all=voicing
   if(S.low!=='all'&&!all.some(v=>v.low===S.low))S.low='all';
   if(S.top!=='all'&&!all.some(v=>v.top===S.top))S.top='all';
   const list=all.filter(v=>(S.str==='all'||v.strs===S.str)&&(S.low==='all'||v.low===S.low)&&(S.top==='all'||v.top===S.top)&&v.lo>=S.from&&v.hi<=S.to);
-  D={c,all,list};D.groups=groupsOf(list);D.order=D.groups.flatMap(g=>g.vs);
+  D={c,all,list};D.groups=groupsOf(list);D.order=[...new Set(D.groups.flatMap(g=>g.vs))];   /* een favoriet staat ook in zijn eigen groep: één keer tellen */
   /* gekozen vorm: dezelfde frets, anders (na een ander akkoord) de vorm die het dichtst bij de vorige ligt, op dezelfde snaren */
   let sel=D.order.find(v=>v.key===S.sel)||null;
   if(!sel&&prevSel&&D.order.length)sel=D.order.reduce((b,v)=>{const k=v2=>Math.abs(v2.center-prevSel.center)+(v2.strs===prevSel.strs?0:3);return k(v)<k(b)?v:b;});
@@ -92,10 +102,10 @@ function update(){derive();save();renderChord();renderFilters();renderDetail();R
 function refit(){if(S.mode!=='find'||!D)return;RES.paged=false;renderResults();}
 function setChord(c){if(!c)return;S.chord=c.ascii;$('#chordErr').textContent='';act();update();}
 function pick(v,play){if(!v)return;S.sel=v.key;prevSel=v;D.sel=v;save();renderDetail();
-  if(RES.paged){const g=D.groups.find(x=>x.key===RES.page);if(!g||!g.vs.includes(v)){RES.page=null;renderResults();}}   /* andere groep: dat tabje tonen */
   document.querySelectorAll('#groups .dg').forEach(b=>{const on=b.dataset.k===v.key;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
   if(play){playShape(D.c,v);logChord(D.c.sym);}}
-function step(d){if(!D.order.length)return;const i=D.order.indexOf(D.sel),v=D.order[Math.min(D.order.length-1,Math.max(0,i+d))];
+/* ← →: door de vormen die nu te zien zijn (gekozen groepen, zonder dubbele) */
+function step(d){const O=D.shown&&D.shown.length?D.shown:D.order;if(!O.length)return;const i=O.indexOf(D.sel),v=O[Math.min(O.length-1,Math.max(0,i+d))];
   if(v&&v!==D.sel){pick(v,true);const b=document.querySelector('#groups .dg[data-k="'+v.key+'"]');if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest',inline:'nearest'});}}
 
 function bind(){
@@ -103,7 +113,16 @@ function bind(){
   /* de vormen passend houden bij een andere venstergrootte of als de kolom in- of uitklapt */
   let rt=0;if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(refit,120);}).observe($('#scroll'));
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refit);
-  $('#gTabs').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;RES.page=b.dataset.g;renderResults();});
+  /* groepen kiezen: tabjes en kopjes; Shift-klik = erbij/eraf (geen tekst selecteren) */
+  $('#gTabs').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b)groupClick(b.dataset.g,e.shiftKey);});
+  ['#gTabs','#groups'].forEach(id=>$(id).addEventListener('mousedown',e=>{if(e.shiftKey)e.preventDefault();}));
+  /* strook "Strings & filters": de knop klapt hem in beide modi open/dicht; de Finder-filters zelf hier, die van Progression in pgBind() */
+  document.querySelectorAll('[data-fs]').forEach(b=>b.addEventListener('click',()=>{S.fOpen=!S.fOpen;save();if(S.mode==='prog')pgRender();else update();}));
+  $('#fsFind').addEventListener('click',e=>{const b=e.target.closest('[data-fk]');
+    if(e.target.closest('[data-fclear]')){S.str=S.low=S.top='all';S.from=1;S.to=MAXF;act();update();return;}
+    if(b){S[b.dataset.fk]=b.dataset.fv;act();update();}});
+  $('#fsFind').addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.fr,n=+e.target.value;if(!k)return;
+    if(k==='from'){S.from=n;if(S.to<n)S.to=n;}else{S.to=n;if(S.from>n)S.from=n;}update();});
   /* akkoordsoort: uitklapvenster achter de knop "Type"; sluit na een keuze, met Esc of bij een klik ernaast */
   const qp=$('#qualPop'),qb=$('#btnQual'),qShow=o=>{qp.hidden=!o;qb.setAttribute('aria-expanded',o);};
   qb.addEventListener('click',()=>qShow(qp.hidden));
@@ -123,15 +142,16 @@ function bind(){
     setChord(makeChord(r,D.c.q,bass));});
   $('#qualRows').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;setChord(makeChord(D.c.root,b.dataset.q,D.c.bass));qShow(false);});
   $('#segType').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;S.type=b.dataset.type;act();update();});
-  [['#chStr','str'],['#chLow','low'],['#chTop','top']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-'+k+']');if(!b)return;S[k]=b.dataset[k];act();update();}));
-  $('#selFrom').addEventListener('change',e=>{S.from=+e.target.value;if(S.to<S.from)S.to=S.from;update();});
-  $('#selTo').addEventListener('change',e=>{S.to=+e.target.value;if(S.from>S.to)S.from=S.to;update();});
   $('#segLab').addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;S.labels=b.dataset.lab;save();renderMode();});   /* één knop in de kolom, voor Finder en Progression */
-  $('#segGroup').addEventListener('click',e=>{const b=e.target.closest('[data-group]');if(!b)return;S.group=b.dataset.group;update();});
+  $('#segGroup').addEventListener('click',e=>{const b=e.target.closest('[data-group]');if(!b)return;S.group=b.dataset.group;RES.gsel=new Set();update();});
   $('#tgTones').addEventListener('change',e=>{S.allTones=e.target.checked;save();renderDetail();});
   $('#tgBass').addEventListener('change',e=>{S.bass=e.target.checked;save();});
-  $('#btnShowAll').addEventListener('click',()=>{S.str=S.low=S.top='all';S.from=1;S.to=MAXF;update();});
-  $('#groups').addEventListener('click',e=>{const b=e.target.closest('.dg');if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);if(colTab!=='chord')colShow('chord');});
+  $('#btnShowAll').addEventListener('click',()=>{S.str=S.low=S.top='all';S.from=1;S.to=MAXF;RES.gsel=new Set();update();});
+  /* vorm kiezen, ster = favoriet aan/uit, kopje = groep kiezen */
+  $('#groups').addEventListener('click',e=>{const f=e.target.closest('[data-fav]'),g=e.target.closest('.gh'),b=e.target.closest('.dg');
+    if(f){const v=D.order.find(x=>x.key===f.dataset.fav);if(v){favToggle(D.c,v);update();}return;}
+    if(g){groupClick(g.dataset.g,e.shiftKey);return;}
+    if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);if(colTab!=='chord')colShow('chord');});
   $('#btnPlay').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}});
   $('#btnArp').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel,true);logChord(D.c.sym);}});
   $('#dBig').addEventListener('click',()=>{if(D.sel)playShape(D.c,D.sel);});

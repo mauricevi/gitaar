@@ -36,8 +36,9 @@ function diagram(c,v,lab,cls){lab=lab||(x=>labOf(c,x));
   /* barré-streep: alleen bij barrévormen, als de laagste fret op de buitenste gespeelde snaren ligt en ertussen niets gedempt is */
   if(v.type==='barre'){const us=v.notes.map(x=>x.s),a=us[0],b=us[us.length-1];
     if(b>a&&v.f[a]===v.lo&&v.f[b]===v.lo&&v.f.slice(a,b+1).every(x=>x>=v.lo))h+='<rect class="dt" x="'+(X(a)-7)+'" y="'+(Y(v.lo)-7)+'" width="'+(X(b)-X(a)+14)+'" height="14" rx="7"/>';}
-  v.notes.forEach(x=>{const cx=X(x.s),op=x.f===0,cy=op?top-11:Y(x.f),l=lab(x);
-    h+='<circle class="'+(op?'op':(c&&x.pc===c.rootPc?'rt':'dt')+ivCls(c,x))+(cls?cls(x):'')+'" cx="'+cx+'" cy="'+cy+'" r="'+(op?7:8.4)+'"/>';
+  v.notes.forEach(x=>{const cx=X(x.s),op=x.f===0,cy=op?top-11:Y(x.f),l=lab(x),k=cls?cls(x):'';
+    h+='<circle class="'+(op?'op':(c&&x.pc===c.rootPc?'rt':'dt')+ivCls(c,x))+k+'" cx="'+cx+'" cy="'+cy+'" r="'+(op?7:8.4)+'"'+
+      (/\bhd\b/.test(k)?'><title>'+esc(T.pg.heldT)+'</title></circle>':'/>');   /* liggende noot: uitleg bij aanwijzen */
     if(l)h+='<text class="'+(op?'ol':'dl')+'" x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle">'+esc(l)+'</text>';});
   return h+'</svg>';}
 
@@ -84,17 +85,33 @@ function renderChord(){const c=D.c,inp=$('#inChord');
   $('#qualRows').innerHTML=QGROUPS.map(([g,ids])=>'<div class="frow"><span class="lb">'+esc(T.qg[g])+'</span><div class="chips" role="group" aria-label="'+esc(T.qg[g])+'">'+
     ids.map(id=>'<button type="button" class="chip" data-q="'+id+'" aria-pressed="'+(id===c.q)+'">'+esc(nName(c.root)+QUAL[id].sym)+'</button>').join('')+'</div></div>').join('');}
 
+/* ── strook "Strings & filters": hetzelfde onderdeel in Find voicings (#fsFind) en Progression (#fsProg) ──
+   Altijd zichtbaar is alleen de knop (achter de voicingsoort), met een korte samenvatting van wat er aan staat; open/dicht = S.fOpen (beide modi).
+   rows = [{k: sleutel, l: label, cur, items: [[waarde, label, aantal?, title?]]}]; extra = html achteraan (fretbereik, uitleg). */
+const sortSets=(a,b)=>b[0]-a[0]||(a<b?1:-1);   /* snarensets: van de lage naar de hoge snaren */
+function stripRender(id,rows,extra,sum){const host=$('#'+id),btn=document.querySelector('[data-fs][aria-controls="'+id+'"]');
+  host.hidden=!S.fOpen;btn.setAttribute('aria-expanded',S.fOpen);btn.classList.toggle('on',!!sum);
+  btn.innerHTML='<span>'+esc(T.filt)+'</span>'+(sum?'<b>'+esc(sum)+'</b>':'')+'<span class="car" aria-hidden="true">▾</span>';
+  if(!S.fOpen)return;
+  host.innerHTML=rows.map(r=>'<div class="frow"><span class="lb px">'+esc(r.l)+'</span><div class="chips" role="group" aria-label="'+esc(r.l)+'">'+
+    r.items.map(([v,l,n,t])=>'<button type="button" class="chip" data-fk="'+r.k+'" data-fv="'+esc(v)+'" aria-pressed="'+(v===r.cur)+'"'+(t?' title="'+esc(t)+'"':'')+'>'+esc(l)+(n!=null?'<small>'+n+'</small>':'')+'</button>').join('')+
+    '</div></div>').join('')+(extra||'')+(sum?'<button type="button" class="lnk fclr" data-fclear="1">'+esc(T.fClear)+'</button>':'');}
+/* omkering als knoplabel: de laagste noot (interval) → Root / 1st inv / … of "9 in bass" */
+const lowTxt=l=>l in ROLE?T.invShort[ROLE[l]]:T.inBass(l);
+
 /* ── soort en filters (de knoppen tonen alleen wat er voor dit akkoord bestaat, met het aantal vormen) ── */
 function renderFilters(){const A=D.all;
   seg($('#segType'),VTYPES.map(t=>[t,T.types[t]]),S.type,'type');
   $('#typeHelp').textContent=T.typeHelp[S.type];
   const count=(f)=>{const m=new Map();A.forEach(v=>{const k=f(v);m.set(k,(m.get(k)||0)+1);});return m;};
   const sets=count(v=>v.strs),lows=count(v=>v.low),tops=count(v=>v.top);
-  chips($('#chStr'),[['all',T.all],...[...sets.keys()].sort((a,b)=>b[0]-a[0]||(a<b?1:-1)).map(k=>[k,[...k].join(' '),sets.get(k)])],S.str,'str');
-  chips($('#chLow'),[['all',T.any],...[...lows.keys()].sort(byIv).map(k=>[k,k,lows.get(k)])],S.low,'low');
-  chips($('#chTop'),[['all',T.any],...[...tops.keys()].sort(byIv).map(k=>[k,k,tops.get(k)])],S.top,'top');
-  ['#selFrom','#selTo'].forEach((id,i)=>{const el=$(id),cur=i?S.to:S.from;
-    el.innerHTML=Array.from({length:MAXF},(_,k)=>k+1).map(f=>'<option value="'+f+'"'+(f===cur?' selected':'')+'>'+f+'</option>').join('');});
+  const sum=[S.str!=='all'&&[...S.str].join(''),S.low!=='all'&&lowTxt(S.low),S.top!=='all'&&T.topIs(S.top),(S.from>1||S.to<MAXF)&&T.frets+' '+S.from+'–'+S.to].filter(Boolean).join(' · ');
+  const fo=cur=>Array.from({length:MAXF},(_,k)=>k+1).map(f=>'<option value="'+f+'"'+(f===cur?' selected':'')+'>'+f+'</option>').join('');
+  stripRender('fsFind',[
+    {k:'str',l:T.strL,cur:S.str,items:[['all',T.all],...[...sets.keys()].sort(sortSets).map(k=>[k,[...k].join(' '),sets.get(k)])]},
+    {k:'low',l:T.fInv,cur:S.low,items:[['all',T.any],...[...lows.keys()].sort(byIv).map(k=>[k,lowTxt(k),lows.get(k),T.inBass(k)])]},
+    {k:'top',l:T.topL,cur:S.top,items:[['all',T.any],...[...tops.keys()].sort(byIv).map(k=>[k,k,tops.get(k)])]}],
+    '<div class="frow"><span class="lb px">'+esc(T.fretL)+'</span><span class="krow"><select data-fr="from" aria-label="From fret">'+fo(S.from)+'</select><span class="cap">'+esc(T.to)+'</span><select data-fr="to" aria-label="To fret">'+fo(S.to)+'</select></span></div>',sum);
   seg($('#segLab'),Object.entries(T.lab),S.labels,'lab');
   seg($('#segGroup'),Object.entries(T.group),S.group,'group');
   $('#tgTones').checked=S.allTones;$('#tgBass').checked=S.bass;}
@@ -108,23 +125,45 @@ function renderDetail(){const c=D.c,v=D.sel,box=$('#detail');
   $('#dInfo').innerHTML='<p class="dmeta">'+esc(T.types[v.type])+' · '+esc(invTxt(v))+' · '+esc(T.topIs(v.top))+'</p>'+
     '<p class="cap">'+esc(T.strName(v.strs))+' · '+esc(T.frets)+' <span class="mono">'+esc(fretTxt(v))+'</span></p>'+
     '<h3>'+esc(T.notes)+'</h3><div class="nts">'+notes+'</div>';
-  const i=D.order.indexOf(v);$('#btnPrev').disabled=i<=0;$('#btnNext').disabled=i<0||i>=D.order.length-1;}
+  const O=D.shown||D.order,i=O.indexOf(v);$('#btnPrev').disabled=i<=0;$('#btnNext').disabled=i<0||i>=O.length-1;}
 
-/* ── raster: per groep een rij vormen, van laag naar hoog op de hals ── */
-function groupsOf(list){
-  if(S.group==='none')return[{key:'all',title:'',tab:'',vs:list}];
+/* ── favorieten: een verschuifbare vorm = akkoordsoort + voicingsoort + snarenset + interval per snaar (halve tonen boven de grondtoon),
+   los van de grondtoon; een favoriet van Cmaj7 staat dus bij elke maj7. S.favs = [{q, t, s, i: [..]}] ── */
+const favIv=(c,v)=>v.notes.map(n=>mod(n.pc-c.rootPc,12));
+const favId=f=>f.q+'|'+f.t+'|'+f.s+'|'+f.i.join('.');
+const favKey=(c,v)=>favId({q:c.q,t:v.type,s:v.strs,i:favIv(c,v)});
+let FAVS=new Set();
+const favSync=()=>{FAVS=new Set(S.favs.map(favId));};
+const isFav=(c,v)=>FAVS.has(favKey(c,v));
+function favToggle(c,v){const k=favKey(c,v),j=S.favs.findIndex(f=>favId(f)===k);
+  if(j>=0)S.favs.splice(j,1);else if(S.favs.length<300)S.favs.push({q:c.q,t:v.type,s:v.strs,i:favIv(c,v)});
+  favSync();save();}
+
+/* ── raster: per groep een rij vormen, van laag naar hoog op de hals; de favorieten (★) als eerste groep ── */
+function groupsOf(list){const fv=list.filter(v=>isFav(D.c,v)),fg=fv.length?[{key:'fav',title:T.favT,tab:T.favG,vs:fv}]:[];
+  if(S.group==='none')return fg.concat([{key:'all',title:fg.length?T.grpAll:'',tab:T.grpAll,vs:list}]);
   const m=new Map(),key=v=>S.group==='set'?v.strs:v.inv!=null?'i'+v.inv:'b'+v.low;
   list.forEach(v=>{const k=key(v);if(!m.has(k))m.set(k,[]);m.get(k).push(v);});
   let ks=[...m.keys()];
-  if(S.group==='set')ks.sort((a,b)=>b[0]-a[0]||(a<b?1:-1));
+  if(S.group==='set')ks.sort(sortSets);
   else ks.sort((a,b)=>a[0]!==b[0]?(a[0]==='i'?-1:1):a[0]==='i'?a.slice(1)-b.slice(1):byIv(a.slice(1),b.slice(1)));
-  return ks.map(k=>({key:k,title:S.group==='set'?T.strName(k):k[0]==='i'?T.inv[+k.slice(1)]:T.inBass(k.slice(1)),
-    tab:S.group==='set'?k:k[0]==='i'?T.invShort[+k.slice(1)]:T.inBass(k.slice(1)),vs:m.get(k)}));}
+  return fg.concat(ks.map(k=>({key:k,title:S.group==='set'?T.strName(k):k[0]==='i'?T.inv[+k.slice(1)]:T.inBass(k.slice(1)),
+    tab:S.group==='set'?k:k[0]==='i'?T.invShort[+k.slice(1)]:T.inBass(k.slice(1)),vs:m.get(k)})));}
 /* De vormen passen altijd op het scherm (de pagina scrolt niet): fitShapes() zoekt de grootste schaal (--fit, FIT_MIN–FIT_MAX maal
    "Diagram size") waarbij alles in het vak past; weinig vormen worden dus groter. Past het ook op FIT_MIN niet, dan één groep tegelijk met tabjes (RES.paged);
-   pas als ook één groep niet past, scrolt het vak zelf. RES.paged gaat terug naar false bij een ander akkoord, filter of venster. */
+   pas als ook één groep niet past, scrolt het vak zelf. RES.paged gaat terug naar false bij een ander akkoord, filter of venster.
+   Groepen kiezen (tabjes of kopjes): RES.gsel = gekozen groepen (leeg = alle). Klik = alleen die groep, Shift-klik = erbij of eraf,
+   klik op de enige gekozen groep = weer alle. Bij een eigen keuze staat elke vorm er één keer (een favoriet niet nog eens in zijn eigen rij)
+   en wordt er niet gebladerd (past het niet, dan scrolt het vak); bij "alle" blijven de rijen heel. */
 const FIT_MIN=.68,FIT_MAX=1.5;
-const RES={paged:false,page:null};
+const RES={paged:false,page:null,gsel:new Set()};
+function groupClick(k,shift){const G=D.groups,g=RES.gsel;
+  if(!k)RES.gsel=new Set();
+  else if(shift){if(!g.size)G.forEach(x=>{if(x.key!==k)g.add(x.key);});else if(g.has(k))g.delete(k);else g.add(k);
+    if(g.size===G.length)g.clear();}
+  else if(g.size===1&&g.has(k))g.clear();
+  else RES.gsel=new Set([k]);
+  RES.paged=false;renderResults();renderDetail();}
 function fitShapes(){const g=$('#groups');if(!g||!g.offsetParent)return true;
   g.style.overflow='hidden';   /* tijdens het meten geen schuifbalk: die verandert de breedte en daarmee de uitkomst */
   const fits=f=>{g.style.setProperty('--fit',f);return g.scrollHeight<=g.clientHeight+1;},done=r=>{g.style.overflow='';return r;};
@@ -134,16 +173,24 @@ function fitShapes(){const g=$('#groups');if(!g||!g.offsetParent)return true;
 function renderResults(){const c=D.c,L=D.list,G=D.groups,tabs=$('#gTabs');
   $('#resCount').textContent=T.count(L.length)+(L.length<D.all.length?' / '+D.all.length:'');
   $('#btnShowAll').hidden=L.length===D.all.length;
-  if(!L.length){tabs.hidden=true;$('#groups').innerHTML='<p class="note">'+esc(D.all.length?T.noneFilter:T.noneType(T.types[S.type]))+'</p>';return;}
-  const paged=RES.paged&&G.length>1;let show=G;
-  if(paged){const g=G.find(x=>x.key===RES.page)||G.find(x=>x.vs.includes(D.sel))||G[0];RES.page=g.key;show=[g];
-    seg(tabs,G.map(x=>[x.key,x.tab+' · '+x.vs.length]),RES.page,'g');}
-  tabs.hidden=!paged;
-  $('#groups').innerHTML=show.map(g=>{const t=g.title&&!paged;return'<div class="grp'+(t?'':' solo')+'">'+(t?'<h3 class="gh">'+esc(g.title)+' <small>'+g.vs.length+'</small></h3>':'')+'<div class="dgs">'+
-    g.vs.map(v=>{const cap=S.group==='inv'?[...v.strs].join(' '):invTxt(v,true);
-      return'<button type="button" class="dg'+(v===D.sel?' on':'')+'" data-k="'+v.key+'" aria-pressed="'+(v===D.sel)+'" aria-label="'+esc(T.shapeBtn(c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
-        diagram(c,v)+'<span class="cp">'+esc(cap)+' · '+esc(T.topIs(v.top))+'</span></button>';}).join('')+'</div></div>';}).join('');
-  if(!fitShapes()&&!paged&&G.length>1){RES.paged=true;renderResults();}}
+  const keys=new Set(G.map(g=>g.key));[...RES.gsel].forEach(k=>{if(!keys.has(k))RES.gsel.delete(k);});
+  if(!L.length){tabs.hidden=true;D.shown=[];$('#groups').innerHTML='<p class="note">'+esc(D.all.length?T.noneFilter:T.noneType(T.types[S.type]))+'</p>';return;}
+  const own=RES.gsel.size>0,paged=!own&&RES.paged&&G.length>1;let show=own?G.filter(g=>RES.gsel.has(g.key)):G;
+  if(paged){const g=G.find(x=>x.key===RES.page)||G.find(x=>x.key!=='fav'&&x.vs.includes(D.sel))||G[0];RES.page=g.key;show=[g];}
+  if(own){const seen=new Set();show=show.map(g=>Object.assign({},g,{vs:g.vs.filter(v=>!seen.has(v.key)&&seen.add(v.key))})).filter(g=>g.vs.length);}
+  const on=new Set(paged?[RES.page]:own?RES.gsel:[]);
+  /* tabjes: All + elke groep (met aantal); ingedrukt = wat er te zien is */
+  tabs.hidden=G.length<2;
+  tabs.innerHTML='<button type="button" data-g="" aria-pressed="'+!on.size+'">'+esc(T.grpAll)+'</button>'+
+    G.map(x=>'<button type="button" data-g="'+esc(x.key)+'" aria-pressed="'+on.has(x.key)+'" title="'+esc((x.title||x.tab)+' · '+T.grpL)+'">'+esc(x.tab)+' <small>'+x.vs.length+'</small></button>').join('');
+  const seen=new Set();D.shown=show.flatMap(g=>g.vs).filter(v=>!seen.has(v.key)&&seen.add(v.key));   /* volgorde voor ← → */
+  $('#groups').innerHTML=show.map(g=>{const t=g.title&&!paged;return'<div class="grp'+(t?'':' solo')+(g.key==='fav'?' fav':'')+'">'+
+    (t?'<button type="button" class="gh" data-g="'+esc(g.key)+'" aria-pressed="'+on.has(g.key)+'" title="'+esc(T.grpL)+'">'+esc(g.title)+' <small>'+g.vs.length+'</small></button>':'')+'<div class="dgs">'+
+    g.vs.map(v=>{const cap=S.group==='inv'?[...v.strs].join(' '):invTxt(v,true),fv=isFav(c,v);
+      return'<div class="dgw"><button type="button" class="dg'+(v===D.sel?' on':'')+'" data-k="'+v.key+'" aria-pressed="'+(v===D.sel)+'" aria-label="'+esc(T.shapeBtn(c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
+        diagram(c,v)+'<span class="cp">'+esc(cap)+' · '+esc(T.topIs(v.top))+'</span></button>'+
+        '<button type="button" class="fav'+(fv?' on':'')+'" data-fav="'+v.key+'" aria-pressed="'+fv+'" aria-label="'+esc(fv?T.favOn:T.favOff)+'" title="'+esc(fv?T.favOn:T.favOff)+'">★</button></div>';}).join('')+'</div></div>';}).join('');
+  if(!fitShapes()&&!paged&&!own&&G.length>1){RES.paged=true;renderResults();}}
 
 /* grootte van alle akkoorddiagrammen: één CSS-variabele (--dg) waar de rasters en kaarten mee rekenen */
 function applyDgSize(){document.documentElement.style.setProperty('--dg',S.dgSize/100);const el=$('#dgSize');el.value=S.dgSize;

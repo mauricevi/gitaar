@@ -26,6 +26,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
+html{background:var(--bg)}   /* meteen warm, geen witte flits tussen twee pagina's */
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 "Bricolage Grotesque",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -146,6 +147,17 @@ input[type=range]{accent-color:var(--glow)}
 .tray .stat{margin-left:auto;font-size:13px;color:rgba(255,240,220,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ── overgang tussen pagina's (Firefox kent geen View Transitions tussen documenten, dus gewoon CSS) ──
+   Elke pagina begint onder een warme afdekking in --bg, dezelfde kleur als de sluier waarmee Home weggaat.
+   LOOK.ready() (shared/look.js, aangeroepen door rail.js zodra de achtergrond getekend is, anders na 900 ms) zet html.pr-ready
+   → de afdekking vloeit weg. Zonder JS gaat hij na 1,2 s vanzelf weg (animatie). Weg via de icoonbalk: html.pr-leave
+   → afdekking terug, dan navigeert rail.js. Alleen doorzichtigheid, dus ook bij "minder beweging". */
+body::after{content:"";position:fixed;inset:0;z-index:900;pointer-events:none;background:var(--bg);animation:prCover .45s ease 1.2s both}
+html.pr-ready body::after{animation:none;opacity:0;transition:opacity .45s ease}
+html.pr-leave body::after{animation:none;opacity:1;transition:opacity .25s ease}
+@keyframes prCover{from{opacity:1}to{opacity:0}}
+/* geen @view-transition: beide kanten zijn al dezelfde warme kleur, en Chromium meldt dan "Transition was skipped" als fout */
 
 /* ── kleine letters (menu S → Text case): alles klein, behalve muziek (.mus, zie LOOK.mus in shared/look.js),
    wat de gebruiker typt en SVG-tekst (labels op de hals). Kopjes in HOOFDLETTERS blijven hoofdletters. ── */

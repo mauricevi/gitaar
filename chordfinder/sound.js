@@ -18,23 +18,31 @@ function loadSounds(){const B=window.BACKING_SOUNDS;if(!B||!audio())return Promi
   return sndPromise;}
 function makeIR(){const sr=actx.sampleRate,n=Math.floor(sr*1.4),ir=actx.createBuffer(2,n,sr);
   for(let c=0;c<2;c++){const d=ir.getChannelData(c);let lp=0;for(let i=0;i<n;i++){lp=lp*.6+(Math.random()*2-1)*.4;d[i]=lp*Math.pow(1-i/n,3);}}return ir;}
-/* mengpaneel per keer afspelen (zo kan stoppen alles tegelijk laten wegsterven): piano- en basbus → galm → compressor */
+/* Akkoorden klinken als zachte jazzgitaar (shared/guitar.js, GTR); lukt dat niet, dan de piano zoals vroeger.
+   GTR_LVL = niveau van de gitaar in de mix (afgesteld op gelijke luidheid met de piano). */
+const GTR_LVL=.45;let gtrState=null;
+function gtrOn(){if(gtrState==null)gtrState=!!(typeof GTR!=='undefined'&&actx&&GTR.ok(actx));return gtrState;}
+if(typeof GTR!=='undefined')GTR.look();                                       /* regels "Guitar sound" in het menu S */
+/* mengpaneel per keer afspelen (zo kan stoppen alles tegelijk laten wegsterven): gitaar- (of piano-) en basbus → galm → compressor */
 function chain(vol){const out=actx.createGain();out.gain.value=1;out.connect(actx.destination);
   const comp=actx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=2.5;comp.attack.value=.01;comp.release.value=.2;comp.knee.value=10;comp.connect(out);
-  if(!IR)IR=makeIR();const verb=actx.createConvolver();verb.buffer=IR;const wet=actx.createGain();wet.gain.value=MIX.reverb;verb.connect(wet).connect(comp);
+  const gt=gtrOn();if(!IR)IR=gt?GTR.ir(actx):makeIR();        /* gitaar: korte kamergalm van GTR, ook voor bas en drums */
+  const verb=actx.createConvolver();verb.buffer=IR;const wet=actx.createGain();wet.gain.value=MIX.reverb;verb.connect(wet).connect(comp);
   const sc=SND?SND.scale:{piano:1,bass:1},db=x=>Math.pow(10,x/20),B=window.BACKING_SOUNDS;
-  /* vol = {piano, bass, drums} 0–100 (schuifjes in Progression); zonder vol: zoals afgesteld */
-  const base={piano:(SND?.5*db(4.5)/sc.piano:.5)*MIX.piano,bass:(SND?.5*db(2.7)/sc.bass:.35)*MIX.bass,drums:hasDrums()?.5*db(1)/(B.scale&&B.scale.drum||1):1};
+  /* vol = {piano, bass, drums} 0–100 (schuifjes in Progression; "piano" = het akkoordinstrument); zonder vol: zoals afgesteld */
+  const base={piano:gt?GTR_LVL*MIX.piano:(SND?.5*db(4.5)/sc.piano:.5)*MIX.piano,bass:(SND?.5*db(2.7)/sc.bass:.35)*MIX.bass,drums:hasDrums()?.5*db(1)/(B.scale&&B.scale.drum||1):1};
   const vf=k=>vol&&vol[k]!=null?Math.pow(vol[k]/100,2):1;
-  const pg=actx.createGain();pg.gain.value=base.piano*vf('piano');
-  const pk=actx.createBiquadFilter();pk.type='peaking';pk.frequency.value=1600;pk.Q.value=.8;pk.gain.value=4;pg.connect(pk).connect(comp);   /* iets helderdere piano */
-  const ps=actx.createGain();ps.gain.value=.22;pg.connect(ps).connect(verb);
+  let pg,gtr=null;
+  if(gt){gtr=GTR.bus(actx,comp,{verb,wetScale:1/MIX.reverb,gain:base.piano*vf('piano')});pg=gtr.vol;}   /* galm van de gitaar via deze mix: stoppen dooft alles */
+  else{pg=actx.createGain();pg.gain.value=base.piano*vf('piano');
+    const pk=actx.createBiquadFilter();pk.type='peaking';pk.frequency.value=1600;pk.Q.value=.8;pk.gain.value=4;pg.connect(pk).connect(comp);   /* iets helderdere piano */
+    const ps=actx.createGain();ps.gain.value=.22;pg.connect(ps).connect(verb);}
   const bg=actx.createGain();bg.gain.value=base.bass*vf('bass');bg.connect(comp);
   const bs=actx.createGain();bs.gain.value=.04;bg.connect(bs).connect(verb);
   const dg=actx.createGain();dg.gain.value=base.drums*vf('drums');
   const hs=actx.createBiquadFilter();hs.type='highshelf';hs.frequency.value=6000;hs.gain.value=5;dg.connect(hs).connect(comp);   /* meer glans op de bekkens */
   const ds=actx.createGain();ds.gain.value=.12;dg.connect(ds).connect(verb);
-  return{out,piano:pg,bass:bg,drums:dg,base};}
+  return{out,piano:pg,bass:bg,drums:dg,base,gtr};}
 /* volume van één instrument tijdens het spelen bijstellen */
 function mixVol(mix,k,v){if(mix&&mix[k])try{mix[k].gain.setTargetAtTime(mix.base[k]*Math.pow(v/100,2),actx.currentTime,.05);}catch(e){}}
 /* één sample: toonhoogte via playbackRate, lengte via een dempende envelope */
@@ -52,7 +60,9 @@ function pluck(f,t,d,out){const o=actx.createOscillator(),o2=actx.createOscillat
 function bassSynth(m,t,dur,out){const o=actx.createOscillator(),g=actx.createGain();o.type='triangle';o.frequency.value=midiF(m);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur+.05);
   o.connect(g).connect(out);o.start(t);o.stop(t+dur+.1);}
-function pianoNote(m,t,len,v,bus){if(!SND){pluck(midiF(m),t,Math.max(.25,len),bus);return;}
+/* akkoordnoot: gitaar als de bus een gitaarbus is (Progression-comping roept dit per noot aan), anders piano */
+function pianoNote(m,t,len,v,bus){if(typeof GTR!=='undefined'&&GTR.busOf(bus)){GTR.note(actx,bus,m,t,{len,vel:v});return;}
+  if(!SND){pluck(midiF(m),t,Math.max(.25,len),bus);return;}
   const s=nearestS(SND.piano,m);playSample(s,t,velG(v,VEL.piano),bus,Math.pow(2,(m-s.key)/12),len,.07);}
 function bassPlay(m,t,len,v,bus){if(!SND){bassSynth(m,t,len,bus);return;}
   const s=nearestS(SND.bass,m);playSample(s,t,velG(v,VEL.bass),bus,Math.pow(2,(m-s.key)/12),len,.035);}
@@ -87,14 +97,16 @@ function drum(k,t,v,out){t=Math.max(t,actx.currentTime);
 function near(pc,ref){let best=null;for(let m=28;m<=40;m++)if(mod(m,12)===pc&&(best==null||Math.abs(m-ref)<Math.abs(best-ref)))best=m;return best;}
 /* een vorm laten horen: licht aangeslagen van laag naar hoog (of als arpeggio), met de bas eronder als die aanstaat */
 function playShape(c,v,arp){if(!c||!v||!audio())return;act();
-  const go=()=>{const mix=chain(),t=actx.currentTime+.04,step=arp?.2:.028,N=v.notes.length;
-    v.notes.forEach((x,k)=>pianoNote(x.midi,t+k*step,arp?.9+(N-k)*step:2.2,arp?80:72,mix.piano));
+  const go=()=>{const mix=chain(),t=actx.currentTime+.04,N=v.notes.length;let step;
+    if(mix.gtr){step=arp?GTR.S.arp:GTR.S.strum;GTR.chord(actx,mix.gtr,v.notes.map(x=>x.midi),t,{arp:!!arp,vel:arp?80:74,damp:'all'});}   /* vorige akkoord loslaten */
+    else{step=arp?.2:.028;v.notes.forEach((x,k)=>pianoNote(x.midi,t+k*step,arp?.9+(N-k)*step:2.2,arp?80:72,mix.piano));}
     if(S.bass)bassPlay(near(c.bassPc!=null?c.bassPc:c.rootPc,33),t,arp?N*step+1:2.4,104,mix.bass);
-    setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},6500);};
-  if(SND||!window.BACKING_SOUNDS)go();else loadSounds().then(go);}
-/* opnames alvast inlezen bij de eerste klik ergens op de pagina */
-addEventListener('pointerdown',()=>{if(window.BACKING_SOUNDS&&audio())loadSounds();},{once:true});
+    setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},8000);};
+  if(SND||!window.BACKING_SOUNDS||gtrOn()&&!S.bass)go();else loadSounds().then(go);}
+/* opnames alvast inlezen bij de eerste klik ergens op de pagina; gitaarnoten alvast uitrekenen */
+addEventListener('pointerdown',()=>{if(!audio())return;if(window.BACKING_SOUNDS)loadSounds();if(gtrOn())GTR.warm(actx);},{once:true});
 /* één noot (bij het neerzetten van een noot in "What's this chord?") */
 function tapNote(m){if(!audio())return;
-  const go=()=>{const mix=chain();pianoNote(m,actx.currentTime+.02,1.2,76,mix.piano);setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},3000);};
-  if(SND||!window.BACKING_SOUNDS)go();else loadSounds().then(go);}
+  const go=()=>{const mix=chain();if(mix.gtr)GTR.note(actx,mix.gtr,m,actx.currentTime+.02,{vel:76});else pianoNote(m,actx.currentTime+.02,1.2,76,mix.piano);
+    setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},5000);};
+  if(SND||!window.BACKING_SOUNDS||gtrOn())go();else loadSounds().then(go);}

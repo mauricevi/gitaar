@@ -5,9 +5,10 @@
    S.pLock = {volgnummer: {s: symbool, k: frets, t: soort, h: 1?}}: zonder h = gelockt door de gebruiker (blijft),
    met h = "vastgehouden" (tijdelijk bevroren zodat alleen andere akkoorden veranderen; Re-fit of een andere instelling laat ze weer los).
    S.pTypes = {volgnummer: {s: symbool, t: soort}} = eigen voicingsoort voor één akkoord; S.pFit = 'refit'|'keep' (wat er met de rest gebeurt als je een vorm kiest).
-   Opslag (in 'chordFinder.v1'): pText, pType, pMode, pPos, pStr, pMel, pTempo, pLoop, pLock, pTypes, pFit,
-   en voor de band (fase 4): pLine (baslijn, zie bass.js), pStyle, pDrums, pVol = {piano, bass, drums} (0–100), pBNeck (baslijn op de hals).
-   Baslijn Stepwise: eerst kiest bsStep() de basnoten, daarna krijgt een vorm met een andere laagste noot extra kosten.
+   Opslag (in 'chordFinder.v1'): pText, pType, pMode, pPos, pMel, pTempo, pLoop, pLock, pTypes, pFit, pgF (filters, zie pgPass),
+   en voor de band (fase 4): pStyle, pDrums, pVol = {piano (= "Chords"), bass, drums} (0–100).
+   Niet meer gelezen (blijven staan): pStr (vervangen door de snarenset in pgF), pLine (de band speelt altijd walking), pBNeck.
+   Een vorm kiezen gaat in het venster "choose a shape" (pgOpen); meer akkoorden geselecteerd = acties op de transportplank (pgRenderSel).
    Alle namen hier beginnen met pg/PG: de scripts delen één scope. */
 const PG_MODES=['smooth','pos','strings','top'];
 const PG_FB=['drop2','shell','triad','barre','close'];      /* geen vorm in de gekozen soort? dan de eerste die wel bestaat */
@@ -80,27 +81,38 @@ function pgViterbi(X,un,pr){const C=X.map(x=>x.lock?[x.lock]:x.vs);
   for(let i=C.length-2;i>=0;i--){j=back[i][j];path.unshift(C[i][j]);}
   return{path,tot};}
 
-/* ── afleiden: S → PG = {list (alle akkoorden), ok (met vorm), bad, approx, melBad, sets, set, costs, stats} ── */
-function pgDerive(){const P=pgParse(S.pText),M=pgMelody(S.pMel);
+/* ── filters (strook "Strings & filters", S.pgF): beperken welke vormen de voice leading mag kiezen.
+   str = snarenset (een slash-bas eronder mag), inv = omkering 0–3 (slash-akkoorden en "9 in bass" vallen erbuiten),
+   top = soort topnoot: R, 3 (ook 2 en 4 van sus), 5, 7 (ook 6), x = kleurnoot. Past geen enkele vorm van een akkoord,
+   dan houdt dat akkoord alle vormen (x.nofit, ≠ op de kaart); een vastgezette vorm blijft altijd staan. ── */
+const pgDeg=l=>l==='R'?'R':/^[♭♯]?3$|^[24]$/.test(l)?'3':/^[♭♯]?5$/.test(l)?'5':/^[♭♯]?7$|^6$/.test(l)?'7':'x';
+const pgFOn=()=>S.pgF.str!=='all'||S.pgF.inv!=='all'||S.pgF.top!=='all';
+const pgPass=v=>{const F=S.pgF;return(F.str==='all'||pgOnSet(v,F.str))&&(F.inv==='all'||v.inv===+F.inv)&&(F.top==='all'||pgDeg(v.top)===F.top);};
+const PG_LINE='walk';   /* de band speelt altijd een walking bass (S.pLine/S.pBNeck blijven bewaard maar worden niet meer gelezen) */
+
+/* ── afleiden: S → PG = {list (alle akkoorden), ok (met vorm), bad, approx, melBad, sets, set, costs, stats}
+   per akkoord: all = alle vormen van zijn soort, vs = na de filters (de kandidaten) ── */
+function pgDerive(){const P=pgParse(S.pText),M=pgMelody(S.pMel),fon=pgFOn();
   const list=P.list.map((x,i)=>{const o=S.pTypes[i],own=!!(o&&o.s===x.c.sym&&VTYPES.includes(o.t)),tp=own?o.t:S.pType;
-    let vs=pgVoicings(x.c,tp),fb=null;
-    if(!vs.length)for(const t of PG_FB){if(t===tp)continue;const w=pgVoicings(x.c,t);if(w.length){vs=w;fb=t;break;}}
+    let all=pgVoicings(x.c,tp),fb=null;
+    if(!all.length)for(const t of PG_FB){if(t===tp)continue;const w=pgVoicings(x.c,t);if(w.length){all=w;fb=t;break;}}
+    const fv=fon?all.filter(pgPass):all,nofit=fon&&!!all.length&&!fv.length,vs=nofit?all:fv;
     const L=S.pLock[i],lock=L&&L.s===x.c.sym?pgFindLock(x.c,tp,L):null;
-    return Object.assign({},x,{i,tp,own,vs,fb,lock,held:!!(lock&&L.h),mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null,bsPc:null,bl:null});});
+    return Object.assign({},x,{i,tp,own,all,vs,fb,nofit,lock,held:!!(lock&&L.h),mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null,bsPc:null,bl:null});});
   const ok=list.filter(x=>x.vs.length||x.lock);
-  if(S.pLine==='step'){const sp=bsStep(ok);ok.forEach((x,k)=>{x.bsPc=sp[k];});}   /* eerst de baslijn, dan de vormen eromheen */
-  /* snarensets: hoeveel akkoorden er een vorm op hebben (voor de knoppen en voor Auto) */
+  /* snarensets: hoeveel akkoorden er een vorm op hebben, vóór de filters (voor de knoppen en voor "Same strings") */
   const cnt=new Map();
-  ok.forEach(x=>{const s=new Set();x.vs.forEach(v=>{s.add(v.strs);if(x.c.bassPc!=null)s.add(v.strs.slice(1));});s.forEach(k=>cnt.set(k,(cnt.get(k)||0)+1));});
+  ok.forEach(x=>{const s=new Set();x.all.forEach(v=>{s.add(v.strs);if(x.c.bassPc!=null)s.add(v.strs.slice(1));});s.forEach(k=>cnt.set(k,(cnt.get(k)||0)+1));});
   const top=Math.max(0,...cnt.values()),sets=[...cnt.keys()].filter(k=>cnt.get(k)>=Math.max(1,top/2)&&k.length>=3)
     .sort((a,b)=>cnt.get(b)-cnt.get(a)||b.length-a.length||(a<b?1:-1)).slice(0,8);
   let set=null,res=null,costs=pgCosts(null);
   if(ok.length){
-    if(S.pMode==='strings'){const tries=S.pStr!=='auto'&&sets.includes(S.pStr)?[S.pStr]:sets;
+    /* Same strings: met een snarenset in de filters is dat de set, anders de beste */
+    if(S.pMode==='strings'){const tries=S.pgF.str!=='all'?[S.pgF.str]:sets;
       tries.forEach(s=>{const cs=pgCosts(s),r=pgViterbi(ok,cs.un,cs.pr);if(!res||r.tot<res.tot){res=r;set=s;costs=cs;}});}
     if(!res)res=pgViterbi(ok,costs.un,costs.pr);
     ok.forEach((x,k)=>{x.v=res.path[k];x.mv=k?pgMotion(ok[k-1].v,x.v):x.v.notes.map(()=>null);});
-    const BL=bsLines(ok,S.pLine),BF=bsFrets(ok.map((x,k)=>({bl:BL[k]})));ok.forEach((x,k)=>{x.bl=BL[k];x.bf=BF[k];});}
+    const BL=bsLines(ok,PG_LINE);ok.forEach((x,k)=>{x.bl=BL[k];});}
   let st=0,ct=0,fr=0;
   for(let k=1;k<ok.length;k++){const a=ok[k-1].v,b=ok[k].v;st+=pgDist(a,b);fr+=Math.abs(Math.round(b.center-a.center));ct+=ok[k].mv.filter(d=>d===0).length;}
   PG={list,ok,bad:P.bad,approx:P.approx,melBad:M.bad,sets,set,costs,stats:{st,ct,fr}};
@@ -119,7 +131,7 @@ function pgCard(x){const c=x.c,v=x.v,on=x.i===PGSEL,sel=PGSET.has(x.i),head='<di
   const cls=pgCls(x),vo=v.notes.map((n,j)=>({n,d:x.mv[j]})).reverse(),tp=v.type!==S.pType?T.types[v.type]:'';
   return'<div class="pgc'+cl+(x.lock?x.held?' hl':' lk':'')+'" data-i="'+x.i+'">'+head+
     '<button type="button" class="pgdg" data-i="'+x.i+'" aria-pressed="'+sel+'" aria-label="'+esc(T.pg.cardL(c.sym,fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+diagram(c,v,null,n=>cls(v,n))+'</button>'+
-    '<p class="cap pgi">'+(tp?'<b class="pgt">'+esc(tp)+'</b> · ':'')+esc(invTxt(v,true))+' · '+esc([...v.strs].join(''))+'</p>'+
+    '<p class="cap pgi">'+(x.nofit&&!x.lock?'<b class="pgnf" title="'+esc(T.pg.noFit)+'">≠</b> ':'')+(tp?'<b class="pgt">'+esc(tp)+'</b> · ':'')+esc(invTxt(v,true))+' · '+esc([...v.strs].join(''))+'</p>'+
     '<ol class="pgv">'+vo.map(o=>{const l=pgLab(c,o.n);return'<li><b class="'+(PG_GUIDE.includes(l)?'gt':'')+'" title="'+esc(toneName(c,o.n.pc))+'">'+esc(l)+'</b>'+pgArrow(o.d)+'</li>';}).join('')+'</ol>'+
     pgBassRow(x)+'</div>';}
 /* slotje op de kaart: vrij (verschijnt bij hover), vastgehouden (punaise) of gelockt */
@@ -130,19 +142,8 @@ function pgLkBtn(x){const st=pgState(x),l=T.pg.lkL[st](x.c.sym);
 function pgBassRow(x){const L=bsShow(x.bl);if(!L.length)return'';
   return'<p class="pgb" aria-label="'+esc(T.pg.bassL(L.map(e=>e.name).join(' ')))+'">'+L.map((e,j)=>'<span class="bn'+(e.ap?' ap':'')+'" data-bk="'+x.i+'-'+j+'"'+
     (e.ap?' title="'+esc(T.pg.apTo(e.ap.kind,e.ap.to))+'"':'')+'><b>'+esc(e.name)+'</b><small>'+esc(e.lab)+'</small></span>').join('')+'</p>';}
-/* de baslijn van het gekozen akkoord op de hals (een octaaf hoger), met cijfers in speelvolgorde; ring = begin van het volgende akkoord */
-function pgRenderBass(){const box=$('#pgBassBox'),x=PG.list[PGSEL];box.hidden=!S.pBNeck||!x||!x.bl;if(box.hidden)return;
-  const k=PG.ok.indexOf(x),nx=PG.ok[(k+1)%PG.ok.length],L=bsShow(x.bl),dots=new Map();
-  $('#pgBassH').textContent=T.pg.bNeckH(x.c.sym,x.i+1);
-  L.forEach((e,j)=>{const p=x.bf[j];if(!p)return;const id=p.s+','+p.f,d=dots.get(id);
-    if(d)d.lab+=','+(j+1);else dots.set(id,{s:p.s,f:p.f,cls:e.ap?'dt hl':e.pc===x.c.rootPc?'rt':'dt',lab:String(j+1)});});
-  const q=nx&&nx.bf[0];if(q&&!dots.has(q.s+','+q.f))dots.set('n',{s:q.s,f:q.f,cls:'ct cr',small:true,lab:'›'});
-  $('#pgBassNeck').innerHTML=neckSvg([...dots.values()],false);}
-function pgAlts(x){const k=PG.ok.indexOf(x),a=PG.ok[k-1],b=PG.ok[k+1],{un,pr}=PG.costs;
-  return x.vs.filter(v=>v!==x.v).map(v=>({v,sc:un(v,x)+(a?pr(a.v,v):0)+(b?pr(v,b.v):0),mv:(a?pgDist(a.v,v):0)+(b?pgDist(v,b.v):0)}))
-    .sort((p,q)=>p.sc-q.sc).slice(0,24);}
 function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
-  if(document.activeElement!==inp)inp.value=S.pText;if(document.activeElement!==mel)mel.value=S.pMel;
+  if(document.activeElement!==inp)inp.value=S.pText;if(document.activeElement!==mel)mel.value=S.pMel;pgGrow();
   $('#pgErr').textContent=P.bad.length?T.pg.bad(P.bad):'';$('#pgApprox').textContent=P.approx.length?T.pg.approx(P.approx):'';$('#pgApprox').hidden=!P.approx.length;
   $('#pgMelErr').textContent=P.melBad.length?T.pg.badMel(P.melBad):'';
   const st=pgStProgs(),sel=$('#pgSt');sel.hidden=!st.length;
@@ -150,12 +151,11 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   seg($('#pgType'),VTYPES.map(t=>[t,T.types[t]]),S.pType,'pgtype');
   seg($('#pgMode'),PG_MODES.map(m=>[m,T.pg.mode[m]]),S.pMode,'pgmode');
   $('#pgModeHelp').textContent=T.pg.modeHelp[S.pMode];
-  $('#pgPosRow').hidden=S.pMode!=='pos';$('#pgStrRow').hidden=S.pMode!=='strings';$('#pgMelRow').hidden=S.pMode!=='top';
+  $('#pgPosRow').hidden=S.pMode!=='pos';$('#pgMelRow').hidden=S.pMode!=='top';
   $('#pgPos').value=S.pPos;
-  chips($('#pgStr'),[['auto',S.pStr==='auto'&&P.set?T.pg.autoIs(P.set):T.pg.auto],...P.sets.map(k=>[k,[...k].join(' ')])],P.sets.includes(S.pStr)?S.pStr:'auto','pgstr');
+  pgRenderStrip();
   seg($('#segLab'),Object.entries(T.lab),S.labels,'lab');   /* Labels staat in de kolom (gedeeld met de Finder) */
-  seg($('#pgLine'),BS_LINES.map(k=>[k,T.pg.line[k]]),S.pLine,'pgline');$('#pgLineHelp').textContent=T.pg.lineHelp[S.pLine];
-  seg($('#pgStyle'),PG_STYLES.map(k=>[k,T.pg.style[k]]),S.pStyle,'pgstyle');$('#pgDrums').checked=S.pDrums;$('#pgBNeck').checked=S.pBNeck;
+  seg($('#pgStyle'),PG_STYLES.map(k=>[k,T.pg.style[k]]),S.pStyle,'pgstyle');$('#pgDrums').checked=S.pDrums;
   document.querySelectorAll('#pgMix input').forEach(el=>{el.value=S.pVol[el.dataset.vol];});
   $('#pgTempo').value=S.pTempo;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);$('#pgLoop').checked=S.pLoop;$('#pgBass').checked=S.bass;
   pgRenderBar();
@@ -165,39 +165,87 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgRows').innerHTML=!P.list.length?'<p class="note pgempty">'+esc(T.pg.empty)+'</p>':secs.map(s=>'<div class="pgrow">'+s.xs.map(pgCard).join('')+'</div>').join('');
   $('#pgLegend').hidden=!P.ok.length;
   pgMark(PGP&&!PGP.loading?PGP.cur:-1);
-  pgRenderSide();pgTransport();}
+  pgRenderSel();pgRenderModal();pgTransport();}
+/* invoerveld zo hoog als de tekst (één regel als het past) */
+function pgGrow(){const t=$('#pgIn');if(!t.offsetParent)return;t.style.height='auto';t.style.height=t.scrollHeight+2+'px';}
+/* strook "Strings & filters" (zelfde onderdeel als in Find voicings, stripRender in render.js) */
+function pgRenderStrip(){const F=S.pgF,sets=PG.sets.includes(F.str)||F.str==='all'?PG.sets:PG.sets.concat([F.str]);
+  const sum=[F.str!=='all'&&F.str,F.inv!=='all'&&T.invShort[+F.inv],F.top!=='all'&&T.topIs(T.topDeg[F.top])].filter(Boolean).join(' · ');
+  stripRender('fsProg',[
+    {k:'str',l:T.strL,cur:F.str,items:[['all',T.all],...sets.slice().sort(sortSets).map(k=>[k,[...k].join(' ')])]},
+    {k:'inv',l:T.fInv,cur:F.inv,items:[['all',T.any],...T.invShort.map((l,i)=>[String(i),l])]},
+    {k:'top',l:T.topL,cur:F.top,items:[['all',T.any],...PG_TOPS.map(k=>[k,T.topDeg[k],null,T.topDegL[k]])]}],
+    '<span class="help l fsh" tabindex="0" aria-label="About the filters">?<i>'+esc(T.fHelpP)+'</i></span>',sum);}
 /* balk boven de kaarten: alles selecteren, vastgehouden akkoorden loslaten, alle locks weg */
 function pgRenderBar(){const L=PG.list,nh=L.filter(x=>x.held).length,nl=L.filter(x=>x.lock&&!x.held).length;
   $('#pgSelAll').disabled=L.length<2;$('#pgKept').textContent=T.pg.keptN(nh);$('#pgRefitAll').disabled=!nh;$('#pgRefitAll').title=T.pg.releaseL;
   $('#pgLocked').textContent=T.pg.lockedN(nl);$('#pgUnlock').disabled=!nl&&!nh;$('#pgUnlock').title=T.pg.unlockAll(nl+nh);}
 const pgSel=()=>[...PGSET].filter(i=>PG.list[i]).sort((a,b)=>a-b);
-/* zijpaneel: het gekozen akkoord (of de selectie), acties, eigen voicingsoort, alternatieven */
-function pgRenderSide(){const box=$('#pgSide');box.hidden=!PG.list.length;if(box.hidden){$('#pgBassBox').hidden=true;return;}
-  const xs=pgSel().map(i=>PG.list[i]),x=PG.list[PGSEL],multi=xs.length>1,wv=xs.filter(y=>y.v);
-  $('#pgSelH').textContent=multi?T.pg.selN(xs.length):x.c.sym;
-  $('#pgSelSub').textContent=multi?xs.map(y=>y.c.sym).join('  '):T.pg.chordN(x.i+1,PG.list.length)+(x.bars!==1?' · '+T.pg.bars(x.bars):'')+(x.v?' · '+fretTxt(x.v):'');
+/* meer akkoorden geselecteerd (Ctrl/Shift-klik): Lock, Re-fit en een voicingsoort voor de hele selectie, op de transportplank */
+function pgRenderSel(){const xs=pgSel().map(i=>PG.list[i]),multi=xs.length>1,wv=xs.filter(y=>y.v);
+  $('#pgSelBar').hidden=!multi;$('#pgSum').hidden=multi;
+  seg($('#pgFit'),Object.entries(T.pg.fit),S.pFit,'pgfit');$('#pgFitHelp').textContent=Object.values(T.pg.fitHelp).join(' ');
+  if(!multi)return;
   const cnt={free:0,held:0,lock:0};wv.forEach(y=>cnt[pgState(y)]++);
-  $('#pgState').textContent=!wv.length?T.pg.noShape:multi?T.pg.stateN(cnt):T.pg.state[pgState(x)];
-  $('#pgState').className='note pgst '+(multi?'':x.v?pgState(x):'');
+  $('#pgSelN').textContent=T.pg.selBar(xs.length);$('#pgSelN').title=xs.map(y=>y.c.sym).join('  ')+(wv.length?' · '+T.pg.stateN(cnt):'');
   const allL=wv.length&&wv.every(y=>pgState(y)==='lock'),lb=$('#pgSLock');
   lb.innerHTML=ICON.lock+'<span>'+esc(allL?T.pg.unlock:T.pg.lock)+'</span>';lb.disabled=!wv.length;lb.setAttribute('aria-pressed',!!allL);
   $('#pgSRefit').innerHTML=ICON.refit+'<span>'+esc(T.pg.refit)+'</span>';$('#pgSRefit').disabled=!wv.length;$('#pgSRefit').title=T.pg.refitL;
-  const nh=PG.list.filter(y=>y.held).length,rb=$('#pgSRel');rb.hidden=!nh;rb.innerHTML=ICON.pin+'<span>'+esc(T.pg.release(nh))+'</span>';rb.title=T.pg.releaseL;
-  const pb=$('#pgSPlay');pb.hidden=multi||!x.v;pb.innerHTML=ICON.play+'<span>'+esc(T.pg.hear)+'</span>';
-  /* eigen soort: knop ingedrukt als de hele selectie dezelfde heeft */
-  const own=xs.every(y=>!y.own)?'def':xs.every(y=>y.own&&y.tp===xs[0].tp)?xs[0].tp:null;
-  seg($('#pgSType'),[['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])],own,'pgstype');
-  $('#pgSTypeL').textContent=multi?T.pg.typeAll:T.pg.typeOne;
-  seg($('#pgFit'),Object.entries(T.pg.fit),S.pFit,'pgfit');$('#pgFitHelp').textContent=Object.values(T.pg.fitHelp).join(' ');
-  pgRenderAlts(multi?null:x);pgRenderBass();}
-function pgRenderAlts(x){const box=$('#pgAlts');
-  if(!x){$('#pgAltH').textContent=T.pg.altH0;box.innerHTML='<p class="note">'+esc(T.pg.oneAlt)+'</p>';return;}
-  $('#pgAltH').textContent=T.pg.altH(x.c.sym,T.types[x.fb||x.tp]);
-  if(!x.v){box.innerHTML='<p class="note">'+esc(T.pg.noShape)+'</p>';return;}
-  const btn=(v,cap,on)=>'<button type="button" class="dg'+(on?' on':'')+'" data-k="'+v.key+'" data-t="'+v.type+'" aria-pressed="'+on+'" aria-label="'+esc(T.shapeBtn(x.c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
-    diagram(x.c,v)+'<span class="cp">'+cap+'</span></button>';
-  const A=pgAlts(x),cur=btn(x.v,'<b>'+esc(T.pg.cur)+'</b> · '+esc(invTxt(x.v,true))+' · '+esc([...x.v.strs].join('')),true);
-  box.innerHTML=cur+(!A.length?'<p class="note">'+esc(T.pg.noAlt)+'</p>':A.map(o=>btn(o.v,esc(T.pg.moves(o.mv))+' · '+esc(invTxt(o.v,true))+' · '+esc([...o.v.strs].join('')),false)).join(''));}
+  /* eigen soort: gekozen als de hele selectie dezelfde heeft */
+  const own=xs.every(y=>!y.own)?'def':xs.every(y=>y.own&&y.tp===xs[0].tp)?xs[0].tp:'';
+  $('#pgSType').innerHTML='<option value="" disabled'+(own?'':' selected')+'>'+esc(T.pg.typeAll)+'…</option>'+
+    [['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])].map(([v,l])=>'<option value="'+v+'"'+(v===own?' selected':'')+'>'+esc(l)+'</option>').join('');}
+
+/* ── venster "choose a shape": alle vormen van één akkoord (alle vormen van zijn soort, ook buiten de filters),
+   per omkering een rij, tabjes per snarenset. PGM = {i: volgnummer, str: tabje ('all' of snarenset), order: keys op het scherm} of null.
+   Klik = die vorm kiezen (vastzetten, zoals voorheen in het zijpaneel); de andere akkoorden passen zich aan of blijven staan (S.pFit). ── */
+let PGM=null;
+function pgOpen(i){const x=PG.list[i];if(!x)return;
+  if(!(PGSET.size===1&&PGSEL===i))pgSelect(i,false,'one');
+  const was=PGM;PGM={i,str:'all',order:[]};
+  if(was&&was.str!=='all'&&x.all.some(v=>v.strs===was.str))PGM.str=was.str;   /* volgend akkoord: hetzelfde tabje als dat bestaat */
+  else if(!was&&S.pgF.str!=='all'&&x.all.some(v=>v.strs===S.pgF.str))PGM.str=S.pgF.str;
+  pgRenderModal();if(!was)$('#pgModal .pgm').focus();}
+function pgClose(){if(!PGM)return;const i=PGM.i;PGM=null;$('#pgModal').hidden=true;
+  const c=document.querySelector('#pgRows .pgc[data-i="'+i+'"] .pgdg');if(c)c.focus();}
+function pgRenderModal(){const box=$('#pgModal');if(!PGM){box.hidden=true;return;}
+  const x=PG.list[PGM.i];if(!x){pgClose();return;}
+  box.hidden=false;
+  const k=PG.ok.indexOf(x),a=k>0?PG.ok[k-1]:null,b=k>=0?PG.ok[k+1]:null,n=PG.list.length;
+  $('#pgMH').innerHTML='<b>'+esc(x.c.sym)+'</b> <span>· '+esc(T.pg.mH)+'</span>';
+  $('#pgMPrev').disabled=PGM.i<=0;$('#pgMNext').disabled=PGM.i>=n-1;
+  $('#pgMSub').textContent=T.pg.chordN(x.i+1,n)+(x.bars!==1?' · '+T.pg.bars(x.bars):'')+(x.v?' · '+T.frets+' '+fretTxt(x.v):'');
+  const st=x.v?pgState(x):'';$('#pgMState').textContent=x.v?T.pg.state[st]:T.pg.noShape;$('#pgMState').className='note pgst '+st;
+  const pb=$('#pgMPlay');pb.disabled=!x.v;pb.innerHTML=ICON.play+'<span>'+esc(T.pg.hear)+'</span>';
+  const lb=$('#pgMLock');lb.disabled=!x.v;lb.setAttribute('aria-pressed',st==='lock');lb.innerHTML=ICON.lock+'<span>'+esc(st==='lock'?T.pg.unlock:T.pg.lock)+'</span>';
+  $('#pgMRefit').disabled=!x.v;$('#pgMRefit').innerHTML=ICON.refit+'<span>'+esc(T.pg.refit)+'</span>';$('#pgMRefit').title=T.pg.refitL;
+  const nh=PG.list.filter(y=>y.held).length,rb=$('#pgMRel');rb.hidden=!nh;rb.innerHTML=ICON.pin+'<span>'+esc(T.pg.release(nh))+'</span>';rb.title=T.pg.releaseL;
+  seg($('#pgMType'),[['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])],x.own?x.tp:'def','pgmtype');
+  /* alle vormen van de soort; een vastgezette vorm uit een andere soort hoort er ook bij */
+  const all=x.v&&!x.all.includes(x.v)?[x.v].concat(x.all):x.all,cnt=new Map();all.forEach(v=>cnt.set(v.strs,(cnt.get(v.strs)||0)+1));
+  if(PGM.str!=='all'&&!cnt.has(PGM.str))PGM.str='all';
+  seg($('#pgMStr'),[['all',T.all+' · '+all.length],...[...cnt.keys()].sort(sortSets).map(s=>[s,s+' · '+cnt.get(s)])],PGM.str,'mstr');
+  const vs=all.filter(v=>PGM.str==='all'||v.strs===PGM.str),fon=pgFOn();
+  const rows=[0,1,2,3,null].map(r=>({r,vs:vs.filter(v=>v.inv===r)})).filter(o=>o.vs.length);
+  PGM.order=rows.flatMap(o=>o.vs.map(v=>v.key));
+  const tile=v=>{const on=v===x.v,hd=a&&a.v?pgMotion(a.v,v):null,mv=(a&&a.v?pgDist(a.v,v):0)+(b&&b.v?pgDist(v,b.v):0);
+    const cls=nn=>{const j=v.notes.indexOf(nn);return(PG_GUIDE.includes(pgLab(x.c,nn))?' gt':'')+(hd&&hd[j]===0?' hd':'');};
+    return'<button type="button" class="dg mc'+(on?' on':'')+(fon&&!pgPass(v)?' nf':'')+'" data-k="'+v.key+'" aria-pressed="'+on+'" aria-label="'+esc(T.shapeBtn(x.c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
+      (on?'<span class="cur">'+(st==='lock'?ICON.lock:st==='held'?ICON.pin:'')+esc(T.pg.cur)+'</span>':'')+diagram(x.c,v,null,cls)+
+      '<span class="cp">'+esc(v.strs)+' · '+esc(T.topIs(v.top))+((a&&a.v)||(b&&b.v)?' · <span title="'+esc(T.pg.movesL(mv))+'">'+esc(T.pg.moves(mv))+'</span>':'')+'</span></button>';};
+  $('#pgMBody').innerHTML=!vs.length?'<p class="note">'+esc(T.pg.noShape)+'</p>':rows.map(o=>'<div class="pgmr"><h3 class="px">'+esc(o.r!=null?T.inv[o.r]:T.other)+' <small>'+o.vs.length+'</small></h3><div class="pgmd">'+o.vs.map(tile).join('')+'</div></div>').join('');
+  pgMFit();}
+/* zo groot als past: schaal --mf (0,7–1,45 × Diagram size) zolang alle rijen in het venster passen; anders scrolt het venster zelf.
+   Rijen onder elkaar of in twee kolommen naast elkaar (.two): wat de grootste diagrammen geeft */
+function pgMFit(){const g=$('#pgMBody');g.style.overflow='hidden';
+  const fits=f=>{g.style.setProperty('--mf',f);return g.scrollHeight<=g.clientHeight+1;};
+  const best=()=>{if(fits(1.45))return 1.45;let lo=.7,hi=1.45;if(!fits(lo))return lo;for(let k=0;k<7;k++){const m=(lo+hi)/2;if(fits(m))lo=m;else hi=m;}return lo;};
+  g.classList.remove('two');let r=best();
+  if(r<1.45&&g.querySelectorAll('.pgmr').length>1){g.classList.add('two');const r2=best();if(r2>r+.02)r=r2;else g.classList.remove('two');}
+  g.style.setProperty('--mf',r);g.style.overflow='';}
+/* een vorm uit het venster kiezen (klik of ← →): horen, en vastzetten als hij nog niet vast staat */
+function pgMPick(key){const x=PGM&&PG.list[PGM.i];if(!x)return;const v=x.all.find(w=>w.key===key)||(x.v&&x.v.key===key?x.v:null);if(!v)return;
+  playShape(x.c,v);logChord(x.c.sym);if(v===x.v&&pgState(x)==='lock')return;pgDo('pick',v,[x.i]);}
 /* selecteren: how = 'one' (gewone klik), 'toggle' (Ctrl/Cmd), 'range' (Shift) */
 function pgSelect(i,play,how){if(!PG.list[i])return;
   if(how==='toggle'){if(PGSET.has(i)&&PGSET.size>1){PGSET.delete(i);if(PGSEL===i)PGSEL=pgSel()[0];}else{PGSET.add(i);PGSEL=i;}PGANC=i;}
@@ -205,7 +253,7 @@ function pgSelect(i,play,how){if(!PG.list[i])return;
   else if(how!=='keep'){PGSET=new Set([i]);PGSEL=i;PGANC=i;}
   document.querySelectorAll('#pgRows .pgc').forEach(el=>{const k=+el.dataset.i,s=PGSET.has(k);el.classList.toggle('on',k===PGSEL);el.classList.toggle('sel',s);
     const b=el.querySelector('.pgdg');if(b)b.setAttribute('aria-pressed',s);});
-  pgRenderSide();const x=PG.list[PGSEL];if(play&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}}
+  pgRenderSel();const x=PG.list[PGSEL];if(play&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}}
 function pgSet(fn){fn();act();save();pgRender();}
 /* ── vastleggen en opnieuw berekenen ──
    pgHold: alle akkoorden die nu vrij zijn (behalve skip) vasthouden zoals ze staan, zodat alleen skip verandert. */
@@ -288,17 +336,18 @@ function pgBind(){
   ICON.stop='<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" rx="1.5" fill="currentColor"/></svg>';
   ICON.pin='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></svg>';
   ICON.refit='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
-  [['#pgInL','inL'],['#pgInHelp','inHelp'],['#pgTypeL',null],['#pgModeL','modeL'],['#pgPosL','posL'],['#pgStrL','strL'],['#pgMelL','melL'],
-   ['#pgTempoL','tempo'],['#pgLoopL','loop'],['#pgBassL','bass'],['#pgLegend','legend'],['#pgKeys','keys'],
-   ['#pgLineL','lineL'],['#pgStyleL','styleL'],['#pgDrumsL','drums'],['#pgBNeckL','bNeck'],['#pgBassHelp','bNeckHelp'],['#pgSelAll','selAll'],['#pgSelHelp','selHelp'],['#pgFitL','fitL']]
+  [['#pgInL','inL'],['#pgInHelp','inHelp'],['#pgTypeL',null],['#pgModeL','modeL'],['#pgPosL','posL'],['#pgMelL','melL'],
+   ['#pgTempoL','tempo'],['#pgLoopL','loop'],['#pgBassL','bass'],['#pgLegend','legend'],['#pgKeys','keys'],['#pgHeldL','heldL'],['#pgHeldHelp','heldHelp'],
+   ['#pgStyleL','styleL'],['#pgDrumsL','drums'],['#pgSelAll','selAll'],['#pgSelHelp','selHelp'],['#pgFitL','fitL'],['#pgMHelp','mHelp'],['#pgMTypeL','mTypeL'],['#pgMStrL','mStrL']]
     .forEach(([id,k])=>{$(id).textContent=k?T.pg[k]:T.typeL;});
+  [['#pgMPrev',ICON.prev,T.pg.prevC],['#pgMNext',ICON.next,T.pg.nextC],['#pgMX',null,T.pg.close]].forEach(([id,ic,l])=>{const b=$(id);if(ic)b.innerHTML=ic;b.setAttribute('aria-label',l);b.title=l;});
   $('#pgSelAll').textContent=T.pg.selAll;$('#pgRefitAll').textContent=T.pg.releaseB;$('#pgUnlock').textContent=T.pg.unlockB;$('#pgSelLbl').textContent=T.pg.selL;
   $('#pgIn').placeholder=T.pg.inPh;$('#pgMel').placeholder=T.pg.melPh;$('#pgMel').title=T.pg.melHelp;
   $('#pgSt').setAttribute('aria-label',T.pg.stL);
   $('#pgPos').innerHTML=Array.from({length:12},(_,k)=>k+1).map(f=>'<option value="'+f+'">'+esc(T.pg.posOpt(f))+'</option>').join('');
   /* typen: pas na een korte pauze opnieuw rekenen */
   let tm=null;const later=fn=>{clearTimeout(tm);tm=setTimeout(fn,350);};
-  $('#pgIn').addEventListener('input',e=>{const t=e.target.value;later(()=>pgSet(()=>{S.pText=t.slice(0,800);}));});
+  $('#pgIn').addEventListener('input',e=>{const t=e.target.value;pgGrow();later(()=>pgSet(()=>{S.pText=t.slice(0,800);}));});
   $('#pgIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();clearTimeout(tm);pgSet(()=>{S.pText=e.target.value.slice(0,800);});}});
   $('#pgMel').addEventListener('input',e=>{const t=e.target.value;later(()=>pgSet(()=>{S.pMel=t.slice(0,300);pgDropHolds();}));});
   $('#pgSt').addEventListener('change',e=>{const p=pgStProgs()[+e.target.value];e.target.value='';if(!p)return;
@@ -306,41 +355,61 @@ function pgBind(){
   $('#pgType').addEventListener('click',e=>{const b=e.target.closest('[data-pgtype]');if(b)pgSet(()=>{S.pType=b.dataset.pgtype;pgDropHolds();});});   /* andere soort: vastgehouden vormen los, gelockte blijven */
   $('#pgMode').addEventListener('click',e=>{const b=e.target.closest('[data-pgmode]');if(b)pgSet(()=>{S.pMode=b.dataset.pgmode;pgDropHolds();});});
   $('#pgPos').addEventListener('change',e=>pgSet(()=>{S.pPos=+e.target.value;pgDropHolds();}));
-  $('#pgStr').addEventListener('click',e=>{const b=e.target.closest('[data-pgstr]');if(b)pgSet(()=>{S.pStr=b.dataset.pgstr;pgDropHolds();});});
+  /* filters (strook "Strings & filters"): andere filters = vastgehouden vormen los, gelockte blijven */
+  $('#fsProg').addEventListener('click',e=>{const b=e.target.closest('[data-fk]');
+    if(e.target.closest('[data-fclear]'))pgSet(()=>{S.pgF={str:'all',inv:'all',top:'all'};pgDropHolds();});
+    else if(b)pgSet(()=>{S.pgF[b.dataset.fk]=b.dataset.fv;pgDropHolds();});});
   $('#pgTempo').addEventListener('input',e=>{S.pTempo=+e.target.value;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);save();});
   $('#pgLoop').addEventListener('change',e=>{S.pLoop=e.target.checked;save();});
   $('#pgBass').addEventListener('change',e=>{S.bass=e.target.checked;save();});
-  /* band: baslijn (Stepwise verandert ook de vormen), stijl, drums, volumes, baslijn op de hals */
+  /* band: stijl, drums, volumes (de sleutel 'piano' blijft in de opslag; op het scherm heet hij "Chords") */
   $('#pgMix').innerHTML=['piano','bass','drums'].map(k=>'<label class="row"><span>'+esc(T.pg.vol[k])+'</span><input type="range" min="0" max="100" step="1" data-vol="'+k+'" aria-label="'+esc(T.pg.volL(T.pg.vol[k]))+'"></label>').join('');
-  $('#pgLine').addEventListener('click',e=>{const b=e.target.closest('[data-pgline]');if(b)pgSet(()=>{S.pLine=b.dataset.pgline;pgDropHolds();});});
   $('#pgStyle').addEventListener('click',e=>{const b=e.target.closest('[data-pgstyle]');if(b)pgSet(()=>{S.pStyle=b.dataset.pgstyle;});});
   $('#pgDrums').addEventListener('change',e=>{S.pDrums=e.target.checked;save();if(S.pDrums&&PGP)loadDrums();});
   $('#pgMix').addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.vol;if(!k)return;S.pVol[k]=+e.target.value;save();if(PGP)mixVol(PGP.mix,k,S.pVol[k]);});
-  $('#pgBNeck').addEventListener('change',e=>{S.pBNeck=e.target.checked;save();pgRenderBass();});
   $('#pgPlay').addEventListener('click',()=>{if(PGP)pgStop();else pgPlay();});
   $('#pgUnlock').addEventListener('click',()=>pgDo('unlockAll'));
   $('#pgRefitAll').addEventListener('click',()=>pgDo('refitAll'));
   $('#pgSelAll').addEventListener('click',()=>{PGSET=new Set(PG.list.map(x=>x.i));pgSelect(PGSEL,false,'keep');});
   $('#pgRows').addEventListener('click',e=>{const u=e.target.closest('[data-lk]');
     if(u){const i=+u.dataset.lk;if(PG.list[i].held)pgDo('release',null,[i]);else pgToggleLock([i]);return;}   /* punaise = loslaten */
-    const c=e.target.closest('.pgc');if(!c)return;const how=e.shiftKey?'range':e.ctrlKey||e.metaKey?'toggle':'one';
-    pgSelect(+c.dataset.i,how==='one'&&!!e.target.closest('.pgdg'),how);if(colTab!=='chord')colShow('chord');});
+    /* gewone klik = dit akkoord en het venster "choose a shape" (klik op het diagram speelt hem ook); Ctrl/Shift-klik = selectie uitbreiden */
+    const c=e.target.closest('.pgc');if(!c)return;const how=e.shiftKey?'range':e.ctrlKey||e.metaKey?'toggle':'one',i=+c.dataset.i;
+    if(how!=='one'){pgSelect(i,false,how);return;}
+    const x=PG.list[i];if(e.target.closest('.pgdg')&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}
+    pgOpen(i);});
   /* Shift-klik selecteert geen tekst */
   $('#pgRows').addEventListener('mousedown',e=>{if(e.shiftKey)e.preventDefault();});
+  /* selectie op de transportplank */
   $('#pgSLock').addEventListener('click',()=>pgToggleLock());
   $('#pgSRefit').addEventListener('click',()=>pgDo('refit'));
-  $('#pgSRel').addEventListener('click',()=>pgDo('refitAll'));
-  $('#pgSPlay').addEventListener('click',()=>{const x=PG.list[PGSEL];if(x&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}});
-  $('#pgSType').addEventListener('click',e=>{const b=e.target.closest('[data-pgstype]');if(b)pgDo('type',b.dataset.pgstype);});
+  $('#pgSType').addEventListener('change',e=>{const t=e.target.value;if(t)pgDo('type',t);});
   $('#pgFit').addEventListener('click',e=>{const b=e.target.closest('[data-pgfit]');if(b)pgSet(()=>{S.pFit=b.dataset.pgfit;});});
-  /* vorm kiezen = vastzetten; de rest wordt opnieuw berekend of blijft staan (S.pFit) */
-  $('#pgAlts').addEventListener('click',e=>{const b=e.target.closest('.dg');const x=PG.list[PGSEL];if(!b||!x)return;
-    const v=x.vs.find(w=>w.key===b.dataset.k)||(x.v&&x.v.key===b.dataset.k?x.v:null);if(!v)return;
-    playShape(x.c,v);logChord(x.c.sym);if(v===x.v&&pgState(x)==='lock')return;pgDo('pick',v,[x.i]);});
+  /* venster "choose a shape": klik ernaast of × sluit; vorm kiezen = vastzetten, de rest wordt opnieuw berekend of blijft staan (S.pFit) */
+  $('#pgModal').addEventListener('click',e=>{if(e.target===e.currentTarget)pgClose();});
+  $('#pgMX').addEventListener('click',pgClose);
+  $('#pgMPrev').addEventListener('click',()=>{if(PGM)pgOpen(PGM.i-1);});
+  $('#pgMNext').addEventListener('click',()=>{if(PGM)pgOpen(PGM.i+1);});
+  $('#pgMPlay').addEventListener('click',()=>{const x=PGM&&PG.list[PGM.i];if(x&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}});
+  $('#pgMLock').addEventListener('click',()=>{if(PGM)pgToggleLock([PGM.i]);});
+  $('#pgMRefit').addEventListener('click',()=>{if(PGM)pgDo('refit',null,[PGM.i]);});
+  $('#pgMRel').addEventListener('click',()=>pgDo('refitAll'));
+  $('#pgMType').addEventListener('click',e=>{const b=e.target.closest('[data-pgmtype]');if(b&&PGM)pgDo('type',b.dataset.pgmtype,[PGM.i]);});
+  $('#pgMStr').addEventListener('click',e=>{const b=e.target.closest('[data-mstr]');if(b&&PGM){PGM.str=b.dataset.mstr;pgRenderModal();}});
+  $('#pgMBody').addEventListener('click',e=>{const b=e.target.closest('.dg');if(b)pgMPick(b.dataset.k);});
+  let mt=0;addEventListener('resize',()=>{clearTimeout(mt);mt=setTimeout(()=>{if(PGM)pgMFit();},150);});
   document.addEventListener('keydown',e=>{if(S.mode!=='prog'||e.altKey)return;const tag=e.target&&e.target.tagName;
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+    if(PGM&&!e.ctrlKey&&!e.metaKey){   /* in het venster: ← → vorm, Shift+← → akkoord, Spatie horen, Esc dicht (L en R zoals hieronder) */
+      const x=PG.list[PGM.i],d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
+      if(e.key==='Escape'){e.preventDefault();pgClose();return;}
+      if(d&&e.shiftKey){e.preventDefault();if(PG.list[PGM.i+d])pgOpen(PGM.i+d);return;}
+      if(d){e.preventDefault();const O=PGM.order,j=x&&x.v?O.indexOf(x.v.key):-1,k=O[j<0?0:Math.min(O.length-1,Math.max(0,j+d))];if(k&&(!x.v||k!==x.v.key))pgMPick(k);return;}
+      if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();$('#pgMPlay').click();return;}}
+    else if(PGM)return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();$('#pgSelAll').click();return;}
     if(e.metaKey||e.ctrlKey)return;const n=PG.list.length;
+    if(e.key==='Enter'&&tag!=='BUTTON'&&n){e.preventDefault();pgOpen(PGSEL);return;}
     if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();if(n)pgSelect(Math.min(n-1,Math.max(0,PGSEL+(e.key==='ArrowRight'?1:-1))),!e.shiftKey,e.shiftKey?'range':'one');}
     else if(e.key==='Escape'&&PGSET.size>1)pgSelect(PGSEL,false,'one');
     else if(e.key.toLowerCase()==='l'&&n)pgToggleLock();
