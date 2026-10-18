@@ -1,6 +1,6 @@
 # Practice Room — project bible
 
-Gitaar-oefenapp voor jazz/gitaar: een verzameling losse, zelfstandige HTML-trainers met een startpagina. Eén gebruiker (Maurice), draait lokaal in de browser (Chrome/Edge).
+Gitaar-oefenapp voor jazz/gitaar: een verzameling losse, zelfstandige HTML-trainers met een startpagina. Eén gebruiker (Maurice), draait lokaal in de browser (Chrome/Edge) op de **desktop**.
 
 ## Bestanden
 | Bestand | Wat |
@@ -33,10 +33,11 @@ Gewone scripts (geen modules, geen IIFE) die **één globale scope delen**, gela
 Nieuwe top-level namen in deze bestanden mogen niet botsen met andere (ze delen scope). Nieuw bestand = `<script src>` toevoegen in `toonladder-trainer.html`.
 
 ### Chord Finder: map `chordfinder/`
-Zelfde opzet als `toonladder/` (één gedeelde scope, volgorde telt): `style.css`, `backup.js`, `text.js` (`T`), `theory.js` (spelling + `QUAL` + `parseChord`), `voicings.js` (`voicingsOf(c,type)`), `sound.js`, `render.js`, `ui.js` (opslag, log, `derive()` → `D`, events), `identify.js` ("What's this chord?": `identify(frets)` → namen, eigen weergave; ook `renderMode()` voor de drie modi), `progression.js` ("Progression": akkoordsymbolen → per akkoord een vorm via Viterbi-voice-leading (`pgDerive()` → `PG`), alternatieven vergrendelen, afspelen in een loop; alle namen beginnen met `pg`/`PG`; leest progressies uit de Scale Trainer alleen), `main.js`.
+Zelfde opzet als `toonladder/` (één gedeelde scope, volgorde telt): `style.css`, `backup.js`, `text.js` (`T`), `theory.js` (spelling + `QUAL` + `parseChord`), `voicings.js` (`voicingsOf(c,type)`), `sound.js`, `render.js`, `ui.js` (opslag, log, `derive()` → `D`, events), `identify.js` ("What's this chord?": `identify(frets)` → namen, eigen weergave; ook `renderMode()` voor de drie modi), `bass.js` (baslijnen voor Progression: `bsLines(X,kind)` → per akkoord basnoten in tellen, soorten Roots/Root & 5th/Approach/Walking/Stepwise; `bsStep()` kiest omkeringen voor Stepwise; deterministisch, dus scherm = wat de bas speelt; alle namen beginnen met `bs`/`BS`), `progression.js` ("Progression": akkoordsymbolen → per akkoord een vorm via Viterbi-voice-leading (`pgDerive()` → `PG`), alternatieven vergrendelen; baslijn onder elk akkoord en optioneel op de hals; afspelen met band: piano-comping, bas, drums in Swing/Bossa/Straight; alle namen beginnen met `pg`/`PG`; leest progressies uit de Scale Trainer alleen), `main.js`.
 Theorie (`QUAL`, spelling) en de basis van de voicing-zoeker zijn **kopieën** uit `chord-moves.html` §1–2: een fout daar ook hier nakijken.
-Opslag Progression: nieuwe velden in `chordFinder.v1` (`pText`, `pType`, `pMode`, `pPos`, `pStr`, `pMel`, `pTempo`, `pLoop`, `pLock` = {volgnummer: {s: symbool, k: frets}}), gevalideerd in `load()` (`ui.js`).
-Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam, klaar) · 3 progressie + voice leading + alternatieven (klaar) · 4 baslijnen + afspelen met band.
+Opslag Progression: nieuwe velden in `chordFinder.v1` (`pText`, `pType`, `pMode`, `pPos`, `pStr`, `pMel`, `pTempo`, `pLoop`, `pLock` = {volgnummer: {s: symbool, k: frets}}; fase 4: `pLine`, `pStyle`, `pDrums`, `pVol` = {piano, bass, drums} 0–100, `pBNeck`; plus `dgSize` = grootte van alle diagrammen 80–200%, schuifje in de kop, via CSS-variabele `--dg`), gevalideerd in `load()` (`ui.js`).
+Drums: `sound.js` leest alleen ride/kick/stick/pedal/snare uit `BACKING_SOUNDS.drum` (`loadDrums()`), met synth-terugval.
+Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam, klaar) · 3 progressie + voice leading + alternatieven (klaar) · 4 baslijnen + afspelen met band (klaar).
 
 ## Tech stack
 - Vanilla HTML/CSS/JS, **geen build, geen npm, geen framework, geen dependencies**. De meeste pagina's zijn één bestand met `<style>` en `<script>` inline; de Scale Trainer is gesplitst (zie boven).
@@ -52,6 +53,7 @@ Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam, k
 5. Pas alleen de gevraagde trainer aan; houd wijzigingen klein en lokaal.
 6. Bestanden zijn groot: gebruik Grep om de juiste plek te vinden en lees alleen dat stuk (offset/limit). Lees nooit een heel HTML-bestand, `toonladder/progressions.js` of `backing-sounds.js` in één keer.
 7. Instellingen/teksten staan in een blok "JOUW INSTELLINGEN" onderaan het `<script>` van `index.html`.
+8. **Alleen desktop.** Mobiel/smalle schermen worden niet gebruikt: geen tijd steken in mobiele optimalisatie of in testen op telefoonbreedte. Ontwerp voor een desktopscherm en benut de ruimte (grotere diagrammen, meer naast elkaar). Bestaande responsive CSS mag blijven staan, maar hoeft niet bijgehouden te worden.
 
 ## Werkwijze
 - Geen testsuite: controleer door de pagina te openen en de console te checken op fouten.

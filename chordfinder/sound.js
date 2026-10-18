@@ -19,16 +19,24 @@ function loadSounds(){const B=window.BACKING_SOUNDS;if(!B||!audio())return Promi
 function makeIR(){const sr=actx.sampleRate,n=Math.floor(sr*1.4),ir=actx.createBuffer(2,n,sr);
   for(let c=0;c<2;c++){const d=ir.getChannelData(c);let lp=0;for(let i=0;i<n;i++){lp=lp*.6+(Math.random()*2-1)*.4;d[i]=lp*Math.pow(1-i/n,3);}}return ir;}
 /* mengpaneel per keer afspelen (zo kan stoppen alles tegelijk laten wegsterven): piano- en basbus → galm → compressor */
-function chain(){const out=actx.createGain();out.gain.value=1;out.connect(actx.destination);
+function chain(vol){const out=actx.createGain();out.gain.value=1;out.connect(actx.destination);
   const comp=actx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=2.5;comp.attack.value=.01;comp.release.value=.2;comp.knee.value=10;comp.connect(out);
   if(!IR)IR=makeIR();const verb=actx.createConvolver();verb.buffer=IR;const wet=actx.createGain();wet.gain.value=MIX.reverb;verb.connect(wet).connect(comp);
-  const sc=SND?SND.scale:{piano:1,bass:1},db=x=>Math.pow(10,x/20);
-  const pg=actx.createGain();pg.gain.value=(SND?.5*db(4.5)/sc.piano:.5)*MIX.piano;
+  const sc=SND?SND.scale:{piano:1,bass:1},db=x=>Math.pow(10,x/20),B=window.BACKING_SOUNDS;
+  /* vol = {piano, bass, drums} 0–100 (schuifjes in Progression); zonder vol: zoals afgesteld */
+  const base={piano:(SND?.5*db(4.5)/sc.piano:.5)*MIX.piano,bass:(SND?.5*db(2.7)/sc.bass:.35)*MIX.bass,drums:hasDrums()?.5*db(1)/(B.scale&&B.scale.drum||1):1};
+  const vf=k=>vol&&vol[k]!=null?Math.pow(vol[k]/100,2):1;
+  const pg=actx.createGain();pg.gain.value=base.piano*vf('piano');
   const pk=actx.createBiquadFilter();pk.type='peaking';pk.frequency.value=1600;pk.Q.value=.8;pk.gain.value=4;pg.connect(pk).connect(comp);   /* iets helderdere piano */
   const ps=actx.createGain();ps.gain.value=.22;pg.connect(ps).connect(verb);
-  const bg=actx.createGain();bg.gain.value=(SND?.5*db(2.7)/sc.bass:.35)*MIX.bass;bg.connect(comp);
+  const bg=actx.createGain();bg.gain.value=base.bass*vf('bass');bg.connect(comp);
   const bs=actx.createGain();bs.gain.value=.04;bg.connect(bs).connect(verb);
-  return{out,piano:pg,bass:bg};}
+  const dg=actx.createGain();dg.gain.value=base.drums*vf('drums');
+  const hs=actx.createBiquadFilter();hs.type='highshelf';hs.frequency.value=6000;hs.gain.value=5;dg.connect(hs).connect(comp);   /* meer glans op de bekkens */
+  const ds=actx.createGain();ds.gain.value=.12;dg.connect(ds).connect(verb);
+  return{out,piano:pg,bass:bg,drums:dg,base};}
+/* volume van één instrument tijdens het spelen bijstellen */
+function mixVol(mix,k,v){if(mix&&mix[k])try{mix[k].gain.setTargetAtTime(mix.base[k]*Math.pow(v/100,2),actx.currentTime,.05);}catch(e){}}
 /* één sample: toonhoogte via playbackRate, lengte via een dempende envelope */
 function playSample(s,t,gain,out,rate,len,rel){const src=actx.createBufferSource(),g=actx.createGain();src.buffer=s.buf;src.playbackRate.value=rate||1;
   g.gain.value=gain;src.connect(g).connect(out);src.start(Math.max(t,actx.currentTime),s.off);
@@ -48,6 +56,33 @@ function pianoNote(m,t,len,v,bus){if(!SND){pluck(midiF(m),t,Math.max(.25,len),bu
   const s=nearestS(SND.piano,m);playSample(s,t,velG(v,VEL.piano),bus,Math.pow(2,(m-s.key)/12),len,.07);}
 function bassPlay(m,t,len,v,bus){if(!SND){bassSynth(m,t,len,bus);return;}
   const s=nearestS(SND.bass,m);playSample(s,t,velG(v,VEL.bass),bus,Math.pow(2,(m-s.key)/12),len,.035);}
+/* ── drums (Progression): opnames uit backing-sounds.js (window.BACKING_SOUNDS.drum), alleen de vijf die we gebruiken;
+   ontbreken ze, dan eenvoudige synthklanken. Afstelling (velocity, onderlinge balans) uit toonladder/backing.js ── */
+let DRS=null,drPromise=null,drFail=false;
+const DRVEL={ride:90,kick:100,stick:90,pedal:80,snare:90},DRDB={ride:2,kick:-5,stick:-9,pedal:0,snare:0};
+const hasDrums=()=>!!(window.BACKING_SOUNDS&&window.BACKING_SOUNDS.drum);
+function loadDrums(){if(!hasDrums()||!audio())return Promise.resolve(null);if(drPromise)return drPromise;
+  const B=window.BACKING_SOUNDS.drum;
+  drPromise=Promise.all(Object.keys(DRVEL).filter(k=>B[k]).map(k=>decode(B[k]).then(r=>[k,r])))
+    .then(l=>{DRS=Object.fromEntries(l);return DRS;}).catch(()=>{drFail=true;DRS=null;return null;});
+  return drPromise;}
+let NOISE=null;
+function drNoise(){if(NOISE)return NOISE;const n=actx.sampleRate|0;NOISE=actx.createBuffer(1,n,actx.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return NOISE;}
+function drMetal(t,dur,vol,hp,out){const g=actx.createGain(),h=actx.createBiquadFilter(),nz=actx.createBufferSource();h.type='highpass';h.frequency.value=hp;
+  nz.buffer=drNoise();nz.connect(h).connect(g).connect(out);nz.start(t,Math.random()*.5);nz.stop(t+dur+.05);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+dur);}
+function drKick(t,vol,out){const o=actx.createOscillator(),g=actx.createGain();o.type='sine';
+  o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.22);
+  o.connect(g).connect(out);o.start(t);o.stop(t+.25);}
+function drStick(t,out){const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=1320;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.22,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+.06);
+  o.connect(g).connect(out);o.start(t);o.stop(t+.08);}
+function drum(k,t,v,out){t=Math.max(t,actx.currentTime);
+  if(DRS&&DRS[k]){playSample(DRS[k],t,velG(v,DRVEL[k])*Math.pow(10,(DRDB[k]||0)/20),out);return;}
+  if(hasDrums()&&!drFail)return;                                 /* opnames worden nog ingelezen */
+  if(k==='ride')drMetal(t,.6,.08*v/90,5000,out);else if(k==='pedal')drMetal(t,.08,.05*v/80,5000,out);
+  else if(k==='snare')drMetal(t,.16,.1*v/90,1400,out);else if(k==='kick')drKick(t,.25*v/100,out);else drStick(t,out);}
 /* basnoot tussen E1 en E2, zo dicht mogelijk bij ref */
 function near(pc,ref){let best=null;for(let m=28;m<=40;m++)if(mod(m,12)===pc&&(best==null||Math.abs(m-ref)<Math.abs(best-ref)))best=m;return best;}
 /* een vorm laten horen: licht aangeslagen van laag naar hoog (of als arpeggio), met de bas eronder als die aanstaat */

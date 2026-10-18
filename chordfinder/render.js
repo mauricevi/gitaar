@@ -114,6 +114,9 @@ function renderResults(){const c=D.c,L=D.list;
       return'<button type="button" class="dg'+(v===D.sel?' on':'')+'" data-k="'+v.key+'" aria-pressed="'+(v===D.sel)+'" aria-label="'+esc(T.shapeBtn(c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
         diagram(c,v)+'<span class="cp">'+esc(cap)+' · '+esc(T.topIs(v.top))+'</span></button>';}).join('')+'</div>').join('');}
 
+/* grootte van alle akkoorddiagrammen: één CSS-variabele (--dg) waar de rasters en kaarten mee rekenen */
+function applyDgSize(){document.documentElement.style.setProperty('--dg',S.dgSize/100);const el=$('#dgSize');el.value=S.dgSize;
+  const l=T.dgSize(S.dgSize);el.setAttribute('aria-label',l);el.setAttribute('aria-valuetext',S.dgSize+'%');$('#dgSizeL').title=l;}
 function applyTheme(){const r=document.documentElement;if(S.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',S.theme);
   const b=$('#btnTheme'),l='Theme: '+T.theme[S.theme];b.innerHTML=ICON[S.theme];b.title=l;b.setAttribute('aria-label',l);}
 /* houtsoort, gedeeld met de andere tools ('practiceRoom.board') */

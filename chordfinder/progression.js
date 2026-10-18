@@ -2,12 +2,15 @@
    Akkoordsymbolen → per akkoord één vorm, gekozen over de hele rij met Viterbi (zoals voiceLead() in Chord Moves):
    kosten per vorm (bas, positie, snarenset, melodienoot bovenin) + kosten per overgang (handverschuiving + stemstappen,
    in "Top line" ook de sprong van de bovenste stem). Vergrendelde vormen (S.pLock) liggen vast; de rest past zich eromheen aan.
-   Opslag (in 'chordFinder.v1'): pText, pType, pMode, pPos, pStr, pMel, pTempo, pLoop, pLock = {volgnummer: {s: symbool, k: frets}}.
+   Opslag (in 'chordFinder.v1'): pText, pType, pMode, pPos, pStr, pMel, pTempo, pLoop, pLock = {volgnummer: {s: symbool, k: frets}},
+   en voor de band (fase 4): pLine (baslijn, zie bass.js), pStyle, pDrums, pVol = {piano, bass, drums} (0–100), pBNeck (baslijn op de hals).
+   Baslijn Stepwise: eerst kiest bsStep() de basnoten, daarna krijgt een vorm met een andere laagste noot extra kosten.
    Alle namen hier beginnen met pg/PG: de scripts delen één scope. */
 const PG_MODES=['smooth','pos','strings','top'];
 const PG_FB=['drop2','shell','triad','barre','close'];      /* geen vorm in de gekozen soort? dan de eerste die wel bestaat */
 const PG_GUIDE=['3','♭3','7','♭7'];
 const PG_MAX=64;
+const PG_STEPK=8;                                              /* Stepwise: kosten als de laagste noot van de vorm de baslijn niet volgt */
 /* akkoordsoorten die de Scale Trainer kent en wij niet: dan het dichtstbijzijnde eenvoudigere akkoord */
 const PG_SIMPLER=[[/m6\/9/,'m6'],[/m\(?maj9\)?/i,'m(maj7)'],[/m9[♭b]5/,'m7b5'],[/m7[♭b]9/,'m7'],[/maj9[♯#]5/,'maj7#5'],
   [/maj13/,'maj9'],[/7[♭b]9[♭b]13/,'7b9'],[/13[♭b]9/,'7b9'],[/13[♯#]11/,'7#11'],[/7[♭b]13/,'7#5']];
@@ -52,7 +55,8 @@ function pgMotion(a,b){const A=a.notes,B=b.notes,out=B.map(()=>null);
 const pgOnSet=(v,set)=>v.strs===set||v.strs.length===set.length+1&&v.strs.endsWith(set);
 function pgCosts(set){const m=S.pMode;
   const un=(v,x)=>{let k=0;
-    if(v.notes[0].pc!==pgBassPc(x.c)&&v.type!=='rootless')k+=v.type==='shell'||v.type==='barre'?1.2:.25;   /* omkeringen zijn prima, grondtoon onderin iets beter */
+    if(x.bsPc!=null){if(v.notes[0].pc!==x.bsPc)k+=PG_STEPK;}                  /* baslijn Stepwise: de laagste noot volgt de lijn waar dat kan */
+    else if(v.notes[0].pc!==pgBassPc(x.c)&&v.type!=='rootless')k+=v.type==='shell'||v.type==='barre'?1.2:.25;   /* omkeringen zijn prima, grondtoon onderin iets beter */
     if(m==='pos')k+=(Math.max(0,S.pPos-1-v.lo)+Math.max(0,v.hi-S.pPos-4))*3+Math.abs(v.center-S.pPos-1.5)*.15;
     else k+=Math.abs(v.center-6)*.04+Math.abs(v.notes.reduce((a,n)=>a+n.midi,0)/v.notes.length-60)*.06;   /* zonder voorkeur: midden op de hals, niet te laag (modderig) */
     if(set&&!pgOnSet(v,set))k+=6;
@@ -78,8 +82,9 @@ function pgDerive(){const P=pgParse(S.pText),M=pgMelody(S.pMel);
   const list=P.list.map((x,i)=>{let vs=pgVoicings(x.c,S.pType),fb=null;
     if(!vs.length)for(const t of PG_FB){if(t===S.pType)continue;const w=pgVoicings(x.c,t);if(w.length){vs=w;fb=t;break;}}
     const L=S.pLock[i],lock=L&&L.s===x.c.sym&&vs.find(v=>v.key===L.k)||null;
-    return Object.assign({},x,{i,vs,fb,lock,mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null});});
+    return Object.assign({},x,{i,vs,fb,lock,mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null,bsPc:null,bl:null});});
   const ok=list.filter(x=>x.vs.length);
+  if(S.pLine==='step'){const sp=bsStep(ok);ok.forEach((x,k)=>{x.bsPc=sp[k];});}   /* eerst de baslijn, dan de vormen eromheen */
   /* snarensets: hoeveel akkoorden er een vorm op hebben (voor de knoppen en voor Auto) */
   const cnt=new Map();
   ok.forEach(x=>{const s=new Set();x.vs.forEach(v=>{s.add(v.strs);if(x.c.bassPc!=null)s.add(v.strs.slice(1));});s.forEach(k=>cnt.set(k,(cnt.get(k)||0)+1));});
@@ -90,7 +95,8 @@ function pgDerive(){const P=pgParse(S.pText),M=pgMelody(S.pMel);
     if(S.pMode==='strings'){const tries=S.pStr!=='auto'&&sets.includes(S.pStr)?[S.pStr]:sets;
       tries.forEach(s=>{const cs=pgCosts(s),r=pgViterbi(ok,cs.un,cs.pr);if(!res||r.tot<res.tot){res=r;set=s;costs=cs;}});}
     if(!res)res=pgViterbi(ok,costs.un,costs.pr);
-    ok.forEach((x,k)=>{x.v=res.path[k];x.mv=k?pgMotion(ok[k-1].v,x.v):x.v.notes.map(()=>null);});}
+    ok.forEach((x,k)=>{x.v=res.path[k];x.mv=k?pgMotion(ok[k-1].v,x.v):x.v.notes.map(()=>null);});
+    const BL=bsLines(ok,S.pLine),BF=bsFrets(ok.map((x,k)=>({bl:BL[k]})));ok.forEach((x,k)=>{x.bl=BL[k];x.bf=BF[k];});}
   let st=0,ct=0,fr=0;
   for(let k=1;k<ok.length;k++){const a=ok[k-1].v,b=ok[k].v;st+=pgDist(a,b);fr+=Math.abs(Math.round(b.center-a.center));ct+=ok[k].mv.filter(d=>d===0).length;}
   PG={list,ok,bad:P.bad,approx:P.approx,melBad:M.bad,sets,set,costs,stats:{st,ct,fr}};
@@ -107,7 +113,20 @@ function pgCard(x){const c=x.c,v=x.v,on=x.i===PGSEL,head='<div class="pgh"><b>'+
   return'<div class="pgc'+(on?' on':'')+(x.lock?' lk':'')+'" data-i="'+x.i+'">'+head+
     '<button type="button" class="pgdg" data-i="'+x.i+'" aria-pressed="'+on+'" aria-label="'+esc(T.pg.cardL(c.sym,fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+diagram(c,v,null,n=>cls(v,n))+'</button>'+
     '<p class="cap pgi">'+esc(invTxt(v,true))+' · '+esc([...v.strs].join(''))+(x.fb?' · '+esc(T.pg.fb(T.types[x.fb])):'')+'</p>'+
-    '<ol class="pgv">'+vo.map(o=>{const l=pgLab(c,o.n);return'<li><b class="'+(PG_GUIDE.includes(l)?'gt':'')+'" title="'+esc(toneName(c,o.n.pc))+'">'+esc(l)+'</b>'+pgArrow(o.d)+'</li>';}).join('')+'</ol></div>';}
+    '<ol class="pgv">'+vo.map(o=>{const l=pgLab(c,o.n);return'<li><b class="'+(PG_GUIDE.includes(l)?'gt':'')+'" title="'+esc(toneName(c,o.n.pc))+'">'+esc(l)+'</b>'+pgArrow(o.d)+'</li>';}).join('')+'</ol>'+
+    pgBassRow(x)+'</div>';}
+/* de baslijn onder het diagram: noot + interval t.o.v. het akkoord; oranje = naderingsnoot */
+function pgBassRow(x){const L=bsShow(x.bl);if(!L.length)return'';
+  return'<p class="pgb" aria-label="'+esc(T.pg.bassL(L.map(e=>e.name).join(' ')))+'">'+L.map((e,j)=>'<span class="bn'+(e.ap?' ap':'')+'" data-bk="'+x.i+'-'+j+'"'+
+    (e.ap?' title="'+esc(T.pg.apTo(e.ap.kind,e.ap.to))+'"':'')+'><b>'+esc(e.name)+'</b><small>'+esc(e.lab)+'</small></span>').join('')+'</p>';}
+/* de baslijn van het gekozen akkoord op de hals (een octaaf hoger), met cijfers in speelvolgorde; ring = begin van het volgende akkoord */
+function pgRenderBass(){const box=$('#pgBassBox'),x=PG.list[PGSEL];box.hidden=!S.pBNeck||!x||!x.bl;if(box.hidden)return;
+  const k=PG.ok.indexOf(x),nx=PG.ok[(k+1)%PG.ok.length],L=bsShow(x.bl),dots=new Map();
+  $('#pgBassH').textContent=T.pg.bNeckH(x.c.sym,x.i+1);
+  L.forEach((e,j)=>{const p=x.bf[j];if(!p)return;const id=p.s+','+p.f,d=dots.get(id);
+    if(d)d.lab+=','+(j+1);else dots.set(id,{s:p.s,f:p.f,cls:e.ap?'dt hl':e.pc===x.c.rootPc?'rt':'dt',lab:String(j+1)});});
+  const q=nx&&nx.bf[0];if(q&&!dots.has(q.s+','+q.f))dots.set('n',{s:q.s,f:q.f,cls:'ct cr',small:true,lab:'›'});
+  $('#pgBassNeck').innerHTML=neckSvg([...dots.values()],false);}
 function pgAlts(x){const k=PG.ok.indexOf(x),a=PG.ok[k-1],b=PG.ok[k+1],{un,pr}=PG.costs;
   return x.vs.filter(v=>v!==x.v).map(v=>({v,sc:un(v,x)+(a?pr(a.v,v):0)+(b?pr(v,b.v):0),mv:(a?pgDist(a.v,v):0)+(b?pgDist(v,b.v):0)}))
     .sort((p,q)=>p.sc-q.sc).slice(0,16);}
@@ -124,6 +143,9 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgPos').value=S.pPos;
   chips($('#pgStr'),[['auto',S.pStr==='auto'&&P.set?T.pg.autoIs(P.set):T.pg.auto],...P.sets.map(k=>[k,[...k].join(' ')])],P.sets.includes(S.pStr)?S.pStr:'auto','pgstr');
   seg($('#pgLab'),Object.entries(T.lab),S.labels,'pglab');
+  seg($('#pgLine'),BS_LINES.map(k=>[k,T.pg.line[k]]),S.pLine,'pgline');$('#pgLineHelp').textContent=T.pg.lineHelp[S.pLine];
+  seg($('#pgStyle'),PG_STYLES.map(k=>[k,T.pg.style[k]]),S.pStyle,'pgstyle');$('#pgDrums').checked=S.pDrums;$('#pgBNeck').checked=S.pBNeck;
+  document.querySelectorAll('#pgMix input').forEach(el=>{el.value=S.pVol[el.dataset.vol];});
   $('#pgTempo').value=S.pTempo;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);$('#pgLoop').checked=S.pLoop;$('#pgBass').checked=S.bass;
   $('#pgUnlock').hidden=!P.list.some(x=>x.lock);
   $('#pgSum').textContent=P.ok.length>1?T.pg.sum(P.stats.st,P.stats.ct,P.stats.fr):'';
@@ -132,7 +154,7 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgRows').innerHTML=!P.list.length?'<p class="note" style="margin-top:12px">'+esc(T.pg.empty)+'</p>':secs.map(s=>'<div class="pgrow">'+s.xs.map(pgCard).join('')+'</div>').join('');
   $('#pgLegend').hidden=!P.ok.length;
   pgMark(PGP&&!PGP.loading?PGP.cur:-1);
-  pgRenderAlts();pgTransport();}
+  pgRenderBass();pgRenderAlts();pgTransport();}
 function pgRenderAlts(){const x=PG.list[PGSEL],box=$('#pgAltBox');box.hidden=!x||!x.v;if(box.hidden)return;
   $('#pgAltH').textContent=T.pg.altH(x.c.sym,x.i+1);
   const lb=$('#pgAltLock');lb.hidden=!x.lock;lb.innerHTML=ICON.lock+'<span>'+esc(T.pg.unlock)+'</span>';
@@ -142,28 +164,60 @@ function pgRenderAlts(){const x=PG.list[PGSEL],box=$('#pgAltBox');box.hidden=!x|
       diagram(x.c,o.v)+'<span class="cp">'+esc(T.pg.moves(o.mv))+' · '+esc(invTxt(o.v,true))+' · '+esc([...o.v.strs].join(''))+'</span></button>').join('');}
 function pgSelect(i,play){if(!PG.list[i])return;PGSEL=i;
   document.querySelectorAll('#pgRows .pgc').forEach(el=>{const on=+el.dataset.i===i;el.classList.toggle('on',on);const b=el.querySelector('.pgdg');if(b)b.setAttribute('aria-pressed',on);});
-  pgRenderAlts();const x=PG.list[i];if(play&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}}
+  pgRenderBass();pgRenderAlts();const x=PG.list[i];if(play&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}}
 function pgSet(fn){fn();act();save();pgRender();}
 
-/* ── afspelen: elk akkoord op 1 en 3 (halve noten), bas op dezelfde tellen; plant steeds een stukje vooruit, zodat
-   tempo en gekozen vormen meteen meeveranderen (zoals sched() in Chord Moves) ── */
+/* ── afspelen met band: piano speelt de gekozen vormen (comping-ritme per stijl), bas de baslijn (bass.js), drums optioneel.
+   Plant per akkoord vooruit (een stukje voor het begint), zodat tempo, stijl en gekozen vormen meteen meeveranderen
+   (zoals sched() in Chord Moves). Ritmes en drumpatronen vereenvoudigd uit toonladder/backing.js: geen fills, geen arrangement. ── */
+const PG_STYLES=['swing','bossa','straight'];
+const PG_SWING=2/3;                                     /* swing: de "en" valt op 2/3 van de tel */
+/* pianoritme per maat (4) en per halve maat (2): [positie in tellen, lengte in tellen]; x.5 = de "en" */
+const PG_COMP={
+  swing:{4:[[[0,1.4],[1.5,.4]],[[1,.4],[3,.4]],[[0,.4],[1.5,1.6]],[[0,1.8],[2.5,.4]],[[1.5,.4],[3,.9]],[[0,.9],[2,.4],[3.5,.4]]],
+         2:[[[0,.9]],[[1,.4]],[[0,.4],[1.5,.4]]]},
+  bossa:{4:[[[0,.45],[1,.45],[2.5,1.2]],[[0,.45],[1.5,.45],[3,.9]],[[0,1.4],[1.5,1.9]],[[0,.45],[2,.45],[2.5,1.2]]],
+         2:[[[0,.45],[1,.9]],[[0,1.4]]]},
+  straight:{4:[[[0,1.8],[2,1.8]],[[0,.9],[1.5,.4],[2,1.8]],[[0,1.4],[1.5,2.4]],[[0,.9],[2.5,1.4]]],
+         2:[[[0,1.8]],[[0,.9],[1.5,.4]]]}};
+const pgRnd=(a,b)=>a+Math.random()*(b-a);
+function pgComp(st,n,p){const P=PG_COMP[st],hits=[];
+  for(let off=0;off<n;){const len=n-off>=4?4:2,opts=P[len].filter(x=>x!==p.last),pat=opts[Math.floor(Math.random()*opts.length)];p.last=pat;
+    pat.forEach(([b,l])=>hits.push({b:off+b,len:l,v:pgRnd(64,76)+(b===0&&off===0?4:0)}));off+=len;}
+  return hits;}
+/* één tel drums (beat = tel sinds de start; t = tijd van de tel, te = tijd van de "en") */
+const PG_BOSSA={ride:[81,54,68,73,80,54,67,74],kick:{0:101,3:111,4:122,7:82},clave:[[0,3,6],[2,5]]};
+function pgDrumBeat(st,beat,t,te,bus){const b=beat%4,h=()=>pgRnd(-.003,.003);
+  if(st==='swing'){drum('ride',t+h(),[84,88,82,89][b]+pgRnd(-4,4),bus);
+    if(b%2){drum('ride',te+h(),79+pgRnd(-5,3),bus);drum('pedal',t-.012,64,bus);}   /* "ding-a" en hi-hat op 2 en 4 */
+    drum('kick',t,27+pgRnd(-3,3),bus);return;}                                      /* "feathering": heel zacht op elke tel */
+  const bar=Math.floor(beat/4)%2;
+  [[b*2,t],[b*2+1,te]].forEach(([e,tt])=>{
+    if(st==='bossa'){drum('ride',tt+h(),PG_BOSSA.ride[e],bus);const k=PG_BOSSA.kick[e];if(k)drum('kick',tt,k,bus);
+      if(PG_BOSSA.clave[bar].includes(e))drum('stick',tt,84,bus);if(e===2||e===6)drum('pedal',tt,43,bus);}
+    else{drum('ride',tt+h(),(e%2?56:76)+pgRnd(-3,3),bus);if(e===0||e===4||e===5&&bar)drum('kick',tt,e===5?80:98,bus);}});
+  if(st==='straight'&&b%2)drum('snare',t,74+pgRnd(-4,4),bus);}                     /* backbeat op 2 en 4 */
 function pgPlay(){pgStop();if(!audio()||!PG||!PG.ok.length)return;
-  const go=()=>{act();PGP={mix:chain(),k:0,cur:-1,t:actx.currentTime+.08,timers:[],iv:null,bass:null};pgSched();PGP.iv=setInterval(pgSched,40);pgTransport();};
-  if(SND||!window.BACKING_SOUNDS)go();else{PGP={loading:true,timers:[]};pgTransport();loadSounds().then(()=>{if(PGP&&PGP.loading){PGP=null;go();}});}}
+  const go=()=>{act();PGP={mix:chain(S.pVol),k:0,cur:-1,beat:0,last:null,t:actx.currentTime+.08,timers:[],iv:null};pgSched();PGP.iv=setInterval(pgSched,40);pgTransport();};
+  const need=[];if(!SND&&window.BACKING_SOUNDS)need.push(loadSounds());if(S.pDrums&&hasDrums()&&!DRS)need.push(loadDrums());
+  if(!need.length)go();else{PGP={loading:true,timers:[]};pgTransport();Promise.all(need).then(()=>{if(PGP&&PGP.loading){PGP=null;go();}});}}
 function pgSched(){const p=PGP;if(!p||p.loading)return;
   while(p.t<actx.currentTime+.3){const L=PG.ok,N=L.length;if(!N){pgStop();return;}if(p.k>=N)p.k=0;
-    const x=L[p.k],spb=60/S.pTempo,beats=Math.max(2,x.bars*4),dur=x.bars*4*spb;
-    for(let b=0;b<beats;b+=2){const t=p.t+b*spb,len=Math.min(2,beats-b)*spb;
-      x.v.notes.forEach((n,j)=>pianoNote(n.midi,t+j*.012,len*.92,b%4===0?72:62,p.mix.piano));
-      if(S.bass){const m=near(pgBassPc(x.c),p.bass==null?34:p.bass);p.bass=m;bassPlay(m,t,len*.95,b%4===0?110:98,p.mix.bass);}}
-    const at=p.t,i=x.i,sym=x.c.sym;
-    p.timers=p.timers.slice(-32);p.timers.push(setTimeout(()=>{if(PGP===p){p.cur=i;pgMark(i);act();logChord(sym);}},Math.max(0,(at-actx.currentTime)*1000)));
-    p.t+=dur;p.k++;
+    const x=L[p.k],spb=60/S.pTempo,n=Math.max(2,Math.round(x.bars*4)),st=S.pStyle,sw=st==='swing'?PG_SWING:.5,t0=p.t,M=p.mix;
+    const tb=b=>{const w=Math.floor(b+1e-6),f=b-w;return t0+(w+(Math.abs(f-.5)<.01?sw:f))*spb;};   /* tel → tijd, met swing op de "en" */
+    pgComp(st,n,p).forEach(h=>{const ns=x.v.notes;ns.forEach((o,j)=>pianoNote(o.midi,tb(h.b)+j*.01,h.len*spb,h.v+(j===ns.length-1?4:0),M.piano));});
+    if(S.bass&&x.bl)bsFeel(x.bl,st).forEach(e=>bassPlay(e.m,tb(e.b),e.len*spb*.95,e.v,M.bass));
+    if(S.pDrums)for(let b=0;b<n;b++)pgDrumBeat(st,p.beat+b,tb(b),tb(b+.5),M.drums);
+    const i=x.i,sym=x.c.sym,ms=t=>Math.max(0,(t-actx.currentTime)*1000);
+    p.timers=p.timers.slice(-64);p.timers.push(setTimeout(()=>{if(PGP===p){p.cur=i;pgMark(i);act();logChord(sym);}},ms(t0)));
+    bsShow(x.bl).forEach((e,j)=>p.timers.push(setTimeout(()=>{if(PGP===p)pgMarkBass(i+'-'+j);},ms(tb(e.b)))));
+    p.beat+=n;p.t+=n*spb;p.k++;
     if(p.k>=N&&!S.pLoop){clearInterval(p.iv);p.iv=null;const end=p.t;p.timers.push(setTimeout(()=>{if(PGP===p)pgStop(true);},(end-actx.currentTime)*1000+150));break;}}}
 function pgStop(soft){const p=PGP;if(!p)return;PGP=null;clearInterval(p.iv);p.timers.forEach(clearTimeout);
   if(p.mix)try{const g=p.mix.out.gain;g.cancelScheduledValues(actx.currentTime);g.setValueAtTime(g.value,actx.currentTime);g.setTargetAtTime(0,actx.currentTime,soft?.5:.03);
     setTimeout(()=>{try{p.mix.out.disconnect();}catch(e){}},soft?3000:400);}catch(e){}
-  pgMark(-1);pgTransport();}
+  pgMark(-1);pgMarkBass(null);pgTransport();}
+function pgMarkBass(k){document.querySelectorAll('#pgRows .bn').forEach(el=>el.classList.toggle('now',el.dataset.bk===k));}
 function pgMark(i){document.querySelectorAll('#pgRows .pgc').forEach(el=>el.classList.toggle('play',+el.dataset.i===i));}
 function pgTransport(){const b=$('#pgPlay');if(!b)return;const on=!!PGP;b.innerHTML=(on?ICON.stop:ICON.play)+'<span>'+esc(on?T.pg.stop:T.pg.play)+'</span>';
   b.setAttribute('aria-pressed',on);b.disabled=!PG||!PG.ok.length;}
@@ -173,7 +227,8 @@ function pgBind(){
   ICON.lock='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
   ICON.stop='<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" rx="1.5" fill="currentColor"/></svg>';
   [['#pgInL','inL'],['#pgInHelp','inHelp'],['#pgTypeL',null],['#pgModeL','modeL'],['#pgPosL','posL'],['#pgStrL','strL'],['#pgMelL','melL'],
-   ['#pgTempoL','tempo'],['#pgLoopL','loop'],['#pgBassL','bass'],['#pgUnlock','unlockAll'],['#pgLegend','legend'],['#pgAltHelp','altHelp'],['#pgKeys','keys']]
+   ['#pgTempoL','tempo'],['#pgLoopL','loop'],['#pgBassL','bass'],['#pgUnlock','unlockAll'],['#pgLegend','legend'],['#pgAltHelp','altHelp'],['#pgKeys','keys'],
+   ['#pgLineL','lineL'],['#pgStyleL','styleL'],['#pgDrumsL','drums'],['#pgBNeckL','bNeck'],['#pgBassHelp','bNeckHelp']]
     .forEach(([id,k])=>{$(id).textContent=k?T.pg[k]:T.typeL;});
   $('#pgLabL').textContent=T.labL;$('#pgIn').placeholder=T.pg.inPh;$('#pgMel').placeholder=T.pg.melPh;$('#pgMel').title=T.pg.melHelp;
   $('#pgSt').setAttribute('aria-label',T.pg.stL);
@@ -193,6 +248,13 @@ function pgBind(){
   $('#pgTempo').addEventListener('input',e=>{S.pTempo=+e.target.value;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);save();});
   $('#pgLoop').addEventListener('change',e=>{S.pLoop=e.target.checked;save();});
   $('#pgBass').addEventListener('change',e=>{S.bass=e.target.checked;save();});
+  /* band: baslijn (Stepwise verandert ook de vormen), stijl, drums, volumes, baslijn op de hals */
+  $('#pgMix').innerHTML=['piano','bass','drums'].map(k=>'<label class="krow cap"><span>'+esc(T.pg.vol[k])+'</span><input type="range" min="0" max="100" step="1" data-vol="'+k+'" aria-label="'+esc(T.pg.volL(T.pg.vol[k]))+'"></label>').join('');
+  $('#pgLine').addEventListener('click',e=>{const b=e.target.closest('[data-pgline]');if(b)pgSet(()=>{S.pLine=b.dataset.pgline;});});
+  $('#pgStyle').addEventListener('click',e=>{const b=e.target.closest('[data-pgstyle]');if(b)pgSet(()=>{S.pStyle=b.dataset.pgstyle;});});
+  $('#pgDrums').addEventListener('change',e=>{S.pDrums=e.target.checked;save();if(S.pDrums&&PGP)loadDrums();});
+  $('#pgMix').addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.vol;if(!k)return;S.pVol[k]=+e.target.value;save();if(PGP)mixVol(PGP.mix,k,S.pVol[k]);});
+  $('#pgBNeck').addEventListener('change',e=>{S.pBNeck=e.target.checked;save();pgRenderBass();});
   $('#pgPlay').addEventListener('click',()=>{if(PGP)pgStop();else pgPlay();});
   $('#pgUnlock').addEventListener('click',()=>pgSet(()=>{S.pLock={};}));
   $('#pgRows').addEventListener('click',e=>{const u=e.target.closest('[data-unlock]');

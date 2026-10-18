@@ -8,7 +8,10 @@ function readSafe(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){retu
 const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null,
   mode:'find',idf:[-1,3,2,0,1,0],idSel:0,   /* mode = Finder, What's this chord? of Progression; idf = frets per snaar daar (−1 = gedempt) */
   /* Progression (zie progression.js): tekst, soort, voice-leadingmodus, positie, snarenset, melodie, tempo, loop, vergrendelde vormen */
-  pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{}};
+  pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{},
+  /* band (fase 4): baslijn, stijl, drums, volume per instrument (0–100), baslijn op de hals */
+  pLine:'walk',pStyle:'swing',pDrums:true,pVol:{piano:100,bass:100,drums:80},pBNeck:false,
+  dgSize:100};   /* grootte van alle akkoorddiagrammen in procenten (80–200) */
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
@@ -25,6 +28,11 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.pTempo=Math.min(260,Math.max(40,Math.round(+s.pTempo)||120));s.pLoop=s.pLoop!==false;
   const lk=s.pLock&&typeof s.pLock==='object'&&!Array.isArray(s.pLock)?s.pLock:{};s.pLock={};
   Object.keys(lk).forEach(i=>{const x=lk[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&typeof x.k==='string')s.pLock[i]={s:x.s.slice(0,40),k:x.k.slice(0,40)};});
+  s.pLine=['roots','r5','approach','walk','step'].includes(s.pLine)?s.pLine:DEF.pLine;
+  s.pStyle=['swing','bossa','straight'].includes(s.pStyle)?s.pStyle:DEF.pStyle;s.pDrums=s.pDrums!==false;s.pBNeck=!!s.pBNeck;
+  const vo=s.pVol&&typeof s.pVol==='object'&&!Array.isArray(s.pVol)?s.pVol:{};s.pVol={};
+  s.dgSize=typeof s.dgSize==='number'&&isFinite(s.dgSize)?Math.min(200,Math.max(80,Math.round(s.dgSize/10)*10)):DEF.dgSize;
+  Object.keys(DEF.pVol).forEach(k=>{s.pVol[k]=typeof vo[k]==='number'&&isFinite(vo[k])?Math.min(100,Math.max(0,Math.round(vo[k]))):DEF.pVol[k];});
   return s;}
 let S=load();
 (function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema gedeeld met alle Practice Room-apps */
@@ -68,6 +76,7 @@ function step(d){if(!D.order.length)return;const i=D.order.indexOf(D.sel),v=D.or
   if(v&&v!==D.sel){pick(v,true);const b=document.querySelector('#groups .dg[data-k="'+v.key+'"]');if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest',inline:'nearest'});}}
 
 function bind(){
+  $('#dgSize').addEventListener('input',e=>{S.dgSize=+e.target.value;save();applyDgSize();});
   $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
   /* akkoord intypen: pas na een korte pauze lezen; een onbekend akkoord laat de vorige staan */
   let tm=null;

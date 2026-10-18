@@ -6,7 +6,7 @@
 <title>Chord Finder</title>
 <!-- CHORD FINDER (Practice Room): alle voicings van een akkoord over de hele hals. Drop 2, drop 3, drop 2&4, close, rootless,
      shells, triads, barré; filteren op snarenset, laagste noot (omkering), topnoot en fretbereik.
-     Modus "What's this chord?" (vorm → naam) en "Progression" (akkoorden → voicings met voice leading).
+     Modus "What's this chord?" (vorm → naam) en "Progression" (akkoorden → voicings met voice leading, baslijn, band).
      Code in chordfinder/ (gewone scripts, één gedeelde scope, volgorde telt). Opslag: 'chordFinder.v1' en 'chordFinder.log'. -->
 <link rel="stylesheet" href="chordfinder/style.css">
 </head>
@@ -29,7 +29,9 @@
   <main>
     <header class="tb">
       <div><h1 id="h1">Chord Finder</h1><p class="sub" id="sub"></p></div>
-      <div class="tr"><span class="seg" id="segMode" role="group" aria-label="Mode"></span><button type="button" class="ib" id="btnTheme"></button></div>
+      <div class="tr"><span class="seg" id="segMode" role="group" aria-label="Mode"></span>
+        <label class="krow dgsz" id="dgSizeL"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 8h14M10 3v18M14 3v18"/></svg><input type="range" id="dgSize" min="80" max="200" step="10"></label>
+        <button type="button" class="ib" id="btnTheme"></button></div>
     </header>
 
     <div id="vFind" class="view">
@@ -127,6 +129,8 @@
           <input id="pgMel" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
           <p class="err" id="pgMelErr" role="status"></p>
         </div>
+        <div class="frow"><span class="lb" id="pgLineL"></span><span class="seg" id="pgLine" role="group" aria-label="Bass line"></span></div>
+        <p class="note" id="pgLineHelp"></p>
         <div class="frow"><span class="lb" id="pgLabL"></span><span class="seg" id="pgLab" role="group" aria-label="Labels"></span></div>
       </section>
 
@@ -138,9 +142,22 @@
           <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgBass"><i></i></span><span id="pgBassL"></span></label>
           <button type="button" class="lnk" id="pgUnlock" style="margin:0 0 0 auto"></button>
         </div>
+        <!-- band: stijl, drums, volume per instrument, baslijn op de hals -->
+        <div class="tp pgband">
+          <span class="krow"><span class="cap" id="pgStyleL"></span><span class="seg" id="pgStyle" role="group" aria-label="Style"></span></span>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgDrums"><i></i></span><span id="pgDrumsL"></span></label>
+          <span class="pgmix" id="pgMix"></span>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgBNeck"><i></i></span><span id="pgBNeckL"></span></label>
+        </div>
         <p class="cap" id="pgSum" style="margin-top:12px"></p>
         <div id="pgRows"></div>
         <p class="note" id="pgLegend" style="margin-top:10px"></p>
+      </section>
+
+      <section class="card" id="pgBassBox" aria-label="Bass line" hidden>
+        <h3 id="pgBassH"></h3>
+        <p class="note" id="pgBassHelp"></p>
+        <div class="nk" id="pgBassNeck"></div>
       </section>
 
       <section class="card" id="pgAltBox" aria-label="Alternatives">
@@ -160,7 +177,7 @@
   </main>
 </div>
 <!-- volgorde telt: alle scripts delen één scope -->
-<script src="backing-sounds.js"></script>  <!-- piano- en basopnames (mag ontbreken) -->
+<script src="backing-sounds.js"></script>  <!-- piano-, bas- en drumopnames (mag ontbreken) -->
 <script src="chordfinder/backup.js"></script>
 <script src="chordfinder/text.js"></script>
 <script src="chordfinder/theory.js"></script>
@@ -169,6 +186,7 @@
 <script src="chordfinder/render.js"></script>
 <script src="chordfinder/ui.js"></script>
 <script src="chordfinder/identify.js"></script>
+<script src="chordfinder/bass.js"></script>
 <script src="chordfinder/progression.js"></script>
 <script src="chordfinder/main.js"></script>
 </body>
