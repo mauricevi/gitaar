@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chord Finder</title>
+<!-- CHORD FINDER (Practice Room): alle voicings van een akkoord over de hele hals. Drop 2, drop 3, drop 2&4, close, rootless,
+     shells, triads, barré; filteren op snarenset, laagste noot (omkering), topnoot en fretbereik.
+     Code in chordfinder/ (gewone scripts, één gedeelde scope, volgorde telt). Opslag: 'chordFinder.v1' en 'chordFinder.log'. -->
+<link rel="stylesheet" href="chordfinder/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">Practice Room</div>
+    <nav>
+      <a id="lnkHome" href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
+      <a href="fretboard-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14M3 12h18"/></svg><span>Fretboard Trainer</span></a>
+      <a href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Scale Trainer</span></a>
+      <a href="note-prompter.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
+      <a href="chord-moves.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14M10 3v18M14 3v18"/><circle cx="10" cy="12" r="1.4" fill="currentColor"/><circle cx="14" cy="15" r="1.4" fill="currentColor"/></svg><span>Chord Moves</span></a>
+      <a class="cur" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/><circle cx="8.5" cy="9" r="1.2" fill="currentColor"/><circle cx="12.5" cy="12" r="1.2" fill="currentColor"/></svg><span>Chord Finder</span></a>
+      <a href="lick-lab.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 16c2.5 0 2.5-8 5-8s2.5 8 5 8 2.5-8 5-8 2.5 4 3 4"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="13" cy="16" r="1.3" fill="currentColor"/></svg><span>Lick Lab</span></a>
+      <a href="tuner.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21h14"/><path d="M12 17V4"/><path d="M8 7l4-3 4 3"/><path d="M6 13h2M16 13h2M7 9.5h1.5M15.5 9.5H17"/></svg><span>Tuner</span></a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="tb">
+      <div><h1 id="h1">Chord Finder</h1><p class="sub" id="sub"></p></div>
+      <div class="tr"><button type="button" class="ib" id="btnTheme"></button></div>
+    </header>
+
+    <!-- akkoord: intypen of kiezen -->
+    <section class="card filters" aria-label="Chord">
+      <div class="cin">
+        <label for="inChord" class="lb">Chord</label>
+        <input id="inChord" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <p class="err" id="chordErr" role="status"></p>
+      </div>
+      <div class="frow"><span class="lb">Root</span><span class="seg" id="segRoot" role="group" aria-label="Root"></span></div>
+      <div id="qualRows" class="filters"></div>
+    </section>
+
+    <!-- soort voicing en filters -->
+    <section class="card filters" aria-label="Voicing">
+      <div class="frow"><span class="lb">Voicing</span><span class="seg" id="segType" role="group" aria-label="Voicing"></span></div>
+      <p class="note" id="typeHelp"></p>
+      <div class="frow"><span class="lb">Strings</span><div class="chips" id="chStr" role="group" aria-label="Strings"></div></div>
+      <div class="frow"><span class="lb">Lowest note</span><div class="chips" id="chLow" role="group" aria-label="Lowest note"></div></div>
+      <div class="frow"><span class="lb">Top note</span><div class="chips" id="chTop" role="group" aria-label="Top note"></div></div>
+      <div class="frow">
+        <span class="lb">Frets</span>
+        <span class="krow"><select id="selFrom" aria-label="From fret"></select><span class="cap">to</span><select id="selTo" aria-label="To fret"></select></span>
+      </div>
+      <div class="frow"><span class="lb">Labels</span><span class="seg" id="segLab" role="group" aria-label="Labels"></span></div>
+    </section>
+
+    <!-- de gekozen vorm -->
+    <section class="card detail" id="detail" aria-label="Selected shape">
+      <div class="dtop">
+        <button type="button" class="big" id="dBig" aria-label="Play this shape"></button>
+        <div class="dside">
+          <div class="dhead"><h2 id="dTitle"></h2>
+            <div class="tr"><button type="button" class="ib" id="btnPrev"></button><button type="button" class="ib" id="btnNext"></button></div></div>
+          <div id="dInfo"></div>
+          <div class="tp">
+            <button type="button" class="act pri" id="btnPlay"></button>
+            <button type="button" class="act" id="btnArp"></button>
+          </div>
+          <div class="tgs">
+            <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="tgBass"><i></i></span>Bass</label>
+            <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="tgTones"><i></i></span>All chord tones on the neck</label>
+          </div>
+        </div>
+      </div>
+      <div class="nk" id="dNeck"></div>
+    </section>
+
+    <!-- alle vormen -->
+    <section class="card" aria-label="Shapes">
+      <div class="rhead">
+        <h3 id="resCount" style="margin:0"></h3>
+        <button type="button" class="lnk" id="btnShowAll" style="margin:0">Show all</button>
+        <span class="frow" style="margin-left:auto"><span class="cap">Group by</span><span class="seg" id="segGroup" role="group" aria-label="Group by"></span></span>
+      </div>
+      <div id="groups"></div>
+    </section>
+    <p class="note" id="keysHint"></p>
+
+    <section class="card">
+      <h3>How it works</h3>
+      <p class="note" id="howTxt"></p>
+      <h3 style="margin-top:18px">Backup (all Practice Room apps)</h3>
+      <div id="prBackup" data-app="Chord Finder" data-btn="act"></div>
+    </section>
+  </main>
+</div>
+<!-- volgorde telt: alle scripts delen één scope -->
+<script src="backing-sounds.js"></script>  <!-- piano- en basopnames (mag ontbreken) -->
+<script src="chordfinder/backup.js"></script>
+<script src="chordfinder/text.js"></script>
+<script src="chordfinder/theory.js"></script>
+<script src="chordfinder/voicings.js"></script>
+<script src="chordfinder/sound.js"></script>
+<script src="chordfinder/render.js"></script>
+<script src="chordfinder/ui.js"></script>
+<script src="chordfinder/main.js"></script>
+</body>
+</html>

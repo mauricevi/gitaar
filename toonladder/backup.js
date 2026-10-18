@@ -8,8 +8,8 @@
    Knoppen verschijnen in elk element met id="prBackup" (data-app = naam van de pagina, data-btn = knopstijl). */
 var PRB=(function(){
   'use strict';
-  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves)/;
-  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['practiceRoom','Home and shared settings']];
+  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves|chordFinder)/;
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['chordFinder','Chord Finder'],['practiceRoom','Home and shared settings']];
   var LOGS=/(\.log|:log|^practiceRoom\.manual)$/;
   var TXT={exp:'Export backup',imp:'Import backup…',
     saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},

@@ -9,6 +9,7 @@ Gitaar-oefenapp voor jazz/gitaar: een verzameling losse, zelfstandige HTML-train
 | `toonladder-trainer.html` | **Scale Trainer**: dunne schil (HTML-structuur + `<script src>`-lijst); code staat in `toonladder/` (zie hieronder) |
 | `fretboard-trainer.html` | **Fretboard Trainer**: noten op de hals, spaced repetition ("notes due today") |
 | `chord-moves.html` | **Chord Moves**: akkoordwisselingen oefenen, piano + bas |
+| `chord-finder.html` | **Chord Finder**: dunne schil; alle voicings van een akkoord (drop 2/3/2&4, close, rootless, shells, triads, barré), filters op snarenset/omkering/topnoot. Code in `chordfinder/` (zie hieronder) |
 | `lick-lab.html` | **Lick Lab**: licks over een progressie, loop met piano/bas/klik |
 | `note-prompter.html` | **Note Prompter**: noten voorlezen/oefenen |
 | `tuner.html` | **Tuner**: microfoon via `getUserMedia` |
@@ -31,10 +32,15 @@ Gewone scripts (geen modules, geen IIFE) die **één globale scope delen**, gela
 | `main.js` | `init()`, thema, `API`-export |
 Nieuwe top-level namen in deze bestanden mogen niet botsen met andere (ze delen scope). Nieuw bestand = `<script src>` toevoegen in `toonladder-trainer.html`.
 
+### Chord Finder: map `chordfinder/`
+Zelfde opzet als `toonladder/` (één gedeelde scope, volgorde telt): `style.css`, `backup.js`, `text.js` (`T`), `theory.js` (spelling + `QUAL` + `parseChord`), `voicings.js` (`voicingsOf(c,type)`), `sound.js`, `render.js`, `ui.js` (opslag, log, `derive()` → `D`, events), `main.js`.
+Theorie (`QUAL`, spelling) en de basis van de voicing-zoeker zijn **kopieën** uit `chord-moves.html` §1–2: een fout daar ook hier nakijken.
+Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam) · 3 progressie + voice leading + alternatieven · 4 baslijnen + afspelen met band.
+
 ## Tech stack
 - Vanilla HTML/CSS/JS, **geen build, geen npm, geen framework, geen dependencies**. De meeste pagina's zijn één bestand met `<style>` en `<script>` inline; de Scale Trainer is gesplitst (zie boven).
 - Web Audio API voor geluid. Google Fonts (Bricolage Grotesque, JetBrains Mono) is het enige externe.
-- Opslag uitsluitend `localStorage`, altijd in `try/catch`. Sleutels per app, bv. `fretTrainer.v1`, `chordMoves.v1`, `notePrompter.v1`, `toonladderTrainer:v1`, plus `*.log` voor oefentijd per dag (kalender op Home leest die).
+- Opslag uitsluitend `localStorage`, altijd in `try/catch`. Sleutels per app, bv. `fretTrainer.v1`, `chordMoves.v1`, `chordFinder.v1`, `notePrompter.v1`, `toonladderTrainer:v1`, plus `*.log` voor oefentijd per dag (kalender op Home leest die).
 - Taal: UI in het Engels, code-commentaar in het Nederlands.
 
 ## Regels
@@ -48,3 +54,4 @@ Nieuwe top-level namen in deze bestanden mogen niet botsen met andere (ze delen 
 
 ## Werkwijze
 - Geen testsuite: controleer door de pagina te openen en de console te checken op fouten.
+- Nieuwe app-sleutel? Voeg het voorvoegsel toe aan `RX`/`APPS` in **alle** kopieën van de back-up (PRB), anders gaat hij niet mee in een back-up.
