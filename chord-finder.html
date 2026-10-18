@@ -28,8 +28,10 @@
   <main>
     <header class="tb">
       <div><h1 id="h1">Chord Finder</h1><p class="sub" id="sub"></p></div>
-      <div class="tr"><button type="button" class="ib" id="btnTheme"></button></div>
+      <div class="tr"><span class="seg" id="segMode" role="group" aria-label="Mode"></span><button type="button" class="ib" id="btnTheme"></button></div>
     </header>
+
+    <div id="vFind" class="view">
 
     <!-- akkoord: intypen of kiezen -->
     <section class="card filters" aria-label="Chord">
@@ -87,6 +89,21 @@
       <div id="groups"></div>
     </section>
     <p class="note" id="keysHint"></p>
+    </div>
+
+    <!-- What's this chord?: noten op de hals → namen -->
+    <div id="vId" class="view" hidden>
+      <section class="card" aria-label="Shape">
+        <div class="dhead"><h2 id="idTitle"></h2>
+          <div class="tr"><button type="button" class="act pri" id="idPlay"></button><button type="button" class="act" id="idArp"></button><button type="button" class="act" id="idClear"></button></div></div>
+        <p class="note" id="idHow" style="margin-top:6px"></p>
+        <div class="nk inp" id="idNeck"></div>
+      </section>
+      <section class="card idres" aria-label="Possible names">
+        <div id="idShape" class="idshape"><div class="idg" id="idDg"></div><div><p class="cap">Frets <span class="mono" id="idFrets"></span></p><div class="nts" id="idNotes" style="margin-top:8px"></div></div></div>
+        <div><h3 id="idNamesH"></h3><ol class="idl" id="idList"></ol></div>
+      </section>
+    </div>
 
     <section class="card">
       <h3>How it works</h3>
@@ -105,6 +122,7 @@
 <script src="chordfinder/sound.js"></script>
 <script src="chordfinder/render.js"></script>
 <script src="chordfinder/ui.js"></script>
+<script src="chordfinder/identify.js"></script>
 <script src="chordfinder/main.js"></script>
 </body>
 </html>

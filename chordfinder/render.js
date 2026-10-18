@@ -17,9 +17,11 @@ const invTxt=(v,short)=>v.inv!=null?(short?T.invShort:T.inv)[v.inv]:T.inBass(v.l
 function seg(host,items,cur,key){host.innerHTML=items.map(([v,l])=>'<button type="button" data-'+key+'="'+esc(v)+'" aria-pressed="'+(v===cur)+'">'+esc(l)+'</button>').join('');}
 function chips(host,items,cur,key){host.innerHTML=items.map(([v,l,n])=>'<button type="button" class="chip" data-'+key+'="'+esc(v)+'" aria-pressed="'+(v===cur)+'">'+esc(l)+(n!=null?'<small>'+n+'</small>':'')+'</button>').join('');}
 
-/* akkoorddiagram: verticaal, lage E links */
-function diagram(c,v){
-  const start=v.lo<=2&&v.hi<=4?1:v.lo,rows=Math.max(4,v.hi-start+1);
+/* akkoorddiagram: verticaal, lage E links. lab(x) = label per noot (standaard: volgens de knop Labels);
+   losse snaren (fret 0, alleen bij "What's this chord?") als open rondje boven de topkam */
+function diagram(c,v,lab){lab=lab||(x=>labOf(c,x));
+  const fl=v.notes.filter(x=>x.f>0).map(x=>x.f),lo=fl.length?Math.min(...fl):1,hi=fl.length?Math.max(...fl):1;
+  const start=lo<=2&&hi<=4?1:lo,rows=Math.max(4,hi-start+1);
   const X=s=>26+s*17,top=24,step=24,bot=top+rows*step,Y=f=>top+(f-start+.5)*step,W=134;
   let h='<svg viewBox="0 0 '+W+' '+(bot+6)+'" aria-hidden="true"><rect class="wd" x="'+(X(0)-9)+'" y="'+top+'" width="'+(X(5)-X(0)+18)+'" height="'+(rows*step)+'" rx="3"/>';
   for(let r=0;r<=rows;r++)h+='<line class="'+(r===0&&start===1?'nut':'fr')+'" x1="'+(X(0)-9)+'" x2="'+(X(5)+9)+'" y1="'+(top+r*step)+'" y2="'+(top+r*step)+'"/>';
@@ -29,28 +31,33 @@ function diagram(c,v){
   /* barré-streep: alleen bij barrévormen, als de laagste fret op de buitenste gespeelde snaren ligt en ertussen niets gedempt is */
   if(v.type==='barre'){const us=v.notes.map(x=>x.s),a=us[0],b=us[us.length-1];
     if(b>a&&v.f[a]===v.lo&&v.f[b]===v.lo&&v.f.slice(a,b+1).every(x=>x>=v.lo))h+='<rect class="dt" x="'+(X(a)-7)+'" y="'+(Y(v.lo)-7)+'" width="'+(X(b)-X(a)+14)+'" height="14" rx="7"/>';}
-  v.notes.forEach(x=>{const cx=X(x.s),cy=Y(x.f),iv=mod(x.pc-c.rootPc,12);
-    h+='<circle class="'+(iv===0?'rt':'dt')+'" cx="'+cx+'" cy="'+cy+'" r="8.4"/>';
-    const lab=labOf(c,x);if(lab)h+='<text class="dl" x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle">'+esc(lab)+'</text>';});
+  v.notes.forEach(x=>{const cx=X(x.s),op=x.f===0,cy=op?top-11:Y(x.f),l=lab(x);
+    h+='<circle class="'+(op?'op':c&&x.pc===c.rootPc?'rt':'dt')+'" cx="'+cx+'" cy="'+cy+'" r="'+(op?7:8.4)+'"/>';
+    if(l)h+='<text class="'+(op?'ol':'dl')+'" x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle">'+esc(l)+'</text>';});
   return h+'</svg>';}
 
-/* de hele hals, horizontaal (hoge e boven, zoals tab): de gekozen vorm groot, en eventueel alle akkoordtonen klein */
-function neck(c,v){const F=MAXF,W=46,L=30,top=20,gap=22,bot=top+gap*5,Wt=L+F*W+10,X=f=>L+(f-.5)*W,Y=s=>top+(5-s)*gap;
+/* de hele hals, horizontaal (hoge e boven, zoals tab). dots = [{s,f,cls,lab,small}];
+   cells = klikbare vakjes per snaar en fret (fret 0 = losse snaar, links van de topkam) */
+function neckSvg(dots,cells){const F=MAXF,W=46,L=44,top=20,gap=22,bot=top+gap*5,Wt=L+F*W+10,X=f=>f?L+(f-.5)*W:L-21,Y=s=>top+(5-s)*gap;
   let h='<svg viewBox="0 0 '+Wt+' '+(bot+30)+'" aria-hidden="true"><rect class="wd" x="'+L+'" y="'+(top-9)+'" width="'+(F*W)+'" height="'+(gap*5+18)+'" rx="3"/>';
   [3,5,7,9,15].forEach(f=>{h+='<circle class="mk" cx="'+X(f)+'" cy="'+(top+gap*2.5)+'" r="4.5"/>';});
   h+='<circle class="mk" cx="'+X(12)+'" cy="'+(top+gap*1.5)+'" r="4.5"/><circle class="mk" cx="'+X(12)+'" cy="'+(top+gap*3.5)+'" r="4.5"/>';
   for(let f=0;f<=F;f++)h+='<line class="'+(f===0?'nut':'fr')+'" x1="'+(L+f*W)+'" x2="'+(L+f*W)+'" y1="'+(top-9)+'" y2="'+(bot+9)+'"/>';
-  for(let s=0;s<6;s++)h+='<line class="st" x1="'+L+'" x2="'+(L+F*W)+'" y1="'+Y(s)+'" y2="'+Y(s)+'" stroke-width="'+(2.1-s*.25).toFixed(2)+'"/>';
+  for(let s=0;s<6;s++)h+='<line class="st" x1="'+(cells?L-36:L)+'" x2="'+(L+F*W)+'" y1="'+Y(s)+'" y2="'+Y(s)+'" stroke-width="'+(2.1-s*.25).toFixed(2)+'"/>';
   [1,3,5,7,9,12,15].forEach(f=>{h+='<text class="fn" x="'+X(f)+'" y="'+(bot+26)+'" text-anchor="middle">'+f+'</text>';});
-  if(S.allTones){const pcs=new Set(QUAL[c.q].iv.map(x=>mod(c.rootPc+x,12)));if(c.bassPc!=null)pcs.add(c.bassPc);
-    for(let s=0;s<6;s++)for(let f=0;f<=F;f++){const pc=mod(OPEN[s]+f,12);if(!pcs.has(pc)||v&&v.f[s]===f)continue;
-      const cx=f?X(f):L-14,lab=labOf(c,{pc});
-      h+='<circle class="ct'+(pc===c.rootPc?' cr':'')+'" cx="'+cx+'" cy="'+Y(s)+'" r="7"/>';
-      if(lab)h+='<text class="cl" x="'+cx+'" y="'+(Y(s)+2.8)+'" text-anchor="middle">'+esc(lab)+'</text>';}}
-  if(v)v.notes.forEach(x=>{const cx=X(x.f),cy=Y(x.s),lab=labOf(c,x);
-    h+='<circle class="'+(x.pc===c.rootPc?'rt':'dt')+'" cx="'+cx+'" cy="'+cy+'" r="10.5"/>';
-    if(lab)h+='<text class="nl" x="'+cx+'" y="'+(cy+3.5)+'" text-anchor="middle">'+esc(lab)+'</text>';});
+  dots.forEach(d=>{const cx=X(d.f),cy=Y(d.s);
+    h+='<circle class="'+d.cls+'" cx="'+cx+'" cy="'+cy+'" r="'+(d.small?7:10.5)+'"/>';
+    if(d.lab)h+='<text class="'+(d.small?'cl':'nl')+'" x="'+cx+'" y="'+(cy+(d.small?2.8:3.5))+'" text-anchor="middle">'+esc(d.lab)+'</text>';});
+  if(cells)for(let s=0;s<6;s++)for(let f=0;f<=F;f++)
+    h+='<rect class="cell" data-s="'+s+'" data-f="'+f+'" x="'+(f?L+(f-1)*W:L-42)+'" y="'+(Y(s)-gap/2)+'" width="'+(f?W:42)+'" height="'+gap+'"/>';
   return h+'</svg>';}
+/* de gekozen vorm groot, en eventueel alle akkoordtonen klein */
+function neck(c,v){const dots=[];
+  if(S.allTones){const pcs=new Set(QUAL[c.q].iv.map(x=>mod(c.rootPc+x,12)));if(c.bassPc!=null)pcs.add(c.bassPc);
+    for(let s=0;s<6;s++)for(let f=0;f<=MAXF;f++){const pc=mod(OPEN[s]+f,12);if(!pcs.has(pc)||v&&v.f[s]===f)continue;
+      dots.push({s,f,small:true,cls:'ct'+(pc===c.rootPc?' cr':''),lab:labOf(c,{pc})});}}
+  if(v)v.notes.forEach(x=>dots.push({s:x.s,f:x.f,cls:x.pc===c.rootPc?'rt':'dt',lab:labOf(c,x)}));
+  return neckSvg(dots,false);}
 
 /* ── akkoord kiezen ── */
 function renderChord(){const c=D.c,inp=$('#inChord');

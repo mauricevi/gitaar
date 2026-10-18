@@ -59,3 +59,7 @@ function playShape(c,v,arp){if(!c||!v||!audio())return;act();
   if(SND||!window.BACKING_SOUNDS)go();else loadSounds().then(go);}
 /* opnames alvast inlezen bij de eerste klik ergens op de pagina */
 addEventListener('pointerdown',()=>{if(window.BACKING_SOUNDS&&audio())loadSounds();},{once:true});
+/* één noot (bij het neerzetten van een noot in "What's this chord?") */
+function tapNote(m){if(!audio())return;
+  const go=()=>{const mix=chain();pianoNote(m,actx.currentTime+.02,1.2,76,mix.piano);setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},3000);};
+  if(SND||!window.BACKING_SOUNDS)go();else loadSounds().then(go);}

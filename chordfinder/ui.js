@@ -5,7 +5,8 @@ const KEY='chordFinder.v1',LOGKEY='chordFinder.log',SHARED='practiceRoom.board',
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 function readSafe(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return null;}if(raw==null)return null;
   try{return JSON.parse(raw);}catch(e){try{localStorage.setItem(k+'.bad',raw);}catch(_){}return null;}}
-const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null};
+const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null,
+  mode:'find',idf:[-1,3,2,0,1,0],idSel:0};   /* mode = Finder of What's this chord?; idf = frets per snaar daar (−1 = gedempt) */
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
@@ -14,6 +15,8 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.from=Math.min(MAXF,Math.max(1,Math.round(+s.from)||1));s.to=Math.min(MAXF,Math.max(s.from,Math.round(+s.to)||MAXF));
   s.labels=Object.keys(T.lab).includes(s.labels)?s.labels:'int';s.group=Object.keys(T.group).includes(s.group)?s.group:'set';
   s.allTones=!!s.allTones;s.bass=s.bass!==false;
+  s.mode=s.mode==='id'?'id':'find';s.idSel=Math.max(0,Math.round(+s.idSel)||0);
+  s.idf=Array.isArray(s.idf)&&s.idf.length===6?s.idf.map(x=>Number.isInteger(x)&&x>=0&&x<=MAXF?x:-1):DEF.idf.slice();
   return s;}
 let S=load();
 (function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema gedeeld met alle Practice Room-apps */
@@ -83,7 +86,7 @@ function bind(){
   $('#dBig').addEventListener('click',()=>{if(D.sel)playShape(D.c,D.sel);});
   $('#btnPrev').addEventListener('click',()=>step(-1));$('#btnNext').addEventListener('click',()=>step(1));
   document.addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const tag=e.target&&e.target.tagName;
-    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||S.mode==='id')return;
     if(e.key==='ArrowRight'){e.preventDefault();step(1);}else if(e.key==='ArrowLeft'){e.preventDefault();step(-1);}
     else if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}}});
   addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;applyTheme();}}});}

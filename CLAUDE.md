@@ -33,9 +33,9 @@ Gewone scripts (geen modules, geen IIFE) die **één globale scope delen**, gela
 Nieuwe top-level namen in deze bestanden mogen niet botsen met andere (ze delen scope). Nieuw bestand = `<script src>` toevoegen in `toonladder-trainer.html`.
 
 ### Chord Finder: map `chordfinder/`
-Zelfde opzet als `toonladder/` (één gedeelde scope, volgorde telt): `style.css`, `backup.js`, `text.js` (`T`), `theory.js` (spelling + `QUAL` + `parseChord`), `voicings.js` (`voicingsOf(c,type)`), `sound.js`, `render.js`, `ui.js` (opslag, log, `derive()` → `D`, events), `main.js`.
+Zelfde opzet als `toonladder/` (één gedeelde scope, volgorde telt): `style.css`, `backup.js`, `text.js` (`T`), `theory.js` (spelling + `QUAL` + `parseChord`), `voicings.js` (`voicingsOf(c,type)`), `sound.js`, `render.js`, `ui.js` (opslag, log, `derive()` → `D`, events), `identify.js` ("What's this chord?": `identify(frets)` → namen, eigen weergave), `main.js`.
 Theorie (`QUAL`, spelling) en de basis van de voicing-zoeker zijn **kopieën** uit `chord-moves.html` §1–2: een fout daar ook hier nakijken.
-Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam) · 3 progressie + voice leading + alternatieven · 4 baslijnen + afspelen met band.
+Plan: fase 1 Finder (klaar) · 2 "What's this chord?" (noten klikken → naam, klaar) · 3 progressie + voice leading + alternatieven · 4 baslijnen + afspelen met band.
 
 ## Tech stack
 - Vanilla HTML/CSS/JS, **geen build, geen npm, geen framework, geen dependencies**. De meeste pagina's zijn één bestand met `<style>` en `<script>` inline; de Scale Trainer is gesplitst (zie boven).

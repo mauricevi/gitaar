@@ -130,7 +130,7 @@ h2{font-size:24px;font-weight:700;margin:0;line-height:1.2}
 .big{border:0;background:none;padding:0;border-radius:14px}
 .big:hover{background:var(--fill)}
 .big svg{width:100%;height:auto;display:block}
-.dhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 12px}
 .dmeta{font-size:16px;font-weight:600;margin-top:4px}
 .nts{display:flex;flex-wrap:wrap;gap:6px}
 .nt{display:inline-grid;justify-items:center;min-width:44px;padding:5px 8px;border-radius:10px;background:var(--fill)}
@@ -160,3 +160,23 @@ svg .nl{fill:var(--wdtx);font:700 10px ui-monospace,"SF Mono",Menlo,monospace}
 .tgs{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px}
 .tp{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:16px}
 .tgl{display:inline-flex;align-items:center;gap:8px;font-size:14px}
+/* open snaar in een diagram */
+svg .op{fill:var(--card);stroke:var(--tx);stroke-width:1.4}
+svg .ol{fill:var(--tx);font:700 7.5px ui-monospace,"SF Mono",Menlo,monospace}
+
+/* ── What's this chord? ── */
+.view{display:grid;gap:16px}
+#segMode button{font-weight:600}
+.nk.inp svg circle,.nk.inp svg text{pointer-events:none}
+svg .cell{fill:transparent;cursor:pointer}
+svg .cell:hover{fill:rgba(255,255,255,.14)}
+.idres{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:start}
+.idshape{display:grid;justify-items:start;gap:10px;width:200px}
+.idg{width:160px}.idg svg{width:100%;height:auto;display:block}
+.idl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.idr{display:flex;align-items:center;gap:8px;border-radius:12px;background:var(--bg)}
+.idr.on{background:var(--hibg);box-shadow:inset 0 0 0 2px var(--hi)}
+.idn{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;border:0;background:none;text-align:left;padding:10px 12px;border-radius:12px}
+.idn b{font-size:18px}.idn small{font-size:13px;color:var(--mut)}
+.idr .act{margin-right:8px}
+@media (max-width:620px){.idres{grid-template-columns:minmax(0,1fr)}.idshape{width:auto}}

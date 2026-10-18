@@ -31,5 +31,11 @@ const T={
   keysHint:'Click a shape to hear it · ← → previous / next shape · Space plays it again',
   how:'Pick a chord and a voicing type. Grouped by string set, each row is one inversion cycle up the neck: play the shapes left to right and you move through all the inversions on the same strings. Filter on the lowest or top note to find the shape that fits your bass line or melody.',
   backupH:'Backup (all Practice Room apps)',
+  mode:{find:'Find voicings',id:'What’s this chord?'},
+  id:{title:'What’s this chord?',sub:'Put a shape on the neck and see what it is called.',
+    how:'Click the neck to place one note per string. Click the same spot again to mute that string; the column left of the nut is the open string.',
+    clear:'Clear',names:'Possible names',none:'Place at least two different notes.',noMatch:'No chord name fits these notes.',
+    no:l=>`no ${l}`,rootless:'rootless',
+    open:'Voicings ›',openL:s=>`Show all voicings of ${s}`},
   theme:{auto:'automatic',light:'light',dark:'dark'}
 };

@@ -7,7 +7,10 @@ function init(){
   $('#btnPrev').innerHTML=ICON.prev;$('#btnPrev').setAttribute('aria-label',T.prev);$('#btnNext').innerHTML=ICON.next;$('#btnNext').setAttribute('aria-label',T.next);
   const h=decodeURIComponent((location.hash||'').slice(1)),hc=h&&parseChord(h);if(hc)S.chord=hc.ascii;
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}   /* in een ingesloten weergave leidt de zijbalk nergens heen */
-  applyTheme();applyWood();bind();update();homeLink();}
+  $('#idTitle').textContent=T.id.title;$('#idHow').textContent=T.id.how;$('#idClear').textContent=T.id.clear;$('#idNamesH').textContent=T.id.names;
+  $('#idPlay').innerHTML=ICON.play+'<span>'+esc(T.play)+'</span>';$('#idArp').innerHTML=ICON.arp+'<span>'+esc(T.arp)+'</span>';
+  if(hc)S.mode='find';
+  applyTheme();applyWood();bind();bindId();update();renderMode();homeLink();}
 init();
 /* voor de console: API.parseChord('G7/B'), API.voicingsOf(API.parseChord('Cmaj7'),'drop3') */
-const API={parseChord,voicingsOf,rootlessSet,QUAL,get D(){return D;},get S(){return S;}};
+const API={parseChord,voicingsOf,rootlessSet,identify,QUAL,get D(){return D;},get S(){return S;}};
