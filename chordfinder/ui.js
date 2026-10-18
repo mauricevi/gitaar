@@ -6,7 +6,9 @@ const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){
 function readSafe(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return null;}if(raw==null)return null;
   try{return JSON.parse(raw);}catch(e){try{localStorage.setItem(k+'.bad',raw);}catch(_){}return null;}}
 const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null,
-  mode:'find',idf:[-1,3,2,0,1,0],idSel:0};   /* mode = Finder of What's this chord?; idf = frets per snaar daar (−1 = gedempt) */
+  mode:'find',idf:[-1,3,2,0,1,0],idSel:0,   /* mode = Finder, What's this chord? of Progression; idf = frets per snaar daar (−1 = gedempt) */
+  /* Progression (zie progression.js): tekst, soort, voice-leadingmodus, positie, snarenset, melodie, tempo, loop, vergrendelde vormen */
+  pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{}};
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
@@ -15,8 +17,14 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.from=Math.min(MAXF,Math.max(1,Math.round(+s.from)||1));s.to=Math.min(MAXF,Math.max(s.from,Math.round(+s.to)||MAXF));
   s.labels=Object.keys(T.lab).includes(s.labels)?s.labels:'int';s.group=Object.keys(T.group).includes(s.group)?s.group:'set';
   s.allTones=!!s.allTones;s.bass=s.bass!==false;
-  s.mode=s.mode==='id'?'id':'find';s.idSel=Math.max(0,Math.round(+s.idSel)||0);
+  s.mode=['find','id','prog'].includes(s.mode)?s.mode:'find';s.idSel=Math.max(0,Math.round(+s.idSel)||0);
   s.idf=Array.isArray(s.idf)&&s.idf.length===6?s.idf.map(x=>Number.isInteger(x)&&x>=0&&x<=MAXF?x:-1):DEF.idf.slice();
+  s.pText=typeof s.pText==='string'?s.pText.slice(0,800):DEF.pText;s.pType=VTYPES.includes(s.pType)?s.pType:DEF.pType;
+  s.pMode=['smooth','pos','strings','top'].includes(s.pMode)?s.pMode:'smooth';s.pPos=Math.min(12,Math.max(1,Math.round(+s.pPos)||5));
+  s.pStr=typeof s.pStr==='string'&&/^(auto|[1-6]{2,6})$/.test(s.pStr)?s.pStr:'auto';s.pMel=typeof s.pMel==='string'?s.pMel.slice(0,300):'';
+  s.pTempo=Math.min(260,Math.max(40,Math.round(+s.pTempo)||120));s.pLoop=s.pLoop!==false;
+  const lk=s.pLock&&typeof s.pLock==='object'&&!Array.isArray(s.pLock)?s.pLock:{};s.pLock={};
+  Object.keys(lk).forEach(i=>{const x=lk[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&typeof x.k==='string')s.pLock[i]={s:x.s.slice(0,40),k:x.k.slice(0,40)};});
   return s;}
 let S=load();
 (function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema gedeeld met alle Practice Room-apps */
@@ -86,7 +94,7 @@ function bind(){
   $('#dBig').addEventListener('click',()=>{if(D.sel)playShape(D.c,D.sel);});
   $('#btnPrev').addEventListener('click',()=>step(-1));$('#btnNext').addEventListener('click',()=>step(1));
   document.addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const tag=e.target&&e.target.tagName;
-    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||S.mode==='id')return;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||S.mode!=='find')return;
     if(e.key==='ArrowRight'){e.preventDefault();step(1);}else if(e.key==='ArrowLeft'){e.preventDefault();step(-1);}
     else if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}}});
   addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;applyTheme();}}});}

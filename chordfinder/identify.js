@@ -63,6 +63,9 @@ function bindId(){
     playShape(ID.sel?ID.sel.c:{rootPc:lo.pc,bassPc:null},ID.v,arp);if(ID.sel)logChord(ID.sel.c.sym);};
   $('#idPlay').addEventListener('click',()=>play(false));$('#idArp').addEventListener('click',()=>play(true));
   $('#segMode').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b||b.dataset.mode===S.mode)return;S.mode=b.dataset.mode;save();renderMode();});}
-/* modus: Finder of What's this chord? */
-function renderMode(){const id=S.mode==='id';seg($('#segMode'),Object.entries(T.mode),S.mode,'mode');
-  $('#vFind').hidden=id;$('#vId').hidden=!id;$('#sub').textContent=id?T.id.sub:T.sub;if(id)renderId();}
+/* modus: Finder, What's this chord? of Progression (progression.js) */
+function renderMode(){const m=S.mode;seg($('#segMode'),Object.entries(T.mode),m,'mode');
+  $('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
+  $('#sub').textContent=m==='id'?T.id.sub:m==='prog'?T.pg.sub:T.sub;
+  $('#howTxt').textContent=m==='prog'?T.pg.how:T.how;
+  if(m==='find')update();if(m==='id')renderId();if(m==='prog')pgRender();else pgStop();}   /* Labels en Bass zijn gedeeld: Finder bijwerken */

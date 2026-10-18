@@ -10,7 +10,7 @@ function init(){
   $('#idTitle').textContent=T.id.title;$('#idHow').textContent=T.id.how;$('#idClear').textContent=T.id.clear;$('#idNamesH').textContent=T.id.names;
   $('#idPlay').innerHTML=ICON.play+'<span>'+esc(T.play)+'</span>';$('#idArp').innerHTML=ICON.arp+'<span>'+esc(T.arp)+'</span>';
   if(hc)S.mode='find';
-  applyTheme();applyWood();bind();bindId();update();renderMode();homeLink();}
+  applyTheme();applyWood();bind();bindId();pgBind();update();renderMode();homeLink();}
 init();
 /* voor de console: API.parseChord('G7/B'), API.voicingsOf(API.parseChord('Cmaj7'),'drop3') */
-const API={parseChord,voicingsOf,rootlessSet,identify,QUAL,get D(){return D;},get S(){return S;}};
+const API={parseChord,voicingsOf,rootlessSet,identify,pgParse,QUAL,get D(){return D;},get S(){return S;},get PG(){return PG;}};

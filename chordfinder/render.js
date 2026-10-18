@@ -18,8 +18,9 @@ function seg(host,items,cur,key){host.innerHTML=items.map(([v,l])=>'<button type
 function chips(host,items,cur,key){host.innerHTML=items.map(([v,l,n])=>'<button type="button" class="chip" data-'+key+'="'+esc(v)+'" aria-pressed="'+(v===cur)+'">'+esc(l)+(n!=null?'<small>'+n+'</small>':'')+'</button>').join('');}
 
 /* akkoorddiagram: verticaal, lage E links. lab(x) = label per noot (standaard: volgens de knop Labels);
+   cls(x) = extra klassen per noot (Progression: guide tones, liggende noten);
    losse snaren (fret 0, alleen bij "What's this chord?") als open rondje boven de topkam */
-function diagram(c,v,lab){lab=lab||(x=>labOf(c,x));
+function diagram(c,v,lab,cls){lab=lab||(x=>labOf(c,x));
   const fl=v.notes.filter(x=>x.f>0).map(x=>x.f),lo=fl.length?Math.min(...fl):1,hi=fl.length?Math.max(...fl):1;
   const start=lo<=2&&hi<=4?1:lo,rows=Math.max(4,hi-start+1);
   const X=s=>26+s*17,top=24,step=24,bot=top+rows*step,Y=f=>top+(f-start+.5)*step,W=134;
@@ -32,7 +33,7 @@ function diagram(c,v,lab){lab=lab||(x=>labOf(c,x));
   if(v.type==='barre'){const us=v.notes.map(x=>x.s),a=us[0],b=us[us.length-1];
     if(b>a&&v.f[a]===v.lo&&v.f[b]===v.lo&&v.f.slice(a,b+1).every(x=>x>=v.lo))h+='<rect class="dt" x="'+(X(a)-7)+'" y="'+(Y(v.lo)-7)+'" width="'+(X(b)-X(a)+14)+'" height="14" rx="7"/>';}
   v.notes.forEach(x=>{const cx=X(x.s),op=x.f===0,cy=op?top-11:Y(x.f),l=lab(x);
-    h+='<circle class="'+(op?'op':c&&x.pc===c.rootPc?'rt':'dt')+'" cx="'+cx+'" cy="'+cy+'" r="'+(op?7:8.4)+'"/>';
+    h+='<circle class="'+(op?'op':c&&x.pc===c.rootPc?'rt':'dt')+(cls?cls(x):'')+'" cx="'+cx+'" cy="'+cy+'" r="'+(op?7:8.4)+'"/>';
     if(l)h+='<text class="'+(op?'ol':'dl')+'" x="'+cx+'" y="'+(cy+3)+'" text-anchor="middle">'+esc(l)+'</text>';});
   return h+'</svg>';}
 

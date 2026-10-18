@@ -6,6 +6,7 @@
 <title>Chord Finder</title>
 <!-- CHORD FINDER (Practice Room): alle voicings van een akkoord over de hele hals. Drop 2, drop 3, drop 2&4, close, rootless,
      shells, triads, barré; filteren op snarenset, laagste noot (omkering), topnoot en fretbereik.
+     Modus "What's this chord?" (vorm → naam) en "Progression" (akkoorden → voicings met voice leading).
      Code in chordfinder/ (gewone scripts, één gedeelde scope, volgorde telt). Opslag: 'chordFinder.v1' en 'chordFinder.log'. -->
 <link rel="stylesheet" href="chordfinder/style.css">
 </head>
@@ -105,6 +106,51 @@
       </section>
     </div>
 
+    <!-- Progression: akkoorden → één vorm per akkoord met voice leading -->
+    <div id="vProg" class="view" hidden>
+      <section class="card filters" aria-label="Progression">
+        <div class="cin pgin">
+          <label for="pgIn" class="lb" id="pgInL"></label>
+          <textarea id="pgIn" rows="2" autocomplete="off" spellcheck="false" autocapitalize="off"></textarea>
+          <select id="pgSt" hidden></select>
+          <p class="note" id="pgInHelp"></p>
+          <p class="err" id="pgErr" role="status"></p>
+          <p class="note" id="pgApprox"></p>
+        </div>
+        <div class="frow"><span class="lb" id="pgTypeL"></span><span class="seg" id="pgType" role="group" aria-label="Voicing"></span></div>
+        <div class="frow"><span class="lb" id="pgModeL"></span><span class="seg" id="pgMode" role="group" aria-label="Voice leading"></span></div>
+        <p class="note" id="pgModeHelp"></p>
+        <div class="frow" id="pgPosRow"><span class="lb" id="pgPosL"></span><select id="pgPos" aria-label="Position"></select></div>
+        <div class="frow" id="pgStrRow"><span class="lb" id="pgStrL"></span><div class="chips" id="pgStr" role="group" aria-label="String set"></div></div>
+        <div class="cin" id="pgMelRow">
+          <label for="pgMel" class="lb" id="pgMelL"></label>
+          <input id="pgMel" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
+          <p class="err" id="pgMelErr" role="status"></p>
+        </div>
+        <div class="frow"><span class="lb" id="pgLabL"></span><span class="seg" id="pgLab" role="group" aria-label="Labels"></span></div>
+      </section>
+
+      <section class="card" aria-label="Voicings">
+        <div class="tp pgtp">
+          <button type="button" class="act pri" id="pgPlay"></button>
+          <label class="krow cap" for="pgTempo"><span id="pgTempoL"></span><input type="range" id="pgTempo" min="40" max="260" step="2"><b class="mono" id="pgBpm"></b></label>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgLoop"><i></i></span><span id="pgLoopL"></span></label>
+          <label class="tgl"><span class="tg"><input type="checkbox" role="switch" id="pgBass"><i></i></span><span id="pgBassL"></span></label>
+          <button type="button" class="lnk" id="pgUnlock" style="margin:0 0 0 auto"></button>
+        </div>
+        <p class="cap" id="pgSum" style="margin-top:12px"></p>
+        <div id="pgRows"></div>
+        <p class="note" id="pgLegend" style="margin-top:10px"></p>
+      </section>
+
+      <section class="card" id="pgAltBox" aria-label="Alternatives">
+        <div class="rhead"><h3 id="pgAltH" style="margin:0"></h3><button type="button" class="act" id="pgAltLock" hidden></button></div>
+        <p class="note" id="pgAltHelp"></p>
+        <div class="dgs" id="pgAlts"></div>
+      </section>
+      <p class="note" id="pgKeys"></p>
+    </div>
+
     <section class="card">
       <h3>How it works</h3>
       <p class="note" id="howTxt"></p>
@@ -123,6 +169,7 @@
 <script src="chordfinder/render.js"></script>
 <script src="chordfinder/ui.js"></script>
 <script src="chordfinder/identify.js"></script>
+<script src="chordfinder/progression.js"></script>
 <script src="chordfinder/main.js"></script>
 </body>
 </html>
