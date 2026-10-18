@@ -25,7 +25,7 @@ function famOf(id){const s=symOfId(id);
 function normQ(q){
   q=q.replace(/\s+/g,'').replace(/[()]/g,'').replace(/b/g,'♭').replace(/#/g,'♯');
   q=q.replace(/^(min|mi|-)/,'m');
-  q=q.replace(/^(Maj|MAJ|maj|Ma|ma|M|Δ|△)/,'maj');
+  q=q.replace(/^(Maj|MAJ|maj|Ma(?!dd)|ma(?!dd)|M(?!add)|Δ|△)/,'maj');   /* niet de "ma" van madd9 (Cm(add9)) */
   q=q.replace(/^m(M|Maj|maj|Δ|△)/,'mmaj');
   q=q.replace(/^(ø|Ø)7?/,'m7♭5');
   q=q.replace(/^(°|o)7/,'dim7').replace(/^(°|o)$/,'dim');

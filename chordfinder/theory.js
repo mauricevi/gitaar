@@ -80,7 +80,7 @@ function normQ(q){
   q=q.replace(/\s+/g,'').replace(/[()]/g,'').replace(/b/g,'♭').replace(/#/g,'♯');
   if(q==='Δ'||q==='△'||q==='^')return'maj7';q=q.replace(/^\^/,'maj');
   q=q.replace(/^(min|mi|-)/,'m');
-  q=q.replace(/^(Maj|MAJ|maj|Ma|ma|M|Δ|△)/,'maj');
+  q=q.replace(/^(Maj|MAJ|maj|Ma(?!dd)|ma(?!dd)|M(?!add)|Δ|△)/,'maj');   /* niet de "ma" van madd9 (Cm(add9)) */
   q=q.replace(/^m(M|Maj|maj|Δ|△)/,'mmaj');
   q=q.replace(/^(ø|Ø)7?/,'m7♭5');
   q=q.replace(/^(°|o)7/,'dim7').replace(/^(°|o)$/,'dim');
@@ -97,7 +97,7 @@ function normQ(q){
 const SYMQ={'':'maj',m:'m',dim:'dim',aug:'aug',sus2:'sus2',sus4:'sus4','6':'6',m6:'m6','6/9':'69',add9:'add9',madd9:'madd9',
   maj7:'maj7',m7:'m7','7':'7','m7♭5':'m7b5',dim7:'dim7',mmaj7:'mMaj7','7sus4':'7sus4',maj9:'maj9',m9:'m9','9':'9','13':'13',
   '7♭9':'7b9','7♯9':'7s9','7alt':'7alt','maj7♯11':'maj7s11','7♯11':'7s11',m11:'m11','7♭5':'7b5','7♯5':'7s5','9sus4':'9sus4',
-  'maj7♯5':'maj7s5',m7b5:'m7b5',maj6:'6',sus:'sus4','2':'sus2',add2:'add9'};
+  'maj7♯5':'maj7s5',m7b5:'m7b5',maj6:'6',sus:'sus4','2':'sus2',add2:'add9',Madd9:'add9'};
 /* één akkoord, bijv. "Cmaj7", "Bb-7", "G7/B", "F#ø" → {root, rootPc, q, bass, bassPc, sym} of null */
 function parseChord(txt){
   const t=String(txt||'').trim().replace(/♯/g,'#').replace(/♭/g,'b');
