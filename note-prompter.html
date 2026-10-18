@@ -4,73 +4,52 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Note Prompter</title>
+<!-- NOTE PROMPTER (Practice Room)
+     Eén grote, willekeurige opdracht: een noot of een arpeggio, eventueel op een snaar. Pedaal (MIDI of toetsenbord) = volgende.
+     Schil (icoonbalk, achtergrond, kolom rechts): shared/room.css + shared/rail.js; toets S = geheim menu (shared/look.js).
+     In beeld: het podium (de opdracht) en de notenkeuze (Notes/Arpeggios + de 12 noten). In de kolom rechts (#setup):
+     spelling, akkoordsoorten, snaar, volgorde, stem, pedaal, volledig scherm, bewaarde sets, back-up.
+     Opslag: localStorage 'notePrompter.v1' (instellingen; setup = kolom rechts open, stage = podiumstijl uit menu S)
+     en 'notePrompter.log' (oefentijd per dag, voor de kalender op Home). 'theme' blijft bewaard maar wordt genegeerd (daglicht). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=DotGothic16&family=Pixelify+Sans:wght@400..700&family=VT323&family=Space+Mono:wght@400;700&family=Handjet:wght@300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/room.css">
 <style>
-/* ════════════════════════════════════════════════════════════════════════════
-   NOTE PROMPTER (Practice Room)
-   Eén grote, willekeurige opdracht: een noot of een arpeggio, eventueel op een snaar. Pedaal (MIDI of toetsenbord) = volgende.
-   Indeling: zijbalk · kop · podium (de opdracht) · Setup (wat, waar, volgorde, pedaal, bewaarde sets).
-   Opslag: localStorage 'notePrompter.v1' (instellingen) en 'notePrompter.log' (oefentijd per dag, voor de kalender op Home).
-   Zelfde Apple-stijl als de Scale Trainer.
-   ════════════════════════════════════════════════════════════════════════════ */
-:root{
-  --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
-  --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
-  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--err:#c4302b;--ok:#248a3d;--sh:0 1px 2px rgba(0,0,0,.04);
-  --hi:#ff9f0a;--stage1:#1c1c1e;--stage2:#2c2c2e;--stx:#f5f5f7;--smut:#a1a1a6;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--ok:#30d158;--sh:none;--stage1:#111113;--stage2:#1c1c1e;color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--ok:#30d158;--sh:none;--stage1:#111113;--stage2:#1c1c1e;color-scheme:dark}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--link)}
-button,select,input{font:inherit;color:var(--tx)}
-button{cursor:pointer}
-button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,.tg:focus-within{outline:3px solid var(--ac);outline-offset:2px}
-p{margin:0}
-/* ── app-indeling (gelijk aan de trainers) ── */
-.app{display:flex;min-height:100vh}
-.side{flex:0 0 220px;position:sticky;top:0;height:100vh;padding:22px 12px;border-right:1px solid var(--sep);background:var(--side);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.brand{font-size:13px;font-weight:600;color:var(--mut);padding:0 10px 10px}
-.side nav{display:grid;gap:2px}
-.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
-.side a:hover{background:var(--fill)}
-.side a.cur{font-weight:600;background:rgba(10,99,214,.13);color:var(--link)}
-main{flex:1;min-width:0;padding:20px 28px 56px;display:grid;gap:16px;align-content:start}
-.tb{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.15}
-.sub{color:var(--mut);font-size:14px;margin-top:2px}
-.tr{display:flex;gap:8px;align-items:center}
-.card{background:var(--card);border-radius:18px;padding:20px;box-shadow:var(--sh);min-width:0}
+/* Note Prompter · eigen CSS bovenop shared/room.css. Het podium is donker warm glas (leesbaar van afstand);
+   menu S → Stage maakt het perkament. */
+:root{--st:rgba(52,27,12,.86);--stx:#fff3df;--smut:rgba(255,240,220,.62);--sq:#ffd38a;--hi:#f0a24a;--sline:rgba(255,240,220,.22)}
+body[data-stage="paper"]{--st:var(--panel);--stx:var(--tx);--smut:var(--mut);--sq:var(--onx);--hi:var(--glow);--sline:rgba(90,55,25,.25)}
 .cap{font-size:13px;color:var(--mut)}
-h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:0 0 10px}
-.ib{width:36px;height:36px;padding:0;border-radius:9px;border:0;background:var(--fill);display:grid;place-items:center}
-.act{min-height:34px;padding:0 14px;border-radius:9px;border:0;background:var(--fill);font-size:14px;font-weight:600}
-.act.pri{background:var(--ac);color:var(--onac)}
-.act[aria-expanded="true"]{background:rgba(10,99,214,.13);color:var(--link)}
-.seg{display:inline-flex;flex-wrap:wrap;padding:2px;border-radius:9px;background:var(--fill)}
-.seg button{border:0;background:none;border-radius:7px;min-height:30px;padding:0 13px;font-size:13px}
-.seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600}
-.tg{position:relative;flex:none;display:inline-flex;cursor:pointer}
-.tg input{position:absolute;opacity:0;width:1px;height:1px}
-.tg i{width:46px;height:28px;border-radius:14px;background:var(--fill);position:relative;transition:background .15s}
-.tg i::after{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .15s}
-.tg input:checked+i{background:#34c759}.tg input:checked+i::after{transform:translateX(18px)}
+.note{font-size:13px;color:var(--mut);line-height:1.45}
+.note.warn{color:var(--err)}
+.lb{font-size:calc(13.5px * var(--dfs));color:var(--mut2);text-transform:uppercase}
+select{min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px;font-size:14px;color:var(--tx);max-width:100%}
+.act.sm{min-height:30px;padding:0 12px;font-size:13px}
+.prb-row{display:flex;flex-wrap:wrap;gap:8px}
+.prb-msg{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+
+/* ── keuzechips ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:10px;min-height:36px;min-width:44px;padding:0 11px;background:var(--fill);font-size:15px;font-weight:600;color:var(--mut)}
+.chip:hover{color:var(--tx)}
+.chip[aria-pressed="true"]{background:var(--field);color:var(--onx);border-color:rgba(196,106,28,.45);box-shadow:0 1px 3px rgba(90,55,25,.15)}
+.chip small{font-weight:500;opacity:.75;font-size:12px;margin-left:3px}
+.chip.wide{min-width:auto;min-height:30px;font-size:13px}
+
+/* midden: titel · notenkeuze · podium (vult de rest) */
+.pmain{display:flex;flex-direction:column;gap:16px;height:100%;width:100%;max-width:1500px;margin:0 auto;padding:22px 32px 28px}
+.pmain .top{margin:0}
+.pick{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:12px 18px}
+.pick .quick{display:flex;gap:10px;margin-left:auto}
 
 /* ── podium: de opdracht ── */
-.stage{position:relative;border-radius:24px;background:radial-gradient(120% 90% at 50% 0%,var(--stage2),var(--stage1));color:var(--stx);
-  min-height:min(58vh,640px);display:grid;grid-template-rows:1fr auto;cursor:pointer;user-select:none;-webkit-user-select:none;overflow:hidden}
-.stage:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
+.stage{position:relative;flex:1;min-height:0;border-radius:26px;background:var(--st);border:1px solid var(--glass-line);color:var(--stx);box-shadow:0 18px 44px rgba(50,25,10,.35);
+  display:grid;grid-template-rows:1fr auto;cursor:pointer;user-select:none;-webkit-user-select:none;overflow:hidden}
+body[data-stage="paper"] .stage{border-color:var(--line)}
+.stage:focus-visible{outline:3px solid var(--glow);outline-offset:3px}
 .pr{display:grid;place-items:center;align-content:center;gap:clamp(8px,2vh,22px);padding:32px 24px 8px;text-align:center}
-.big{font-size:clamp(110px,24vh,340px);font-weight:800;line-height:.95;letter-spacing:-.03em;white-space:nowrap}
-.big .q{font-weight:600;font-size:.56em;letter-spacing:-.02em;margin-left:.06em;color:#ffd38a}
+.big{font-size:clamp(110px,26vh,360px);font-weight:800;line-height:.95;letter-spacing:-.03em;white-space:nowrap}
+.big .q{font-weight:600;font-size:.56em;letter-spacing:-.02em;margin-left:.06em;color:var(--sq)}
 .big .alt{color:var(--smut);font-weight:700}
 .big.idle{font-size:clamp(40px,7vh,72px);font-weight:700;color:var(--smut);letter-spacing:-.01em}
 .on{font-size:clamp(20px,3.4vh,34px);color:var(--smut);font-weight:500}
@@ -79,144 +58,136 @@ h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)
 @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
 /* kleine snarenweergave (zoals tab: hoge e boven), de gevraagde snaar licht op */
 .strs{display:grid;gap:9px;width:min(420px,70%);margin-top:6px}
-.strs i{display:block;height:2px;border-radius:2px;background:rgba(245,245,247,.22);position:relative}
-.strs i.hit{height:5px;background:var(--hi);box-shadow:0 0 14px rgba(255,159,10,.7)}
+.strs i{display:block;height:2px;border-radius:2px;background:var(--sline);position:relative}
+.strs i.hit{height:5px;background:var(--hi);box-shadow:0 0 14px var(--hi)}
 .sfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;font-size:13px;color:var(--smut);flex-wrap:wrap}
 .sfoot b{color:var(--stx);font-variant-numeric:tabular-nums}
 .sfoot .pd{display:inline-flex;align-items:center;gap:7px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--mut2);display:inline-block}
-.dot.ok{background:#30d158;box-shadow:0 0 8px rgba(48,209,88,.6)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--smut);display:inline-block}
+.dot.ok{background:#9bd77e;box-shadow:0 0 8px rgba(155,215,126,.6)}
 .dot.flash{background:var(--hi);box-shadow:0 0 10px var(--hi)}
 /* volledig scherm: alleen het podium */
-body.fs .side,body.fs .tb,body.fs #setup{display:none}
-body.fs main{padding:0}
-body.fs .stage{border-radius:0;min-height:100vh}
+body.fs .rail,body.fs .col,body.fs .top,body.fs #pick{display:none}
+body.fs .pmain{padding:0;max-width:none}
+body.fs .stage{border-radius:0;border:0}
 body.fs .big{font-size:clamp(140px,34vh,460px)}
 
-/* ── setup ── */
-.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:26px 34px}
-.blk{display:grid;gap:10px;align-content:start;min-width:0}
-.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.row>.lb{min-width:92px;font-size:14px;color:var(--mut)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:0;border-radius:9px;min-height:36px;min-width:44px;padding:0 11px;background:var(--fill);font-size:15px;font-weight:600;color:var(--tx)}
-.chip[aria-pressed="true"]{background:var(--ac);color:var(--onac)}
-.chip small{font-weight:500;opacity:.75;font-size:12px;margin-left:3px}
-.chip.wide{min-width:auto;font-size:13px;font-weight:600}
-.grp{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:start}
-.grp>span{font-size:12px;color:var(--mut);padding-top:9px}
-.lnk{border:0;background:none;color:var(--link);font-size:13px;padding:2px 4px}
-.lrow{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
-.lrow small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
-.note{font-size:13px;color:var(--mut);line-height:1.45}
-.note.warn{color:var(--err)}
-.sets{display:flex;flex-wrap:wrap;gap:6px}
-.set{display:inline-flex;align-items:center;border-radius:9px;background:var(--fill);overflow:hidden}
-.set button{border:0;background:none;min-height:34px;padding:0 10px;font-size:14px}
-.set button.x{padding:0 9px;color:var(--mut);border-left:1px solid var(--sep)}
+/* ── kolom rechts ── */
+.col .colf{display:grid;gap:6px;margin:9px 0;color:var(--mut);font-size:14px}
+.col .lrow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:9px 0;font-size:14px;color:var(--tx)}
+.col .lrow>span:first-child{min-width:0}
+.col .lrow small{display:block;color:var(--mut);font-size:12px;margin-top:2px;line-height:1.35}
+.col .lrow select{max-width:62%}
+.col .lrow input[type=range]{width:110px}
+.krow{display:flex;gap:6px;align-items:center}
+#typesBox .row{justify-content:flex-start}
+.grp{display:grid;grid-template-columns:58px 1fr;gap:8px;align-items:start;margin:6px 0}
+.grp>span{font-size:12px;color:var(--mut);padding-top:6px}
+.sets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.set{display:inline-flex;align-items:center;border-radius:9px;border:1px solid var(--line);background:var(--fill);overflow:hidden}
+.set button{border:0;background:none;min-height:30px;padding:0 10px;font-size:13.5px}
+.set button.x{padding:0 9px;color:var(--mut);border-left:1px solid var(--line)}
 .set button:hover{background:var(--fill)}
 .save{display:flex;gap:8px}
-.save input{flex:1;min-width:0;min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 10px}
-.learn[aria-pressed="true"]{background:var(--hi);color:#1c1c1e}
-.mon summary{cursor:pointer;color:var(--link);font-size:13px}
-#midiMon{display:grid;gap:3px;margin-top:8px;font-size:13px;font-variant-numeric:tabular-nums;max-height:190px;overflow:auto}
+.save input{flex:1;min-width:0;min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 10px;font-size:14px}
+.learn{min-width:76px;justify-content:center}
+.learn[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.mon summary{cursor:pointer;color:var(--onx);font-size:13px}
+#midiMon{display:grid;gap:3px;margin-top:8px;font-size:12.5px;font-variant-numeric:tabular-nums;max-height:190px;overflow:auto}
 #midiMon .res{color:var(--mut)}
-.lrow input[type=range]{width:150px}
-#btnVoice[aria-pressed="true"]{background:rgba(10,99,214,.13);color:var(--link)}
-.lrow select{min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 8px;max-width:60%;font-size:14px}
-@media (max-width:820px){.side{display:none}main{padding:16px}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}}
-.prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
 </style>
 </head>
 <body>
-<div class="app">
-  <aside class="side">
-    <div class="brand">Practice Room</div>
-    <nav>
-      <a id="lnkHome" href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
-      <a href="fretboard-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14M3 12h18"/></svg><span>Fretboard Trainer</span></a>
-      <a href="toonladder-trainer.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Scale Trainer</span></a>
-      <a class="cur" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 15V8l6-1v7"/><circle cx="8" cy="15" r="1.6"/><circle cx="14" cy="14" r="1.6"/></svg><span>Note Prompter</span></a>
-      <a href="chord-moves.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 8h14M10 3v18M14 3v18"/><circle cx="10" cy="12" r="1.4" fill="currentColor"/><circle cx="14" cy="15" r="1.4" fill="currentColor"/></svg><span>Chord Moves</span></a>
-      <a href="lick-lab.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 16c2.5 0 2.5-8 5-8s2.5 8 5 8 2.5-8 5-8 2.5 4 3 4"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="13" cy="16" r="1.3" fill="currentColor"/></svg><span>Lick Lab</span></a>
-      <a href="tuner.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21h14"/><path d="M12 17V4"/><path d="M8 7l4-3 4 3"/><path d="M6 13h2M16 13h2M7 9.5h1.5M15.5 9.5H17"/></svg><span>Tuner</span></a>
-    </nav>
-  </aside>
+<div class="bgfx photo"></div><div class="bgfx tex"></div><div class="bgfx grain"></div>
+<div class="shell">
+  <!-- icoonbalk: alleen apps (shared/rail.js tekent hem) -->
+  <nav class="rail" id="side" data-app="note-prompter"></nav>
 
-  <main>
-    <header class="tb">
-      <div><h1>Note Prompter</h1><p class="sub" id="sub"></p></div>
-      <div class="tr">
-        <button class="act" id="btnSetup" type="button" aria-expanded="true" aria-controls="setup">Setup</button>
-        <button class="ib" id="btnVoice" type="button" aria-pressed="false"></button>
-        <button class="ib" id="btnFs" type="button" aria-label="Full screen" title="Full screen (F)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-        <button class="ib" id="btnTheme" type="button"></button>
-      </div>
-    </header>
+  <main class="main">
+    <div class="pmain">
+      <header class="top"><h1 class="px">Note Prompter</h1><div class="grow"></div></header>
 
-    <!-- het podium: klik, spatie of pedaal = volgende -->
-    <section class="stage" id="stage" tabindex="0" aria-label="Prompt. Press your pedal, Space or click for the next one.">
-      <div class="pr" aria-live="polite">
-        <div class="big idle" id="big"></div>
-        <div class="on" id="on"></div>
-        <div class="strs" id="strs" aria-hidden="true"></div>
-      </div>
-      <div class="sfoot">
-        <span><b id="cnt">0</b> prompts · <b id="tm">0:00</b></span>
-        <span class="pd"><i class="dot" id="pdot"></i><span id="pstat"></span></span>
-        <span id="keysHint"></span>
-      </div>
-    </section>
+      <!-- wat je oefent: noten of arpeggio's, en welke noten -->
+      <section class="paper pick" id="pick" aria-label="What to practise">
+        <span class="seg" id="segMode" role="group" aria-label="Practise"></span>
+        <span class="lb px" id="lbNotes"></span>
+        <div class="chips" id="notes" role="group" aria-label="Notes"></div>
+        <div class="quick" id="noteQuick"></div>
+      </section>
 
-    <!-- instellingen -->
-    <section class="card" id="setup">
-      <div class="sgrid">
-        <div class="blk">
-          <h3>What</h3>
-          <div class="row"><span class="lb">Practise</span><span class="seg" id="segMode"></span></div>
-          <div class="row" style="align-items:flex-start"><span class="lb" id="lbNotes" style="padding-top:8px"></span>
-            <div style="display:grid;gap:6px;flex:1;min-width:0"><div class="chips" id="notes"></div><div class="row" id="noteQuick"></div></div></div>
-          <div class="row"><span class="lb">Spelling</span><span class="seg" id="segSpell"></span></div>
-          <div id="typesBox" class="blk" style="gap:8px"></div>
+      <!-- het podium: klik, spatie of pedaal = volgende -->
+      <section class="stage" id="stage" tabindex="0" aria-label="Prompt. Press your pedal, Space or click for the next one.">
+        <div class="pr" aria-live="polite">
+          <div class="big idle" id="big"></div>
+          <div class="on" id="on"></div>
+          <div class="strs" id="strs" aria-hidden="true"></div>
         </div>
-        <div class="blk">
-          <h3>Where</h3>
-          <div class="row" style="align-items:flex-start"><span class="lb" style="padding-top:8px">String</span>
-            <div style="display:grid;gap:6px;flex:1"><div class="chips" id="strings"></div><p class="note" id="strNote"></p></div></div>
-          <h3 style="margin-top:12px">Order</h3>
-          <div class="lrow"><span>Fair shuffle<small>Every combination once before anything repeats. Off: fully random (never the same twice in a row).</small></span>
-            <label class="tg"><input type="checkbox" role="switch" id="fair" aria-label="Fair shuffle"><i></i></label></div>
-          <h3 style="margin-top:12px">Voice</h3>
-          <div class="lrow"><span>Say each prompt out loud<small>So you can keep your eyes on the neck. V switches it on and off, R says it again.</small></span>
-            <label class="tg"><input type="checkbox" role="switch" id="vOn" aria-label="Say each prompt out loud"><i></i></label></div>
-          <div class="lrow"><span>Voice</span><select id="vName" aria-label="Voice"></select></div>
-          <div class="lrow"><span>Speed</span><span class="row"><input type="range" id="vRate" min="0.7" max="1.4" step="0.05" aria-label="Speed"><output class="cap" id="vRateV"></output></span></div>
-          <div class="lrow"><span>Volume</span><span class="row"><input type="range" id="vVol" min="0.2" max="1" step="0.05" aria-label="Volume"><button class="act" type="button" id="vTest">Test</button><button class="act" type="button" id="vAbc" title="Say all note names">A–G</button></span></div>
-          <p class="note" id="vNote"></p>
-          <h3 style="margin-top:12px">Backup (all Practice Room apps)</h3>
-          <div id="prBackup" data-app="Note Prompter" data-btn="act"></div>
-          <h3 style="margin-top:12px">Saved sets</h3>
-          <div class="sets" id="sets"></div>
-          <div class="save"><input id="setName" type="text" maxlength="40" placeholder="Name, e.g. G string naturals" aria-label="Name for this set"><button class="act" type="button" id="btnSave">Save set</button></div>
+        <div class="sfoot">
+          <span><b id="cnt">0</b> prompts · <b id="tm">0:00</b></span>
+          <span class="pd"><i class="dot" id="pdot"></i><span id="pstat"></span></span>
         </div>
-        <div class="blk">
-          <h3>Pedal</h3>
-          <p class="note" id="midiNote"></p>
-          <div class="row"><button class="act pri" type="button" id="btnMidi">Connect MIDI</button><span class="cap" id="midiDev"></span></div>
-          <div class="lrow" id="inRow" hidden><span>MIDI input<small>Only this device controls the prompter.</small></span><select id="midiIn" aria-label="MIDI input"></select></div>
-          <div class="lrow"><span>Next<small id="lNext"></small></span><button class="act learn" type="button" data-learn="next" aria-pressed="false">Learn</button></div>
-          <div class="lrow"><span>Back<small id="lBack"></small></span><button class="act learn" type="button" data-learn="back" aria-pressed="false">Learn</button></div>
-          <div class="lrow"><span>Say again<small id="lRep"></small></span><button class="act learn" type="button" data-learn="repeat" aria-pressed="false">Learn</button></div>
-          <div class="row"><button class="lnk" type="button" id="btnForget">Forget learned pedal</button></div>
-          <details class="mon" id="monBox"><summary>MIDI monitor</summary><div id="midiMon"><span class="cap">Press a pedal button: every message your pedal sends shows up here.</span></div></details>
-          <p class="note">Keyboard: Space, Enter, → or Page Down = next · ← or Page Up = back · R = say again · V = voice on/off · F = full screen. Clicking the stage also works.</p>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
+
+  <!-- kolom rechts: instellen, niet spelen -->
+  <aside class="col" id="col" aria-label="Settings">
+    <button type="button" class="ib reopen" data-col="open" title="Show settings" aria-label="Show settings"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="colhd">
+      <h2 class="px">Settings</h2>
+      <button type="button" class="ib" data-col="shut" title="Hide settings" aria-label="Hide settings"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div id="setup">
+      <p class="note" id="sub"></p>
+
+      <h3>What</h3>
+      <div class="row"><span>Spelling</span><span class="seg" id="segSpell" role="group" aria-label="Spelling"></span></div>
+      <div id="typesBox"></div>
+
+      <h3>Where</h3>
+      <div class="colf"><span>String</span><div class="chips" id="strings" role="group" aria-label="String"></div><p class="note" id="strNote"></p></div>
+
+      <h3>Order</h3>
+      <div class="lrow"><span>Fair shuffle<small>Every combination once before anything repeats. Off: fully random (never the same twice in a row).</small></span>
+        <label class="tg"><input type="checkbox" role="switch" id="fair" aria-label="Fair shuffle"><i></i></label></div>
+
+      <h3>Voice</h3>
+      <div class="lrow"><span>Say each prompt out loud<small>So you can keep your eyes on the neck. V switches it on and off, R says it again.</small></span>
+        <label class="tg"><input type="checkbox" role="switch" id="vOn" aria-label="Say each prompt out loud"><i></i></label></div>
+      <div class="lrow"><span>Voice</span><select id="vName" aria-label="Voice"></select></div>
+      <div class="lrow"><span>Speed</span><span class="krow"><input type="range" id="vRate" min="0.7" max="1.4" step="0.05" aria-label="Speed"><output class="cap" id="vRateV"></output></span></div>
+      <div class="lrow"><span>Volume</span><input type="range" id="vVol" min="0.2" max="1" step="0.05" aria-label="Volume"></div>
+      <div class="lrow"><span></span><span class="krow"><button class="act sm" type="button" id="vTest">Test</button><button class="act sm" type="button" id="vAbc" title="Say all note names">A–G</button></span></div>
+      <p class="note" id="vNote"></p>
+
+      <h3>Pedal</h3>
+      <p class="note" id="midiNote"></p>
+      <div class="lrow"><button class="act sm pri" type="button" id="btnMidi">Connect MIDI</button><span class="cap" id="midiDev"></span></div>
+      <div class="lrow" id="inRow" hidden><span>MIDI input<small>Only this device controls the prompter.</small></span><select id="midiIn" aria-label="MIDI input"></select></div>
+      <div class="lrow"><span>Next<small id="lNext"></small></span><button class="act sm learn" type="button" data-learn="next" aria-pressed="false">Learn</button></div>
+      <div class="lrow"><span>Back<small id="lBack"></small></span><button class="act sm learn" type="button" data-learn="back" aria-pressed="false">Learn</button></div>
+      <div class="lrow"><span>Say again<small id="lRep"></small></span><button class="act sm learn" type="button" data-learn="repeat" aria-pressed="false">Learn</button></div>
+      <div class="lrow"><button class="lnk" type="button" id="btnForget">Forget learned pedal</button>
+        <span class="help l" tabindex="0" aria-label="Keys">?<i>Keyboard: Space, Enter, → or Page Down = next · ← or Page Up = back · R = say again · V = voice on/off · F = full screen. Clicking the stage also works.</i></span></div>
+      <details class="mon" id="monBox"><summary>MIDI monitor</summary><div id="midiMon"><span class="cap">Press a pedal button: every message your pedal sends shows up here.</span></div></details>
+
+      <h3>Screen</h3>
+      <div class="lrow"><span>Only the stage<small>Esc leaves full screen.</small></span><button class="act sm" type="button" id="btnFs" title="Full screen (F)">Full screen</button></div>
+
+      <h3>Saved sets</h3>
+      <div class="sets" id="sets"></div>
+      <div class="save"><input id="setName" type="text" maxlength="40" placeholder="Name, e.g. G string naturals" aria-label="Name for this set"><button class="act sm" type="button" id="btnSave">Save set</button></div>
+
+      <h3>Backup</h3>
+      <p class="note" style="margin-bottom:10px">All Practice Room apps.</p>
+      <div id="prBackup" data-app="Note Prompter" data-btn="act sm"></div>
+    </div>
+  </aside>
 </div>
 
+<script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
+<script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
 <script>
 
 /* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter, Chord Moves) ══════
@@ -305,7 +276,7 @@ const TYPE_GROUPS=[
 const STRINGS=[['E','low E'],['A','A'],['D','D'],['G','G'],['B','B'],['e','high e']];
 const DEFAULTS={mode:'notes',pcs:[0,2,4,5,7,9,11],spell:'flat',types:['maj7','m7','7','m7b5'],strings:[],fair:true,
   setup:true,theme:'auto',sets:[],midiOn:false,midiIn:null,pedal:{next:null,back:null,repeat:null},
-  voice:{on:false,name:'',rate:1,vol:1}};   /* voice: uitspreken aan/uit, stem (naam; leeg = de beste die er is), tempo, volume */   /* midiIn = gekozen MIDI-ingang {id,name}; null = alle */
+  voice:{on:false,name:'',rate:1,vol:1},stage:'glass'};   /* stage: podium donker glas of perkament (menu S) */   /* voice: uitspreken aan/uit, stem (naam; leeg = de beste die er is), tempo, volume */   /* midiIn = gekozen MIDI-ingang {id,name}; null = alle */
 const IDLE_SECS=60;            /* langer dan dit niets gedrukt: die tijd telt niet als oefentijd */
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -329,17 +300,14 @@ function load(){const s=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)),read(
   s.spell=['sharp','flat','mix','both'].includes(s.spell)?s.spell:'flat';
   s.types=Array.isArray(s.types)?s.types.filter(typeOf):DEFAULTS.types.slice();
   s.strings=Array.isArray(s.strings)?[...new Set(s.strings.filter(x=>Number.isInteger(x)&&x>=0&&x<6))]:[];
-  s.fair=s.fair!==false;s.setup=s.setup!==false;s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
+  s.fair=s.fair!==false;s.setup=s.setup!==false;s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';   /* setup = kolom rechts open; theme wordt niet meer gebruikt */
+  s.stage=s.stage==='paper'?'paper':'glass';
   s.sets=Array.isArray(s.sets)?s.sets.filter(x=>x&&typeof x.name==='string'&&x.cfg):[];
   s.midiIn=s.midiIn&&typeof s.midiIn.name==='string'?{id:String(s.midiIn.id||''),name:s.midiIn.name}:null;
   s.pedal=s.pedal&&typeof s.pedal==='object'?{next:s.pedal.next||null,back:s.pedal.back||null,repeat:s.pedal.repeat||null}:{next:null,back:null,repeat:null};
   const v=s.voice&&typeof s.voice==='object'?s.voice:{};s.voice={on:v.on===true,name:typeof v.name==='string'?v.name:'',rate:Math.min(1.4,Math.max(.7,+v.rate||1)),vol:Math.min(1,Math.max(.2,+v.vol||1))};
   return s;}
 let S=load();
-/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
-const THEMEKEY='practiceRoom.theme';
-(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;else try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}})();
-addEventListener('storage',e=>{if(e.key!==THEMEKEY)return;const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;save();applyTheme();}});
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
 /* ── oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden,n:opdrachten}} ── */
@@ -452,7 +420,6 @@ function flashDot(){const d=$('#pdot');d.classList.add('flash');setTimeout(()=>d
 /* ── setup ── */
 const seg=(el,list,cur,attr)=>{el.innerHTML=list.map(([v,l])=>'<button type="button" data-'+attr+'="'+v+'" aria-pressed="'+(String(cur)===String(v))+'">'+esc(l)+'</button>').join('');};
 function renderSetup(){
-  $('#setup').hidden=!S.setup;$('#btnSetup').setAttribute('aria-expanded',S.setup);
   seg($('#segMode'),[['notes','Notes'],['arps','Arpeggios']],S.mode,'mode');
   seg($('#segSpell'),[['flat','♭'],['sharp','♯'],['mix','Random']].concat(S.mode==='notes'?[['both','Both']]:[]),S.spell==='both'&&S.mode==='arps'?'mix':S.spell,'spell');
   $('#lbNotes').textContent=S.mode==='arps'?'Roots':'Notes';
@@ -468,10 +435,7 @@ function renderSetup(){
   $('#sets').innerHTML=S.sets.length?S.sets.map((x,i)=>'<span class="set"><button type="button" data-load="'+i+'">'+esc(x.name)+'</button><button type="button" class="x" data-del="'+i+'" aria-label="Delete '+esc(x.name)+'">×</button></span>').join(''):'<span class="cap">No saved sets yet.</span>';
   const n=pool().length;$('#sub').textContent=n?(n+' combination'+(n===1?'':'s')+' · press your pedal, Space or click the stage'):'Pick at least one note'+(S.mode==='arps'?' and one chord':'');
   renderPedal();renderVoice();}
-const ICON_SPK={on:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>',
-  off:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'};
 function renderVoice(){const V=S.voice,L=voices(),cur=curVoice();
-  const b=$('#btnVoice'),l=V.on?'Voice on (V)':'Voice off (V)';b.innerHTML=ICON_SPK[V.on?'on':'off'];b.title=l;b.setAttribute('aria-label',l);b.setAttribute('aria-pressed',V.on);
   $('#vOn').checked=V.on;$('#vRate').value=V.rate;$('#vRateV').textContent=V.rate.toFixed(2)+'×';$('#vVol').value=V.vol;
   const cn=clipName();
   $('#vName').innerHTML=(clipOK?'<optgroup label="Built-in (works in every browser)">'+CLIP_VOICES.map(([id,l])=>'<option value="clip:'+id+'">'+esc(l)+'</option>').join('')+'</optgroup>':'')
@@ -481,7 +445,6 @@ function renderVoice(){const V=S.voice,L=voices(),cur=curVoice();
     /natural/i.test(cur?cur.name:'')?'':'Tip: in Edge, the voices called “Natural” sound the clearest.';}
 function setVoice(on){S.voice.on=on;save();renderVoice();if(on)say(hist[hi]||'Voice on.',true);else{clipGen++;clipStop();if(TTS)TTS.cancel();}}
 function bindVoice(){
-  $('#btnVoice').addEventListener('click',()=>setVoice(!S.voice.on));
   $('#vOn').addEventListener('change',e=>setVoice(e.target.checked));
   $('#vName').addEventListener('change',e=>{S.voice.name=e.target.value;save();say(hist[hi]||SAMPLE,true);});
   $('#vRate').addEventListener('input',e=>{S.voice.rate=+e.target.value;$('#vRateV').textContent=S.voice.rate.toFixed(2)+'×';save();});
@@ -495,7 +458,8 @@ function changed(){bag=[];save();renderSetup();if(hi<0)show(null);}
 const cfgOf=()=>({mode:S.mode,pcs:S.pcs.slice(),spell:S.spell,types:S.types.slice(),strings:S.strings.slice(),fair:S.fair});
 
 function bindSetup(){
-  $('#setup').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  /* knoppen in de kolom (#setup) en in de notenkeuze (#pick) */
+  const onClick=e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
     if(d.mode){S.mode=d.mode;changed();}
     else if(d.spell){S.spell=d.spell;changed();}
     else if(d.pc!=null){const pc=+d.pc;S.pcs=S.pcs.includes(pc)?S.pcs.filter(x=>x!==pc):[...S.pcs,pc].sort((a,b)=>a-b);changed();}
@@ -506,7 +470,8 @@ function bindSetup(){
     else if(d.load!=null){const x=S.sets[+d.load];if(x){Object.assign(S,JSON.parse(JSON.stringify(x.cfg)));$('#setName').value=x.name;changed();}}
     else if(d.del!=null){S.sets.splice(+d.del,1);save();renderSetup();}
     else if(d.learn){learning=learning===d.learn?null:d.learn;renderPedal();return;}
-    if(e.detail>0)$('#stage').focus({preventScroll:true});});   /* na een muisklik: focus terug naar het podium, zodat pedaal-toetsen niet op een knop drukken */
+    if(e.detail>0)$('#stage').focus({preventScroll:true});};   /* na een muisklik: focus terug naar het podium, zodat pedaal-toetsen niet op een knop drukken */
+  $('#setup').addEventListener('click',onClick);$('#pick').addEventListener('click',onClick);
   $('#fair').addEventListener('change',e=>{S.fair=e.target.checked;changed();});
   const doSave=()=>{const name=$('#setName').value.trim()||('Set '+(S.sets.length+1)),i=S.sets.findIndex(x=>x.name===name);
     const x={name,cfg:cfgOf()};if(i>=0)S.sets[i]=x;else S.sets.push(x);save();renderSetup();};
@@ -568,11 +533,13 @@ function routeName(kind,id,fallback){const P=S.pedal,is=x=>x&&x.kind===kind&&x.i
   return fallback||null;}
 function route(kind,id,fallback){const r=routeName(kind,id,fallback);if(r)act(r);return !!r;}
 const typing=t=>t&&(t.tagName==='INPUT'&&t.type==='text'||t.tagName==='TEXTAREA'||t.tagName==='SELECT');
+/* leren gaat vóór alles (capture-fase): de toets wordt alleen geleerd, ook S opent dan niet het menu Look */
+addEventListener('keydown',e=>{if(!learning)return;e.stopImmediatePropagation();
+  if(e.key!=='Escape'){e.preventDefault();S.pedal[learning]={kind:'key',id:e.code||e.key,label:'Key '+(e.key===' '?'Space':e.key)};learning=null;save();renderPedal();flashDot();return;}
+  learning=null;renderPedal();},true);
 addEventListener('keydown',e=>{
-  if(learning&&e.key!=='Escape'){e.preventDefault();S.pedal[learning]={kind:'key',id:e.code||e.key,label:'Key '+(e.key===' '?'Space':e.key)};learning=null;save();renderPedal();flashDot();return;}
-  if(e.key==='Escape'&&learning){learning=null;renderPedal();return;}
   if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
-  if(e.target.closest&&e.target.closest('#setup')&&(e.key===' '||e.key==='Enter'))return;   /* knoppen in Setup gewoon laten werken */
+  if(e.target.closest&&e.target.closest('#col,#pick')&&(e.key===' '||e.key==='Enter'))return;   /* knoppen in de kolom en de notenkeuze gewoon laten werken */
   const code=e.code||e.key;
   const fb=[' ','Enter','ArrowRight','ArrowDown','PageDown'].includes(e.key)?'next':['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)?'back':null;
   if(route('key',code,fb)){e.preventDefault();return;}
@@ -598,25 +565,23 @@ function renderPedal(){
   $('#pdot').className='dot'+(midi&&ins.length||P.next&&P.next.kind==='key'?' ok':'');
   $('#pstat').textContent=midi&&ins.length?ins[0].name:P.next?P.next.label:'Space / click';}
 
-/* ── volledig scherm, thema ── */
+/* ── volledig scherm ── */
 function toggleFs(){const on=!document.fullscreenElement;
   if(on){(document.documentElement.requestFullscreen?document.documentElement.requestFullscreen():Promise.reject()).catch(()=>document.body.classList.add('fs'));}
   else document.exitFullscreen&&document.exitFullscreen();}
 document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('fs',!!document.fullscreenElement);$('#stage').focus();});
-const ICON={auto:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
-  light:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  dark:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor"/></svg>'};
-function applyTheme(){const r=document.documentElement;if(S.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',S.theme);
-  const b=$('#btnTheme'),l='Theme: '+(S.theme==='auto'?'automatic':S.theme);b.innerHTML=ICON[S.theme];b.title=l;b.setAttribute('aria-label',l);}
+/* ── podiumstijl (menu S) ── */
+function applyStage(){document.body.dataset.stage=S.stage;}
 
 /* ── start ── */
 function init(){
-  applyTheme();bindSetup();bindVoice();renderSetup();show(null);homeLink();
-  $('#keysHint').textContent='← back · R say again · V voice · F full screen';
+  applyStage();bindSetup();bindVoice();renderSetup();show(null);homeLink();
+  try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
+  ROOM.column($('#col'),S.setup,o=>{S.setup=o;save();});
+  if(typeof LOOK!=='undefined')LOOK.add([{h:'Note Prompter'},
+    {k:'npStage',t:'select',l:'Stage',o:[['glass','Dark glass'],['paper','Parchment']],def:'glass',get:()=>S.stage,set:v=>{S.stage=v;save();applyStage();}}]);
   $('#stage').addEventListener('click',()=>act('next'));
-  $('#btnSetup').addEventListener('click',()=>{S.setup=!S.setup;save();renderSetup();});
   $('#btnFs').addEventListener('click',toggleFs);
-  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
   if(S.midiOn&&navigator.requestMIDIAccess)midiInit(false);else if(!navigator.requestMIDIAccess)midiErr='nosupport';
   renderPedal();$('#stage').focus();}
 init();
