@@ -31,4 +31,3 @@ Gitaar-oefenapp voor jazz/gitaar: een verzameling losse, zelfstandige HTML-train
 
 ## Werkwijze
 - Geen testsuite: controleer door de pagina te openen en de console te checken op fouten.
-- `git` zit niet in de PATH van de PowerShell-tool hier; commit via een eigen terminal of voeg het pad toe.
