@@ -51,7 +51,7 @@ function renderId(){deriveId();const v=ID.v,has=v.notes.length>0;
 /* naar de Finder met dit akkoord; staat precies deze vorm in een van de soorten, dan die soort en vorm kiezen */
 function idOpen(o){const key=ID.v.f.join(',');S.mode='find';S.str=S.low=S.top='all';S.from=1;S.to=MAXF;
   for(const t of VTYPES)if(voicingsOf(o.c,t).some(v=>v.key===key)){S.type=t;S.sel=key;break;}
-  prevSel=null;renderMode();setChord(o.c);scrollTo({top:0,behavior:'smooth'});}
+  prevSel=null;renderMode();setChord(o.c);$('#scroll').scrollTo({top:0,behavior:'smooth'});}
 function bindId(){
   $('#idNeck').addEventListener('click',e=>{const r=e.target.closest('.cell');if(!r)return;const s=+r.dataset.s,f=+r.dataset.f;
     S.idf[s]=S.idf[s]===f?-1:f;S.idSel=0;act();save();renderId();if(S.idf[s]===f)tapNote(OPEN[s]+f);});
@@ -65,7 +65,7 @@ function bindId(){
   $('#segMode').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b||b.dataset.mode===S.mode)return;S.mode=b.dataset.mode;save();renderMode();});}
 /* modus: Finder, What's this chord? of Progression (progression.js) */
 function renderMode(){const m=S.mode;seg($('#segMode'),Object.entries(T.mode),m,'mode');
-  $('main').classList.toggle('wide',m==='prog');$('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
-  $('#sub').textContent=m==='id'?T.id.sub:m==='prog'?T.pg.sub:T.sub;
-  $('#howTxt').textContent=m==='prog'?T.pg.how:T.how;
+  $('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
+  $('#howTxt').innerHTML='<b>'+esc(m==='id'?T.id.sub:m==='prog'?T.pg.sub:T.sub)+'</b> '+esc(m==='prog'?T.pg.how:m==='id'?T.id.how:T.how);
+  renderCol();
   if(m==='find')update();if(m==='id')renderId();if(m==='prog')pgRender();else pgStop();}   /* Labels en Bass zijn gedeeld: Finder bijwerken */

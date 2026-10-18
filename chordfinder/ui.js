@@ -11,7 +11,8 @@ const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all'
   pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{},pTypes:{},pFit:'refit',
   /* band (fase 4): baslijn, stijl, drums, volume per instrument (0–100), baslijn op de hals */
   pLine:'walk',pStyle:'swing',pDrums:true,pVol:{piano:100,bass:100,drums:80},pBNeck:false,
-  dgSize:100};   /* grootte van alle akkoorddiagrammen in procenten (80–200) */
+  dgSize:100,   /* grootte van alle akkoorddiagrammen in procenten (80–200) */
+  colOpen:true,cardDet:'compact'};   /* kolom rechts open/dicht; kaartdetails in Progression: compact (naam, diagram, omkering) of full (+ stemmen en baslijn) */
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
@@ -38,10 +39,24 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   const vo=s.pVol&&typeof s.pVol==='object'&&!Array.isArray(s.pVol)?s.pVol:{};s.pVol={};
   s.dgSize=typeof s.dgSize==='number'&&isFinite(s.dgSize)?Math.min(200,Math.max(80,Math.round(s.dgSize/10)*10)):DEF.dgSize;
   Object.keys(DEF.pVol).forEach(k=>{s.pVol[k]=typeof vo[k]==='number'&&isFinite(vo[k])?Math.min(100,Math.max(0,Math.round(vo[k]))):DEF.pVol[k];});
+  s.colOpen=s.colOpen!==false;s.cardDet=s.cardDet==='full'?'full':'compact';
   return s;}
 let S=load();
-(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema gedeeld met alle Practice Room-apps */
+(function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema: alleen nog bewaard (de schil is altijd daglicht), niet meer gebruikt */
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = S.colOpen. In Find voicings en Progression twee tabbladen:
+   Chord (Finder: de gekozen vorm op de hele hals; Progression: gekozen akkoord, acties, vormen) en Settings
+   (Finder: filters; Progression: band, weergave, bewerken); in What's this chord? alleen Settings.
+   Ook hier: wat er per modus te zien is (transportplank alleen in Progression, Labels niet in What's this chord?). */
+let colTab='chord';
+function renderCol(){const m=S.mode,pg=m==='prog',tabs=m!=='id',t=tabs?colTab:'set';
+  $('#colTabs').hidden=!tabs;$('#colH').hidden=tabs;$('#tabChord').hidden=!(pg&&t==='chord');$('#tabFind').hidden=!(m==='find'&&t==='chord');$('#tabSet').hidden=t!=='set';
+  $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));
+  ['#setBand','#setDisp','#setEdit'].forEach(id=>{$(id).hidden=!pg;});$('#setFilter').hidden=m!=='find';$('#labRow').hidden=m==='id';$('#pgTray').hidden=!pg;
+  document.body.dataset.mode=m;
+  seg($('#segDet'),Object.entries(T.det),S.cardDet,'det');document.body.dataset.detail=S.cardDet;}
+function colShow(t){colTab=t;renderCol();}
 
 /* oefenlogboek: tijd telt tussen twee acties (max 60 s); de akkoorden die je liet klinken komen in de lijst van die dag */
 let LOG=(()=>{const l=readSafe(LOGKEY);return l&&typeof l==='object'&&!Array.isArray(l)?l:{};})(),lastAct=0,logDirty=false;
@@ -72,17 +87,31 @@ function derive(){const c=parseChord(S.chord)||parseChord(DEF.chord),all=voicing
   let sel=D.order.find(v=>v.key===S.sel)||null;
   if(!sel&&prevSel&&D.order.length)sel=D.order.reduce((b,v)=>{const k=v2=>Math.abs(v2.center-prevSel.center)+(v2.strs===prevSel.strs?0:3);return k(v)<k(b)?v:b;});
   D.sel=sel||D.order[0]||null;if(D.sel){S.sel=D.sel.key;prevSel=D.sel;}}
-function update(){derive();save();renderChord();renderFilters();renderDetail();renderResults();}
+function update(){derive();save();renderChord();renderFilters();renderDetail();RES.paged=false;renderResults();}
+/* opnieuw passend maken (ander venster, kolom open/dicht, andere diagramgrootte) */
+function refit(){if(S.mode!=='find'||!D)return;RES.paged=false;renderResults();}
 function setChord(c){if(!c)return;S.chord=c.ascii;$('#chordErr').textContent='';act();update();}
 function pick(v,play){if(!v)return;S.sel=v.key;prevSel=v;D.sel=v;save();renderDetail();
+  if(RES.paged){const g=D.groups.find(x=>x.key===RES.page);if(!g||!g.vs.includes(v)){RES.page=null;renderResults();}}   /* andere groep: dat tabje tonen */
   document.querySelectorAll('#groups .dg').forEach(b=>{const on=b.dataset.k===v.key;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
   if(play){playShape(D.c,v);logChord(D.c.sym);}}
 function step(d){if(!D.order.length)return;const i=D.order.indexOf(D.sel),v=D.order[Math.min(D.order.length-1,Math.max(0,i+d))];
   if(v&&v!==D.sel){pick(v,true);const b=document.querySelector('#groups .dg[data-k="'+v.key+'"]');if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest',inline:'nearest'});}}
 
 function bind(){
-  $('#dgSize').addEventListener('input',e=>{S.dgSize=+e.target.value;save();applyDgSize();});
-  $('#btnTheme').addEventListener('click',()=>{S.theme=S.theme==='auto'?'light':S.theme==='light'?'dark':'auto';save();try{localStorage.setItem(THEMEKEY,JSON.stringify(S.theme));}catch(e){}applyTheme();});
+  $('#dgSize').addEventListener('input',e=>{S.dgSize=+e.target.value;save();applyDgSize();refit();});
+  /* de vormen passend houden bij een andere venstergrootte of als de kolom in- of uitklapt */
+  let rt=0;if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(refit,120);}).observe($('#scroll'));
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refit);
+  $('#gTabs').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;RES.page=b.dataset.g;renderResults();});
+  /* akkoordsoort: uitklapvenster achter de knop "Type"; sluit na een keuze, met Esc of bij een klik ernaast */
+  const qp=$('#qualPop'),qb=$('#btnQual'),qShow=o=>{qp.hidden=!o;qb.setAttribute('aria-expanded',o);};
+  qb.addEventListener('click',()=>qShow(qp.hidden));
+  document.addEventListener('click',e=>{if(!qp.hidden&&!e.target.closest('.qpop'))qShow(false);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!qp.hidden){qShow(false);qb.focus();}});
+  ROOM.column($('#col'),S.colOpen,o=>{S.colOpen=o;save();});
+  $('#colTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)colShow(b.dataset.tab);});
+  $('#segDet').addEventListener('click',e=>{const b=e.target.closest('[data-det]');if(!b)return;S.cardDet=b.dataset.det;save();renderCol();LOOK.render();});
   /* akkoord intypen: pas na een korte pauze lezen; een onbekend akkoord laat de vorige staan */
   let tm=null;
   $('#inChord').addEventListener('input',e=>{clearTimeout(tm);const t=e.target.value;tm=setTimeout(()=>{if(!t.trim()){$('#chordErr').textContent='';return;}
@@ -92,17 +121,17 @@ function bind(){
   $('#segRoot').addEventListener('click',e=>{const b=e.target.closest('[data-root]');if(!b)return;const r=parseNote(b.dataset.root);
     let bass=D.c.bass;if(bass){const d=mod(nPc(bass)-D.c.rootPc,12);bass=nice(spellPc(mod(r.l+(mod(bass.l-D.c.root.l,7)),7),nPc(r)+d));}   /* slash-bas schuift mee */
     setChord(makeChord(r,D.c.q,bass));});
-  $('#qualRows').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b)setChord(makeChord(D.c.root,b.dataset.q,D.c.bass));});
+  $('#qualRows').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;setChord(makeChord(D.c.root,b.dataset.q,D.c.bass));qShow(false);});
   $('#segType').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;S.type=b.dataset.type;act();update();});
   [['#chStr','str'],['#chLow','low'],['#chTop','top']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-'+k+']');if(!b)return;S[k]=b.dataset[k];act();update();}));
   $('#selFrom').addEventListener('change',e=>{S.from=+e.target.value;if(S.to<S.from)S.to=S.from;update();});
   $('#selTo').addEventListener('change',e=>{S.to=+e.target.value;if(S.from>S.to)S.from=S.to;update();});
-  $('#segLab').addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;S.labels=b.dataset.lab;update();});
+  $('#segLab').addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;S.labels=b.dataset.lab;save();renderMode();});   /* één knop in de kolom, voor Finder en Progression */
   $('#segGroup').addEventListener('click',e=>{const b=e.target.closest('[data-group]');if(!b)return;S.group=b.dataset.group;update();});
   $('#tgTones').addEventListener('change',e=>{S.allTones=e.target.checked;save();renderDetail();});
   $('#tgBass').addEventListener('change',e=>{S.bass=e.target.checked;save();});
   $('#btnShowAll').addEventListener('click',()=>{S.str=S.low=S.top='all';S.from=1;S.to=MAXF;update();});
-  $('#groups').addEventListener('click',e=>{const b=e.target.closest('.dg');if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);});
+  $('#groups').addEventListener('click',e=>{const b=e.target.closest('.dg');if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);if(colTab!=='chord')colShow('chord');});
   $('#btnPlay').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}});
   $('#btnArp').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel,true);logChord(D.c.sym);}});
   $('#dBig').addEventListener('click',()=>{if(D.sel)playShape(D.c,D.sel);});
@@ -111,4 +140,4 @@ function bind(){
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||S.mode!=='find')return;
     if(e.key==='ArrowRight'){e.preventDefault();step(1);}else if(e.key==='ArrowLeft'){e.preventDefault();step(-1);}
     else if(e.key===' '&&tag!=='BUTTON'){e.preventDefault();if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}}});
-  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();if(e.key===THEMEKEY){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t)){S.theme=t;applyTheme();}}});}
+  addEventListener('storage',e=>{if(e.key===SHARED)applyWood();});}

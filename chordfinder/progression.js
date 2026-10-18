@@ -112,8 +112,8 @@ function pgFindLock(c,tp,L){for(const t of[L.t,tp,...VTYPES]){if(!VTYPES.include
 /* ── scherm ── */
 const pgCls=x=>(v,n)=>{const j=v.notes.indexOf(n),l=pgLab(x.c,n);return(PG_GUIDE.includes(l)?' gt':'')+(x.mv&&x.mv[j]===0?' hd':'');};
 function pgArrow(d){return d==null?'':d===0?'<small class="mvh" aria-label="held">•</small>':'<small class="mv">'+(d>0?'↑':'↓')+Math.abs(d)+'</small>';}
-function pgCard(x){const c=x.c,v=x.v,on=x.i===PGSEL,sel=PGSET.has(x.i),head='<div class="pgh"><b>'+esc(c.sym)+'</b>'+(v?pgLkBtn(x):'')+
-    (x.bars!==1?'<span class="cap">'+esc(T.pg.bars(x.bars))+'</span>':'')+'</div>';
+function pgCard(x){const c=x.c,v=x.v,on=x.i===PGSEL,sel=PGSET.has(x.i),head='<div class="pgh"><b>'+esc(c.sym)+'</b>'+
+    (x.bars!==1?'<span class="cap">'+esc(T.pg.bars(x.bars))+'</span>':'')+(v?pgLkBtn(x):'')+'</div>';
   const cl=(on?' on':'')+(sel?' sel':'');
   if(!v)return'<div class="pgc none'+cl+'" data-i="'+x.i+'">'+head+'<p class="note">'+esc(T.pg.noShape)+'</p></div>';
   const cls=pgCls(x),vo=v.notes.map((n,j)=>({n,d:x.mv[j]})).reverse(),tp=v.type!==S.pType?T.types[v.type]:'';
@@ -153,23 +153,23 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgPosRow').hidden=S.pMode!=='pos';$('#pgStrRow').hidden=S.pMode!=='strings';$('#pgMelRow').hidden=S.pMode!=='top';
   $('#pgPos').value=S.pPos;
   chips($('#pgStr'),[['auto',S.pStr==='auto'&&P.set?T.pg.autoIs(P.set):T.pg.auto],...P.sets.map(k=>[k,[...k].join(' ')])],P.sets.includes(S.pStr)?S.pStr:'auto','pgstr');
-  seg($('#pgLab'),Object.entries(T.lab),S.labels,'pglab');
+  seg($('#segLab'),Object.entries(T.lab),S.labels,'lab');   /* Labels staat in de kolom (gedeeld met de Finder) */
   seg($('#pgLine'),BS_LINES.map(k=>[k,T.pg.line[k]]),S.pLine,'pgline');$('#pgLineHelp').textContent=T.pg.lineHelp[S.pLine];
   seg($('#pgStyle'),PG_STYLES.map(k=>[k,T.pg.style[k]]),S.pStyle,'pgstyle');$('#pgDrums').checked=S.pDrums;$('#pgBNeck').checked=S.pBNeck;
   document.querySelectorAll('#pgMix input').forEach(el=>{el.value=S.pVol[el.dataset.vol];});
   $('#pgTempo').value=S.pTempo;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);$('#pgLoop').checked=S.pLoop;$('#pgBass').checked=S.bass;
   pgRenderBar();
-  $('#pgSum').textContent=P.ok.length>1?T.pg.sum(P.stats.st,P.stats.ct,P.stats.fr):'';
+  $('#pgSum').textContent=P.ok.length>1?T.pg.sumS(P.stats.st,P.stats.ct):'';$('#pgSum').title=P.ok.length>1?T.pg.sum(P.stats.st,P.stats.ct,P.stats.fr):'';   /* kort op de plank, alles in de tooltip */
   /* één rij per regel van de invoer */
   const secs=[];P.list.forEach(x=>{if(!secs.length||secs[secs.length-1].sec!==x.sec)secs.push({sec:x.sec,xs:[]});secs[secs.length-1].xs.push(x);});
-  $('#pgRows').innerHTML=!P.list.length?'<p class="note" style="margin-top:12px">'+esc(T.pg.empty)+'</p>':secs.map(s=>'<div class="pgrow">'+s.xs.map(pgCard).join('')+'</div>').join('');
+  $('#pgRows').innerHTML=!P.list.length?'<p class="note pgempty">'+esc(T.pg.empty)+'</p>':secs.map(s=>'<div class="pgrow">'+s.xs.map(pgCard).join('')+'</div>').join('');
   $('#pgLegend').hidden=!P.ok.length;
   pgMark(PGP&&!PGP.loading?PGP.cur:-1);
   pgRenderSide();pgTransport();}
 /* balk boven de kaarten: alles selecteren, vastgehouden akkoorden loslaten, alle locks weg */
 function pgRenderBar(){const L=PG.list,nh=L.filter(x=>x.held).length,nl=L.filter(x=>x.lock&&!x.held).length;
-  $('#pgSelAll').hidden=L.length<2;$('#pgRefitAll').hidden=!nh;$('#pgRefitAll').textContent=T.pg.release(nh);$('#pgRefitAll').title=T.pg.releaseL;
-  $('#pgUnlock').hidden=!nl&&!nh;$('#pgUnlock').textContent=T.pg.unlockAll(nl+nh);}
+  $('#pgSelAll').disabled=L.length<2;$('#pgKept').textContent=T.pg.keptN(nh);$('#pgRefitAll').disabled=!nh;$('#pgRefitAll').title=T.pg.releaseL;
+  $('#pgLocked').textContent=T.pg.lockedN(nl);$('#pgUnlock').disabled=!nl&&!nh;$('#pgUnlock').title=T.pg.unlockAll(nl+nh);}
 const pgSel=()=>[...PGSET].filter(i=>PG.list[i]).sort((a,b)=>a-b);
 /* zijpaneel: het gekozen akkoord (of de selectie), acties, eigen voicingsoort, alternatieven */
 function pgRenderSide(){const box=$('#pgSide');box.hidden=!PG.list.length;if(box.hidden){$('#pgBassBox').hidden=true;return;}
@@ -188,9 +188,9 @@ function pgRenderSide(){const box=$('#pgSide');box.hidden=!PG.list.length;if(box
   const own=xs.every(y=>!y.own)?'def':xs.every(y=>y.own&&y.tp===xs[0].tp)?xs[0].tp:null;
   seg($('#pgSType'),[['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])],own,'pgstype');
   $('#pgSTypeL').textContent=multi?T.pg.typeAll:T.pg.typeOne;
-  seg($('#pgFit'),Object.entries(T.pg.fit),S.pFit,'pgfit');$('#pgFitHelp').textContent=T.pg.fitHelp[S.pFit];
+  seg($('#pgFit'),Object.entries(T.pg.fit),S.pFit,'pgfit');$('#pgFitHelp').textContent=Object.values(T.pg.fitHelp).join(' ');
   pgRenderAlts(multi?null:x);pgRenderBass();}
-function pgRenderAlts(x){const box=$('#pgAlts');$('#pgFitRow').hidden=$('#pgFitHelp').hidden=!x||!x.v;
+function pgRenderAlts(x){const box=$('#pgAlts');
   if(!x){$('#pgAltH').textContent=T.pg.altH0;box.innerHTML='<p class="note">'+esc(T.pg.oneAlt)+'</p>';return;}
   $('#pgAltH').textContent=T.pg.altH(x.c.sym,T.types[x.fb||x.tp]);
   if(!x.v){box.innerHTML='<p class="note">'+esc(T.pg.noShape)+'</p>';return;}
@@ -292,7 +292,8 @@ function pgBind(){
    ['#pgTempoL','tempo'],['#pgLoopL','loop'],['#pgBassL','bass'],['#pgLegend','legend'],['#pgKeys','keys'],
    ['#pgLineL','lineL'],['#pgStyleL','styleL'],['#pgDrumsL','drums'],['#pgBNeckL','bNeck'],['#pgBassHelp','bNeckHelp'],['#pgSelAll','selAll'],['#pgSelHelp','selHelp'],['#pgFitL','fitL']]
     .forEach(([id,k])=>{$(id).textContent=k?T.pg[k]:T.typeL;});
-  $('#pgLabL').textContent=T.labL;$('#pgIn').placeholder=T.pg.inPh;$('#pgMel').placeholder=T.pg.melPh;$('#pgMel').title=T.pg.melHelp;
+  $('#pgSelAll').textContent=T.pg.selAll;$('#pgRefitAll').textContent=T.pg.releaseB;$('#pgUnlock').textContent=T.pg.unlockB;$('#pgSelLbl').textContent=T.pg.selL;
+  $('#pgIn').placeholder=T.pg.inPh;$('#pgMel').placeholder=T.pg.melPh;$('#pgMel').title=T.pg.melHelp;
   $('#pgSt').setAttribute('aria-label',T.pg.stL);
   $('#pgPos').innerHTML=Array.from({length:12},(_,k)=>k+1).map(f=>'<option value="'+f+'">'+esc(T.pg.posOpt(f))+'</option>').join('');
   /* typen: pas na een korte pauze opnieuw rekenen */
@@ -306,12 +307,11 @@ function pgBind(){
   $('#pgMode').addEventListener('click',e=>{const b=e.target.closest('[data-pgmode]');if(b)pgSet(()=>{S.pMode=b.dataset.pgmode;pgDropHolds();});});
   $('#pgPos').addEventListener('change',e=>pgSet(()=>{S.pPos=+e.target.value;pgDropHolds();}));
   $('#pgStr').addEventListener('click',e=>{const b=e.target.closest('[data-pgstr]');if(b)pgSet(()=>{S.pStr=b.dataset.pgstr;pgDropHolds();});});
-  $('#pgLab').addEventListener('click',e=>{const b=e.target.closest('[data-pglab]');if(b)pgSet(()=>{S.labels=b.dataset.pglab;});});
   $('#pgTempo').addEventListener('input',e=>{S.pTempo=+e.target.value;$('#pgBpm').textContent=T.pg.bpm(S.pTempo);save();});
   $('#pgLoop').addEventListener('change',e=>{S.pLoop=e.target.checked;save();});
   $('#pgBass').addEventListener('change',e=>{S.bass=e.target.checked;save();});
   /* band: baslijn (Stepwise verandert ook de vormen), stijl, drums, volumes, baslijn op de hals */
-  $('#pgMix').innerHTML=['piano','bass','drums'].map(k=>'<label class="krow cap"><span>'+esc(T.pg.vol[k])+'</span><input type="range" min="0" max="100" step="1" data-vol="'+k+'" aria-label="'+esc(T.pg.volL(T.pg.vol[k]))+'"></label>').join('');
+  $('#pgMix').innerHTML=['piano','bass','drums'].map(k=>'<label class="row"><span>'+esc(T.pg.vol[k])+'</span><input type="range" min="0" max="100" step="1" data-vol="'+k+'" aria-label="'+esc(T.pg.volL(T.pg.vol[k]))+'"></label>').join('');
   $('#pgLine').addEventListener('click',e=>{const b=e.target.closest('[data-pgline]');if(b)pgSet(()=>{S.pLine=b.dataset.pgline;pgDropHolds();});});
   $('#pgStyle').addEventListener('click',e=>{const b=e.target.closest('[data-pgstyle]');if(b)pgSet(()=>{S.pStyle=b.dataset.pgstyle;});});
   $('#pgDrums').addEventListener('change',e=>{S.pDrums=e.target.checked;save();if(S.pDrums&&PGP)loadDrums();});
@@ -324,7 +324,7 @@ function pgBind(){
   $('#pgRows').addEventListener('click',e=>{const u=e.target.closest('[data-lk]');
     if(u){const i=+u.dataset.lk;if(PG.list[i].held)pgDo('release',null,[i]);else pgToggleLock([i]);return;}   /* punaise = loslaten */
     const c=e.target.closest('.pgc');if(!c)return;const how=e.shiftKey?'range':e.ctrlKey||e.metaKey?'toggle':'one';
-    pgSelect(+c.dataset.i,how==='one'&&!!e.target.closest('.pgdg'),how);});
+    pgSelect(+c.dataset.i,how==='one'&&!!e.target.closest('.pgdg'),how);if(colTab!=='chord')colShow('chord');});
   /* Shift-klik selecteert geen tekst */
   $('#pgRows').addEventListener('mousedown',e=>{if(e.shiftKey)e.preventDefault();});
   $('#pgSLock').addEventListener('click',()=>pgToggleLock());

@@ -1,259 +1,205 @@
-/* Chord Finder · alle CSS. Basis (kleuren, zijbalk, knoppen, diagrammen) overgenomen uit Chord Moves. */
-:root{
-  --dg:1;   /* grootte van de akkoorddiagrammen (schuifje "Diagram size", zet JS) */
-  --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
-  --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
-  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--ok:#1e7b34;--okbg:rgba(52,199,89,.15);--err:#c4302b;--sh:0 1px 2px rgba(0,0,0,.04);
-  --hi:#ff9f0a;--hitx:#a65300;--hibg:rgba(255,159,10,.15);
-  /* hout (wordt door JS overschreven met de gekozen houtsoort) */
-  --wd1:#3e2518;--wfret:rgba(205,198,186,.42);--wnut:#d9d3c7;--wstr:#d6cfc1;--wdot:#f5efe6;--wdtx:#1c1c1e;--wmut:rgba(245,239,230,.55);
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
-  --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;
-  --ac:#1f6fe5;--link:#5aa2ff;--ok:#30d158;--okbg:rgba(48,209,88,.16);--err:#ff6961;--sh:none;
-  --hitx:#ffb340;--hibg:rgba(255,159,10,.18);color-scheme:dark}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--link)}
-button,select,input{font:inherit;color:var(--tx)}
-button{cursor:pointer}
-button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,.tg:focus-within{outline:3px solid var(--ac);outline-offset:2px}
-p{margin:0}
-.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
-/* ── app-indeling (gelijk aan de trainers) ── */
-.app{display:flex;min-height:100vh}
-.side{flex:0 0 220px;position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 12px;border-right:1px solid var(--sep);background:var(--side);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.brand{font-size:13px;font-weight:600;color:var(--mut);padding:0 10px 10px}
-.sh2{font-size:12px;font-weight:600;color:var(--mut);padding:18px 10px 4px}
-.side nav{display:grid;gap:2px}
-.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
-.side a:hover{background:var(--fill)}
-.side a.cur{font-weight:600;background:rgba(10,99,214,.13);color:var(--link)}
-/* onderdelen van Chord Moves, ingesprongen onder de app-link */
-.subnav{display:grid;gap:1px;margin:2px 0 6px 19px;padding-left:8px;border-left:1px solid var(--sep)}
-.subnav button{display:flex;align-items:center;gap:9px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px}
-.subnav button:hover{background:var(--fill)}
-.subnav button svg{flex:none;color:var(--mut)}
-.subnav button[aria-current="true"]{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
-.subnav button[aria-current="true"] svg{color:currentColor}
-.subnav small{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut2);font-variant-numeric:tabular-nums}
-/* zetten per stijl, in- en uitklapbaar */
-.mvnav{gap:1px}
-.mvnav summary{display:flex;align-items:center;gap:6px;min-height:32px;padding:0 10px 0 6px;border-radius:9px;cursor:pointer;list-style:none;font-size:14px;font-weight:600}
-.mvnav summary::-webkit-details-marker{display:none}
-.mvnav summary:hover{background:var(--fill)}
-.mvnav summary:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
-.mvnav summary>svg{flex:none;color:var(--mut2);transition:transform .15s}
-.mvnav details[open]>summary>svg{transform:rotate(90deg)}
-.mvnav summary.has{color:var(--link)}
-.mvnav summary small{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut2);font-variant-numeric:tabular-nums}
-.mvnav details>div{display:grid;gap:1px;padding:1px 0 6px 12px}
-.mvnav button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:9px;background:none;text-align:left;font-size:14px}
-.mvnav button:hover{background:var(--fill)}
-.mvnav button[aria-current="true"]{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
-.pd{display:inline-flex;gap:2px;flex:none}
-.pd i{width:5px;height:5px;border-radius:50%;background:var(--fill)}
-.pd i.on{background:var(--ok)}
-main{flex:1;min-width:0;max-width:1320px;padding:20px 28px 56px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start}
-.tb{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.15}
-.sub{color:var(--mut);font-size:14px;margin-top:2px}
-.tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.card{background:var(--card);border-radius:18px;padding:20px;box-shadow:var(--sh);min-width:0}
+/* Chord Finder · eigen CSS bovenop shared/room.css (schil, kleuren, materialen, knoppen, schakelaars, "?"-uitleg).
+   Hier: panelen in de middenkolom, akkoorddiagrammen (palissander, intervalkleuren), de drie modi. */
+:root{--dg:1}   /* grootte van de akkoorddiagrammen (schuifje "Diagram size" in de kolom, zet JS) */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.view{display:grid;gap:18px}
+.panel{padding:16px 18px;min-width:0}
 .cap{font-size:13px;color:var(--mut)}
 .note{font-size:13px;color:var(--mut);line-height:1.5}
-h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:0 0 8px}
-.ib{width:36px;height:36px;padding:0;border-radius:9px;border:0;background:var(--fill);display:grid;place-items:center;flex:none}
-.ib:disabled{opacity:.4;cursor:default}
-.act{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 14px;border-radius:9px;border:0;background:var(--fill);font-size:14px;font-weight:600}
-.act.pri{background:var(--ac);color:var(--onac)}
-.act svg{flex:none}
-.lnk{border:0;background:none;color:var(--link);font-size:14px;padding:0;margin-bottom:4px}
-.seg{display:inline-flex;flex-wrap:wrap;padding:2px;border-radius:9px;background:var(--fill)}
-.seg button{border:0;background:none;border-radius:7px;min-height:30px;padding:0 12px;font-size:13px}
-.seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:0;border-radius:9px;min-height:32px;padding:0 12px;background:var(--fill);font-size:13px;font-weight:600;color:var(--tx)}
-.chip[aria-pressed="true"]{background:var(--ac);color:var(--onac)}
-span.chip{display:inline-flex;align-items:center;font-weight:500}
-.tg{position:relative;flex:none;display:inline-flex;cursor:pointer}
-.tg input{position:absolute;opacity:0;width:1px;height:1px}
-.tg i{width:46px;height:28px;border-radius:14px;background:var(--fill);position:relative;transition:background .15s}
-.tg i::after{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .15s}
-.tg input:checked+i{background:#34c759}.tg input:checked+i::after{transform:translateX(18px)}
-
-.ctl{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px}
-.fld{display:grid;gap:4px}
-.fld>span:first-child{font-size:12px;color:var(--mut)}
-.krow{display:flex;gap:6px;align-items:center}
-select{min-height:34px;border-radius:9px;border:1px solid var(--sep);background:var(--card);padding:0 8px;font-size:14px}
-.sethelp{margin-top:10px}
-.dgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(118px*var(--dg)),1fr));gap:6px;margin-top:14px}
-.dg{display:grid;justify-items:center;align-content:start;gap:2px;padding:10px 4px 8px;border:0;border-radius:14px;background:none;transition:background .15s}
-.dg:hover{background:var(--fill)}
-.dg.on{background:var(--hibg)}
-.dg .sym{font-weight:700;font-size:17px;line-height:1.2}
-.dg .rn{font-size:12px;color:var(--mut)}
-.dg svg{width:100%;max-width:calc(132px*var(--dg));height:auto;display:block;margin-top:4px}
-.dg .bs{font-size:11px;color:var(--mut);min-height:14px}
-svg .wd{fill:var(--wd1)} svg .fr{stroke:var(--wfret);stroke-width:1.4} svg .nut{stroke:var(--wnut);stroke-width:5}
-svg .st{stroke:var(--wstr)} svg .dt{fill:var(--wdot)} svg .rt{fill:var(--wdot);stroke:var(--wd1);stroke-width:2}
-svg .hl{fill:var(--hi)} svg .halo{fill:var(--hi);opacity:.3}
-svg .dl{fill:var(--wdtx);font:700 8.5px ui-monospace,"SF Mono",Menlo,monospace}
-svg .fn{fill:var(--mut);font:600 10px ui-monospace,"SF Mono",Menlo,monospace} svg .mx{fill:var(--mut);font:600 11px ui-monospace,"SF Mono",Menlo,monospace}
-svg .dl{font-size:8px}
-.chip small,.gh small{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--fill);font:600 11px ui-monospace,"SF Mono",Menlo,monospace;color:var(--mut);font-variant-numeric:tabular-nums}
-.chip[aria-pressed="true"] small{background:rgba(255,255,255,.25);color:inherit}
-h2{font-size:24px;font-weight:700;margin:0;line-height:1.2}
-.prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
-.err{color:var(--err);font-size:13px;min-height:0}
+.err{color:var(--err);font-size:13px}
 .err:empty{display:none}
+h2{font-size:22px;font-weight:400;margin:0;line-height:1.2}
+h2.px{font-size:calc(22px * var(--dfs))}
+.panel h3{margin:0 0 8px;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif;font-weight:400;display:flex;align-items:center;gap:8px}
+.lb{font-size:calc(13.5px * var(--dfs));color:var(--mut2);text-transform:uppercase}
+.tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.krow{display:flex;gap:6px;align-items:center}
+select{min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px;font-size:14px;color:var(--tx)}
+.top .help{border-color:rgba(255,240,220,.5);color:rgba(255,240,220,.85)}
+.top .help:hover{color:#fff}
+.act.sm{min-height:30px;padding:0 12px;font-size:13px}
+.prb-row{display:flex;flex-wrap:wrap;gap:8px}
+.prb-msg{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
 
-/* ── akkoord en filters ── */
+/* ── keuzechips (filters, snarenset) ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:10px;min-height:30px;padding:0 11px;background:var(--fill);font-size:13px;font-weight:600;color:var(--mut)}
+.chip:hover{color:var(--tx)}
+.chip[aria-pressed="true"]{background:var(--field);color:var(--onx);border-color:rgba(196,106,28,.45);box-shadow:0 1px 3px rgba(90,55,25,.15)}
+.chip small,.gh small{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:rgba(90,55,25,.1);font:600 11px "JetBrains Mono",monospace;color:var(--mut);letter-spacing:0}
+
+/* ── diagrammen: palissander (#rw/#rwh uit shared/rail.js), lichte fretten, intervalkleuren ── */
+svg .wd{fill:var(--nbg)}
+svg.nkb .wd{fill:var(--nbgh)}
+svg .gr{stroke:var(--ngr);stroke-width:.6}
+svg .mk{fill:var(--ninl)}
+svg .fr{stroke:var(--nline);stroke-width:1.6}
+svg .nut{stroke:var(--nnut);stroke-width:4}
+svg .st{stroke:var(--nstr)}
+svg .fn{fill:var(--nnum);font:600 9.5px "JetBrains Mono",monospace}
+svg .mx{fill:var(--nnum);font:600 10px "JetBrains Mono",monospace}
+svg circle.dt,svg circle.rt{fill:var(--cR);stroke:rgba(0,0,0,.25);stroke-width:1}
+svg circle.i3{fill:var(--c3)} svg circle.i5{fill:var(--c5)} svg circle.i7{fill:var(--c7)} svg circle.ix{fill:var(--cx)}
+svg circle.rt{fill:var(--cR);stroke:var(--glow2);stroke-width:1.8}
+svg circle.hl{fill:var(--c3)}
+svg rect.dt{fill:var(--cR);opacity:.9}   /* barréstreep */
+svg circle.hd{stroke:var(--hd);stroke-width:2;stroke-dasharray:2.6 1.8}   /* liggende noot (Progression) */
+svg .dl{fill:var(--dtx);font:700 8px "Bricolage Grotesque",sans-serif}
+svg .nl{fill:var(--dtx);font:700 10px "Bricolage Grotesque",sans-serif}
+svg .op{fill:var(--field);stroke:var(--tx);stroke-width:1.3}
+svg .ol{fill:var(--tx);font:700 7.5px "Bricolage Grotesque",sans-serif}
+svg .ct{fill:none;stroke:var(--nstr);stroke-width:1.4;opacity:.75} svg .ct.cr{stroke-width:2.4}
+svg .cl{fill:var(--nstr);font:600 7px "JetBrains Mono",monospace;opacity:.85}
+svg .cell{fill:transparent;cursor:pointer}
+svg .cell:hover{fill:rgba(255,240,220,.16)}
+.nk{margin-top:16px;overflow-x:auto}
+.nk svg{width:100%;min-width:640px;height:auto;display:block}
+.nk.inp svg circle,.nk.inp svg text{pointer-events:none}
+
+/* vormen als tegels (Finder-raster, vormen in de kolom) */
+.dgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(118px*var(--dg)),1fr));gap:8px;margin-top:10px}
+.dg{display:grid;justify-items:center;align-content:start;gap:3px;padding:10px 6px 8px;border:1px solid transparent;border-radius:14px;background:none;color:var(--tx);transition:background .15s,border-color .15s}
+.dg:hover{background:var(--fill);border-color:var(--line)}
+.dg.on,.dg[aria-pressed="true"]{background:var(--card);border-color:rgba(196,106,28,.55);box-shadow:0 0 0 1px rgba(196,106,28,.25),0 6px 16px rgba(60,30,10,.16)}
+.dg svg{width:100%;max-width:calc(132px*var(--dg));height:auto;display:block;margin-top:2px}
+.dg .cp{font-size:11.5px;color:var(--mut);text-align:center;line-height:1.3}
+
+/* ── Find voicings ── */
 .filters{display:grid;gap:10px}
 .frow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.frow>.lb,.cin>.lb{min-width:96px;font-size:13px;color:var(--mut)}
+.frow>.lb,.cin>.lb{min-width:110px}
 .cin{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.cin input{flex:0 1 340px;min-width:0;min-height:42px;border-radius:12px;border:1px solid var(--sep);background:var(--bg);padding:0 12px;font:600 19px ui-monospace,"SF Mono",Menlo,monospace}
-.cin .err{flex-basis:100%;padding-left:104px}
-#segRoot button{min-width:38px;padding:0 8px}
-
-/* ── gekozen vorm ── */
-.dtop{display:grid;grid-template-columns:calc(200px*var(--dg)) minmax(0,1fr);gap:20px;align-items:start}
-.big{border:0;background:none;padding:0;border-radius:14px}
-.big:hover{background:var(--fill)}
-.big svg{width:100%;height:auto;display:block}
+.cin input{flex:0 1 220px;min-width:0;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--field);padding:0 12px;font:600 19px "JetBrains Mono",monospace;color:var(--tx);outline:none}
+.cin input:focus{border-color:rgba(196,106,28,.55)}
+.cin .err{flex-basis:100%}
+#segRoot button{min-width:38px;padding:6px 8px}
 .dhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 12px}
 .dmeta{font-size:16px;font-weight:600;margin-top:4px}
 .nts{display:flex;flex-wrap:wrap;gap:6px}
-.nt{display:inline-grid;justify-items:center;min-width:44px;padding:5px 8px;border-radius:10px;background:var(--fill)}
-.nt b{font-size:16px}.nt small{font:600 11px ui-monospace,"SF Mono",Menlo,monospace;color:var(--mut)}
-.nk{margin-top:16px;overflow-x:auto}
-.nk svg{width:100%;min-width:640px;height:auto;display:block}
-svg .mk{fill:var(--wmut);opacity:.5}
-svg .ct{fill:none;stroke:var(--wdot);stroke-width:1.4;opacity:.75} svg .ct.cr{stroke-width:2.4}
-svg .cl{fill:var(--wdot);font:600 7px ui-monospace,"SF Mono",Menlo,monospace;opacity:.85}
-.detail.empty .dtop{grid-template-columns:minmax(0,1fr)}
-.detail.empty .big,.detail.empty .tp,.detail.empty .tgs{display:none}
-
-/* ── raster ── */
+.nt{display:inline-grid;justify-items:center;min-width:44px;padding:5px 8px;border-radius:10px;background:var(--fill);border:1px solid var(--line)}
+.nt b{font-size:16px}.nt small{font:600 11px "JetBrains Mono",monospace;color:var(--mut)}
+.tp{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:16px}
+.tgs{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:14px;font-size:14px}
+.detail.empty .tp{display:none}
 .rhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:6px}
-.gh{margin:18px 0 0;display:flex;gap:8px;align-items:baseline}
+.panel .rhead h3{margin:0}
 
-#groups .dgs{margin-top:6px}
-.dg{color:var(--tx)}
-.dg[aria-pressed="true"]{background:var(--hibg);box-shadow:inset 0 0 0 2px var(--hi)}
-.dg .cp{font-size:11.5px;color:var(--mut);text-align:center;line-height:1.3}
-
-@media (max-width:820px){.side{display:none}main{padding:16px}}
-@media (max-width:620px){.dtop{grid-template-columns:minmax(0,1fr)}.big{max-width:calc(220px*var(--dg));justify-self:center;width:100%}
-  .frow>.lb,.cin>.lb{min-width:0;flex-basis:100%}.cin .err{padding-left:0}.dgs{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(140px*var(--dg))),1fr))}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-svg .nl{fill:var(--wdtx);font:700 10px ui-monospace,"SF Mono",Menlo,monospace}
-.tgs{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px}
-.tp{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:16px}
-.tgl{display:inline-flex;align-items:center;gap:8px;font-size:14px}
-/* open snaar in een diagram */
-svg .op{fill:var(--card);stroke:var(--tx);stroke-width:1.4}
-svg .ol{fill:var(--tx);font:700 7.5px ui-monospace,"SF Mono",Menlo,monospace}
+/* Find voicings past op één scherm: de kop en de keuzes bovenaan, de vormen vullen de rest (fitShapes in render.js) */
+body[data-mode="find"] .wrap{height:100%;display:flex;flex-direction:column}
+body[data-mode="find"] #vFind{flex:1;min-height:0;display:flex;flex-direction:column}
+#vFind .results{flex:1;min-height:0;display:flex;flex-direction:column}
+#groups{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;--fit:1;--dgr:calc(var(--dg) * var(--fit))}
+#groups .dgs{grid-template-columns:repeat(auto-fill,minmax(calc(118px * var(--dgr)),1fr));gap:6px;margin-top:0}
+#groups .dg svg{max-width:calc(132px * var(--dgr))}
+/* één groep per regel, de naam links ervan (scheelt een kopregel per groep) */
+.grp{display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.grp:first-child{border-top:0}
+.grp.solo{grid-template-columns:minmax(0,1fr)}
+.panel .grp h3.gh{margin:0;flex-direction:column;align-items:flex-start;gap:5px;letter-spacing:.08em;line-height:1.35}
+.gtabs button{padding:5px 10px;font-size:13px}
+/* akkoordsoort: uitklapvenster onder de knop "Type" */
+.qpop{position:relative;display:inline-flex}
+#btnQual b{color:var(--onx)}
+.qpanel{position:absolute;left:0;top:calc(100% + 8px);z-index:40;display:block;width:720px;padding:14px 16px;background:#f9efdc}
+/* kolom: de gekozen vorm, met de hele hals staand */
+.colf{display:grid;gap:7px;margin:12px 0;color:var(--mut);font-size:14px}
+#detail .dhead h2{font-size:24px}
+#detail .dmeta{font-size:15px}
+#detail h3{margin:14px 0 8px}
+#detail .tp{margin-top:14px}
+#detail .tgs{margin-top:12px}
+.big{display:block;margin:14px auto 0;border:0;background:none;padding:6px;border-radius:14px}
+.big:hover{background:var(--fill)}
+svg.nkv{width:170px;height:auto;display:block}
+svg circle.ct.opn{stroke:var(--mut2)} svg text.cl.opn{fill:var(--mut)}
 
 /* ── What's this chord? ── */
-.view{display:grid;gap:16px}
-#segMode button{font-weight:600}
-.nk.inp svg circle,.nk.inp svg text{pointer-events:none}
-svg .cell{fill:transparent;cursor:pointer}
-svg .cell:hover{fill:rgba(255,255,255,.14)}
 .idres{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:start}
 .idshape{display:grid;justify-items:start;gap:10px;width:calc(200px*var(--dg));max-width:100%}
 .idg{width:calc(160px*var(--dg));max-width:100%}.idg svg{width:100%;height:auto;display:block}
 .idl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.idr{display:flex;align-items:center;gap:8px;border-radius:12px;background:var(--bg)}
-.idr.on{background:var(--hibg);box-shadow:inset 0 0 0 2px var(--hi)}
+.idr{display:flex;align-items:center;gap:8px;border-radius:12px;background:var(--fill);border:1px solid var(--line)}
+.idr.on{background:var(--field);border-color:rgba(196,106,28,.55);box-shadow:0 1px 4px rgba(90,55,25,.15)}
 .idn{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;border:0;background:none;text-align:left;padding:10px 12px;border-radius:12px}
 .idn b{font-size:18px}.idn small{font-size:13px;color:var(--mut)}
 .idr .act{margin-right:8px}
-@media (max-width:620px){.idres{grid-template-columns:minmax(0,1fr)}.idshape{width:auto}}
 
-/* ── Progression ── */
-.pgin textarea{flex:1 1 420px;min-width:0;min-height:58px;resize:vertical;border-radius:12px;border:1px solid var(--sep);background:var(--bg);padding:9px 12px;font:600 17px/1.4 ui-monospace,"SF Mono",Menlo,monospace}
-.pgin .note,.pgin .err{flex-basis:100%;padding-left:104px}
-#pgMelRow input{flex:0 1 340px;min-width:0;min-height:38px;border-radius:10px;border:1px solid var(--sep);background:var(--bg);padding:0 12px;font:600 15px ui-monospace,"SF Mono",Menlo,monospace}
-#pgMelRow .err{flex-basis:100%;padding-left:104px}
-#pgTempo{width:150px;accent-color:var(--ac)}
-#pgBpm{min-width:64px;font-size:13px;color:var(--tx)}
-.pgtp{margin-top:0}
-.pgrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(128px*var(--dg)),1fr));gap:8px;margin-top:14px}
-.pgc{display:grid;align-content:start;gap:4px;padding:10px 8px;border-radius:14px;background:var(--bg);cursor:pointer;min-width:0;transition:background .15s,box-shadow .15s}
-.pgc.on{background:var(--hibg);box-shadow:inset 0 0 0 2px var(--hi)}
-.pgc.play{box-shadow:inset 0 0 0 2px var(--ac)}
-.pgc.on.play{box-shadow:inset 0 0 0 2px var(--hi),0 0 0 2px var(--ac)}
-.pgc.none{opacity:.7}
-.pgh{display:flex;align-items:center;gap:6px;min-height:24px}
-.pgh b{font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pgh .cap{margin-left:auto;font-size:11.5px}
-.pglk{display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:var(--hi);color:#1c1c1e;flex:none}
-.pgdg{border:0;background:none;padding:0;border-radius:10px;color:var(--tx)}
-.pgdg:hover{background:var(--fill)}
-.pgdg svg{width:100%;max-width:calc(132px*var(--dg));height:auto;display:block;margin:0 auto}
-.pgi{font-size:11.5px;text-align:center;line-height:1.3}
-.pgv{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:1px;font:600 12px ui-monospace,"SF Mono",Menlo,monospace}
-.pgv li{display:flex;justify-content:space-between;gap:6px;padding:1px 6px;border-radius:6px}
-.pgv li:nth-child(odd){background:var(--fill)}
-.pgv b.gt{color:var(--hitx)}
-.pgv small{font:inherit;color:var(--mut)}
-.pgv small.mvh{color:var(--ok)}
-svg circle.gt{fill:var(--hi)}
-svg circle.gt+text{fill:#1c1c1e}
-svg circle.hd{stroke:var(--ok);stroke-width:2.6}
-@media (max-width:620px){.pgin .note,.pgin .err,#pgMelRow .err{padding-left:0}.pgrow{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(140px*var(--dg))),1fr))}
-  #pgUnlock{margin-left:0!important}}
-/* ── Progression: baslijn en band ── */
-.pgb{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px;padding-top:6px;border-top:1px dashed var(--sep)}
-.bn{display:inline-grid;justify-items:center;min-width:24px;padding:2px 3px;border-radius:7px;background:var(--fill);line-height:1.15;transition:background .1s,box-shadow .1s}
-.bn b{font-size:12.5px}.bn small{font:600 10px ui-monospace,"SF Mono",Menlo,monospace;color:var(--mut)}
-.bn.ap{background:var(--hibg)}.bn.ap small{color:var(--hitx)}
-.bn.now{box-shadow:inset 0 0 0 2px var(--ac)}
-.pgband{margin-top:12px}
-.pgmix{display:flex;flex-wrap:wrap;gap:8px 16px}
-.pgmix input{width:96px;accent-color:var(--ac)}
-@media (max-width:620px){.pgmix input{width:84px}}
-/* schuifje voor de grootte van de diagrammen (in de kop, in elke modus) */
-.dgsz{gap:6px;color:var(--mut)}.dgsz input{width:96px;accent-color:var(--ac)}
-@media (max-width:620px){.dgsz input{width:80px}}
-/* ── Progression: twee kolommen (kaarten links, zijpaneel rechts) ── */
-main.wide{max-width:none}
-.pglay{display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,30vw,620px);gap:16px;align-items:start}
-.pgmain{display:grid;gap:16px;min-width:0}
-.pgside{position:sticky;top:16px;display:grid;gap:16px;max-height:calc(100vh - 32px);overflow:auto;border-radius:18px;scrollbar-width:thin}
-.pgside .dgs{grid-template-columns:repeat(auto-fill,minmax(calc(112px*var(--dg)),1fr));margin-top:8px}
-.pgst{margin:8px 0 0;padding:6px 10px;border-radius:9px;background:var(--fill)}
-.pgst.lock{background:var(--hibg);color:var(--tx)}
-.pgacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.pgacts .act[aria-pressed="true"]{background:var(--hi);color:#1c1c1e}
-.act:disabled{opacity:.45;cursor:default}
-.pgsrow{display:grid;gap:6px;margin-top:14px}
-.pgsrow .seg{justify-self:start}
-.pgalth{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--sep)}
-#pgFitHelp{margin-top:6px}
-.pgbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:8px}
-.pgbar .lnk{margin:0}
-#pgRefitAll{margin-left:auto}
-/* kaarten: geselecteerd, vastgehouden, gelockt */
-.pgc.sel{background:var(--hibg)}
-.pgc.on{box-shadow:inset 0 0 0 2px var(--hi)}
-.pgc.sel:not(.on){box-shadow:inset 0 0 0 1px var(--hi)}
-.pgc.hl{background-image:repeating-linear-gradient(135deg,transparent 0 8px,rgba(127,127,127,.06) 8px 16px)}
-.pglk.free{background:none;color:var(--mut);opacity:0;transition:opacity .15s}
+/* ── Progression: invoer ── */
+.input{display:grid;gap:12px}
+.chords{position:relative}
+.chords textarea{display:block;width:100%;min-height:58px;resize:vertical;padding:12px 210px 12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--tx);font:500 16px/1.55 "JetBrains Mono",monospace;outline:none}
+.chords textarea:focus{border-color:rgba(196,106,28,.55)}
+.chords .from{position:absolute;right:10px;top:10px;display:flex;align-items:center;gap:8px}
+.chords .from select{min-height:28px;max-width:170px;border-radius:9px;padding:0 6px;font-size:13px;color:var(--mut);background:#fff6e6}
+.chords .from select:hover{color:var(--tx)}
+.opts{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
+.opt{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#pgMelRow input{width:300px;min-height:34px;border-radius:10px;border:1px solid var(--line);background:var(--field);padding:0 12px;font:600 15px "JetBrains Mono",monospace;color:var(--tx);outline:none}
+#pgMelRow input:focus{border-color:rgba(196,106,28,.55)}
+#pgApprox{margin-top:-4px}
+
+/* ── Progression: kaarten (perkament met palissander hals), één rij per regel van de invoer, gecentreerd ── */
+.lines{display:grid;gap:22px}
+.pgrow{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.pgc{position:relative;width:var(--cw);display:grid;justify-items:center;align-content:start;gap:4px;padding:12px 10px;border-radius:14px;background:var(--card);border:1px solid var(--cline);color:var(--ctx);cursor:pointer;box-shadow:0 8px 22px rgba(60,30,10,.25);transition:box-shadow .2s,border-color .2s,background-color .2s}
+.pgc:hover{border-color:var(--line2)}
+.pgh{justify-self:stretch;display:flex;align-items:center;gap:6px;min-height:24px;padding:0 2px 0 4px}
+.pgh b{margin-right:auto;font-weight:700;font-size:calc(17px * var(--dg));letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh .cap{font-size:12px;color:var(--cmut);white-space:nowrap}
+.pglk{display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:none;color:var(--glow2);flex:none}
+.pglk svg{width:14px;height:14px}
+.pglk.free{color:var(--mut2);opacity:0;transition:opacity .15s}
 .pgc:hover .pglk.free,.pgc.sel .pglk.free,.pglk.free:focus-visible{opacity:1}
 .pglk.free:hover{background:var(--fill);color:var(--tx)}
-.pglk.held{background:var(--fill);color:var(--tx)}
-.pgt{color:var(--hitx);font-weight:600}
-@media (max-width:1100px){.pglay{grid-template-columns:minmax(0,1fr)}.pgside{position:static;max-height:none}}
+.pglk.held{color:var(--mut)}
+.pgdg{border:0;background:none;padding:0;border-radius:10px;color:inherit}
+.pgdg svg{width:calc(150px * var(--dg));height:auto;display:block;margin:2px 0}
+.pgi{font-size:12.5px;color:var(--cmut);text-align:center;line-height:1.3}
+.pgt{color:var(--onx);font-weight:600}
+.pgv{justify-self:stretch;list-style:none;margin:4px 0 0;padding:0;display:grid;gap:3px;font:500 12px/1 "JetBrains Mono",monospace}
+.pgv li{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;border-radius:7px;background:rgba(90,55,25,.07)}
+.pgv b{font-weight:600}
+.pgv b.gt{color:var(--onx)}
+.pgv small{font:inherit;color:var(--cmut)}
+.pgv small.mvh{color:#5f8a58}
+.pgb{justify-self:stretch;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:5px 0 0;padding-top:6px;border-top:1px dashed var(--line2)}
+.bn{display:inline-grid;justify-items:center;min-width:26px;padding:2px 4px;border-radius:7px;background:rgba(90,55,25,.09);line-height:1.15;transition:background .1s,box-shadow .1s}
+.bn b{font-size:12px;font-weight:600}.bn small{font:600 9.5px "JetBrains Mono",monospace;color:var(--cmut)}
+.bn.ap{background:rgba(240,167,67,.28)}.bn.ap small{color:var(--onx)}
+.bn.now{box-shadow:inset 0 0 0 2px var(--glow2)}
+/* kaartdetails: compact = naam, diagram, omkering; full = ook de stemmen en de baslijn */
+body:not([data-detail="full"]) .pgv,body:not([data-detail="full"]) .pgb{display:none}
+/* gekozen, geselecteerd, speelt nu, vastgehouden (gestreept), zonder vorm */
+.pgc.sel{background-color:#fbf1de}
+.pgc.sel:not(.on){box-shadow:inset 0 0 0 1px rgba(196,106,28,.6),0 8px 22px rgba(60,30,10,.25)}
+.pgc.on{background-color:#fdf6e8;border-color:rgba(196,106,28,.75);box-shadow:inset 0 0 0 1px rgba(196,106,28,.75),0 8px 22px rgba(60,30,10,.25)}
+.pgc.play{box-shadow:0 0 0 2px var(--glow2),0 0 30px rgba(255,200,120,.55)}
+.pgc.on.play{box-shadow:inset 0 0 0 1px rgba(196,106,28,.75),0 0 0 2px var(--glow2),0 0 30px rgba(255,200,120,.55)}
+.pgc.hl{background-image:repeating-linear-gradient(135deg,transparent 0 8px,rgba(90,55,25,.07) 8px 16px)}
+.pgc.none{opacity:.75}
+.pgempty{text-align:center;font-size:15px;color:#fff3df;text-shadow:0 1px 8px rgba(60,30,10,.7)}
+
+/* ── kolom: tabbladen en het gekozen akkoord ── */
+.col .colhd .seg button{padding:5px 12px;font-size:13.5px}
+.pgselh{font-size:22px;margin:6px 0 2px}
+.pgst{margin:10px 0 0;padding:7px 10px;border-radius:10px;background:var(--fill);border:1px solid var(--line)}
+.pgst.lock{background:rgba(240,167,67,.18)}
+.pgacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pgacts .act{min-height:32px;padding:0 12px;font-size:13.5px}
+.pgacts .act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.pgsrow{display:grid;gap:6px;margin-top:16px}
+.pgsrow .seg{justify-self:start}
+.pgsrow .seg button{padding:5px 9px;font-size:13px}
+#pgAlts{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(112px*var(--dg))),1fr));gap:6px}
+#pgAlts .dg{padding:8px 4px 6px}
+.col .row .help i{font-size:13px}
+#pgMix .row{cursor:default}
+/* akkoordsymbolen in Bricolage (de pixelletter kent geen ♭/♯) */
+h2.sym,.pgselh{font-weight:700;letter-spacing:-.01em}
+
+/* kaartstijl Paper / Paper + staff lines (menu S): papiervezel op de kaart, notenbalk achter de akkoordnaam */
+body[data-card="paper"] .pgc,body[data-card="staff"] .pgc{background-color:#fbf3e2;background-image:var(--paper);box-shadow:inset 0 0 16px rgba(150,100,40,.16),0 8px 22px rgba(60,30,10,.28)}
+body[data-card="paper"] .pgc.on,body[data-card="staff"] .pgc.on{background-color:#fdf6e8}
+body[data-card="paper"] .pgv li,body[data-card="staff"] .pgv li{background:rgba(80,50,20,.07)}
+body[data-card="staff"] .pgc::before{content:"";position:absolute;left:10px;right:10px;top:12px;height:25px;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(60,38,20,.2) 0 1px,transparent 1px 6px)}
+body[data-card="staff"] .pgh{position:relative}
