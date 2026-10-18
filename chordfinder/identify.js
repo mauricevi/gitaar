@@ -65,7 +65,7 @@ function bindId(){
   $('#segMode').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b||b.dataset.mode===S.mode)return;S.mode=b.dataset.mode;save();renderMode();});}
 /* modus: Finder, What's this chord? of Progression (progression.js) */
 function renderMode(){const m=S.mode;seg($('#segMode'),Object.entries(T.mode),m,'mode');
-  $('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
+  $('main').classList.toggle('wide',m==='prog');$('#vFind').hidden=m!=='find';$('#vId').hidden=m!=='id';$('#vProg').hidden=m!=='prog';
   $('#sub').textContent=m==='id'?T.id.sub:m==='prog'?T.pg.sub:T.sub;
   $('#howTxt').textContent=m==='prog'?T.pg.how:T.how;
   if(m==='find')update();if(m==='id')renderId();if(m==='prog')pgRender();else pgStop();}   /* Labels en Bass zijn gedeeld: Finder bijwerken */

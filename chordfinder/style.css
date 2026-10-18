@@ -213,7 +213,6 @@ svg .cell:hover{fill:rgba(255,255,255,.14)}
 svg circle.gt{fill:var(--hi)}
 svg circle.gt+text{fill:#1c1c1e}
 svg circle.hd{stroke:var(--ok);stroke-width:2.6}
-#pgAltBox .rhead .act{margin-left:auto}
 @media (max-width:620px){.pgin .note,.pgin .err,#pgMelRow .err{padding-left:0}.pgrow{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(140px*var(--dg))),1fr))}
   #pgUnlock{margin-left:0!important}}
 /* ── Progression: baslijn en band ── */
@@ -229,3 +228,32 @@ svg circle.hd{stroke:var(--ok);stroke-width:2.6}
 /* schuifje voor de grootte van de diagrammen (in de kop, in elke modus) */
 .dgsz{gap:6px;color:var(--mut)}.dgsz input{width:96px;accent-color:var(--ac)}
 @media (max-width:620px){.dgsz input{width:80px}}
+/* ── Progression: twee kolommen (kaarten links, zijpaneel rechts) ── */
+main.wide{max-width:none}
+.pglay{display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,30vw,620px);gap:16px;align-items:start}
+.pgmain{display:grid;gap:16px;min-width:0}
+.pgside{position:sticky;top:16px;display:grid;gap:16px;max-height:calc(100vh - 32px);overflow:auto;border-radius:18px;scrollbar-width:thin}
+.pgside .dgs{grid-template-columns:repeat(auto-fill,minmax(calc(112px*var(--dg)),1fr));margin-top:8px}
+.pgst{margin:8px 0 0;padding:6px 10px;border-radius:9px;background:var(--fill)}
+.pgst.lock{background:var(--hibg);color:var(--tx)}
+.pgacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pgacts .act[aria-pressed="true"]{background:var(--hi);color:#1c1c1e}
+.act:disabled{opacity:.45;cursor:default}
+.pgsrow{display:grid;gap:6px;margin-top:14px}
+.pgsrow .seg{justify-self:start}
+.pgalth{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--sep)}
+#pgFitHelp{margin-top:6px}
+.pgbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:8px}
+.pgbar .lnk{margin:0}
+#pgRefitAll{margin-left:auto}
+/* kaarten: geselecteerd, vastgehouden, gelockt */
+.pgc.sel{background:var(--hibg)}
+.pgc.on{box-shadow:inset 0 0 0 2px var(--hi)}
+.pgc.sel:not(.on){box-shadow:inset 0 0 0 1px var(--hi)}
+.pgc.hl{background-image:repeating-linear-gradient(135deg,transparent 0 8px,rgba(127,127,127,.06) 8px 16px)}
+.pglk.free{background:none;color:var(--mut);opacity:0;transition:opacity .15s}
+.pgc:hover .pglk.free,.pgc.sel .pglk.free,.pglk.free:focus-visible{opacity:1}
+.pglk.free:hover{background:var(--fill);color:var(--tx)}
+.pglk.held{background:var(--fill);color:var(--tx)}
+.pgt{color:var(--hitx);font-weight:600}
+@media (max-width:1100px){.pglay{grid-template-columns:minmax(0,1fr)}.pgside{position:static;max-height:none}}

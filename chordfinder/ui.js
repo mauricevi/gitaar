@@ -8,7 +8,7 @@ function readSafe(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){retu
 const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null,
   mode:'find',idf:[-1,3,2,0,1,0],idSel:0,   /* mode = Finder, What's this chord? of Progression; idf = frets per snaar daar (−1 = gedempt) */
   /* Progression (zie progression.js): tekst, soort, voice-leadingmodus, positie, snarenset, melodie, tempo, loop, vergrendelde vormen */
-  pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{},
+  pText:'Dm7 G7 Cmaj7(2) | Am7 D7 Gmaj7(2)',pType:'drop2',pMode:'smooth',pPos:5,pStr:'auto',pMel:'',pTempo:120,pLoop:true,pLock:{},pTypes:{},pFit:'refit',
   /* band (fase 4): baslijn, stijl, drums, volume per instrument (0–100), baslijn op de hals */
   pLine:'walk',pStyle:'swing',pDrums:true,pVol:{piano:100,bass:100,drums:80},pBNeck:false,
   dgSize:100};   /* grootte van alle akkoorddiagrammen in procenten (80–200) */
@@ -27,7 +27,12 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.pStr=typeof s.pStr==='string'&&/^(auto|[1-6]{2,6})$/.test(s.pStr)?s.pStr:'auto';s.pMel=typeof s.pMel==='string'?s.pMel.slice(0,300):'';
   s.pTempo=Math.min(260,Math.max(40,Math.round(+s.pTempo)||120));s.pLoop=s.pLoop!==false;
   const lk=s.pLock&&typeof s.pLock==='object'&&!Array.isArray(s.pLock)?s.pLock:{};s.pLock={};
-  Object.keys(lk).forEach(i=>{const x=lk[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&typeof x.k==='string')s.pLock[i]={s:x.s.slice(0,40),k:x.k.slice(0,40)};});
+  Object.keys(lk).forEach(i=>{const x=lk[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&typeof x.k==='string'){const o={s:x.s.slice(0,40),k:x.k.slice(0,40)};
+    if(VTYPES.includes(x.t))o.t=x.t;if(x.h)o.h=1;s.pLock[i]=o;}});
+  /* eigen voicingsoort per akkoord (volgnummer → {s: symbool, t: soort}) en wat er gebeurt bij een gekozen vorm */
+  const ty=s.pTypes&&typeof s.pTypes==='object'&&!Array.isArray(s.pTypes)?s.pTypes:{};s.pTypes={};
+  Object.keys(ty).forEach(i=>{const x=ty[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&VTYPES.includes(x.t))s.pTypes[i]={s:x.s.slice(0,40),t:x.t};});
+  s.pFit=s.pFit==='keep'?'keep':'refit';
   s.pLine=['roots','r5','approach','walk','step'].includes(s.pLine)?s.pLine:DEF.pLine;
   s.pStyle=['swing','bossa','straight'].includes(s.pStyle)?s.pStyle:DEF.pStyle;s.pDrums=s.pDrums!==false;s.pBNeck=!!s.pBNeck;
   const vo=s.pVol&&typeof s.pVol==='object'&&!Array.isArray(s.pVol)?s.pVol:{};s.pVol={};
