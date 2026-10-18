@@ -11,11 +11,11 @@
 /* ════════════════════════════════════════════════════════════════════════════
    FRETBOARD TRAINER · v5 (Practice Room-schil: shared/room.css + shared/look.js + shared/rail.js)
    Opbouw van dit bestand:
-   CSS   1. tokens (palissander hals)  2. oefenvak  3. bord  4. transportplank  5. kolom rechts (sessie, voortgang, instellingen)
-   HTML  icoonbalk · kop met modusknoppen · oefenvak (vraag, hals, snaren, bereik) · transportplank · kolom rechts
+   CSS   1. tokens (palissander hals)  2. balk + oefenvak  3. bord  4. transportplank  5. kolom rechts (sessie, instellingen)  6. voortgang
+   HTML  icoonbalk · kop (modus, weergave Practice/Progress) · balk met de vragen · oefenvak (vraag, hals) of voortgang · transportplank · kolom rechts
    JS    0. TEXT (alle schermtekst)  1. DATA  2. STORE  3. ENGINE  3b. SLIM OEFENEN  4. BORD  5. MATEN
          6. AUDIO  7. PAUZE  8. TRAINER  9. LEERPAD  10. STATS  11. UI  · daarna GITAARINGANG
-   Opslag: localStorage 'fretTrainer.v1' (ongewijzigd, plus colOpen/colTab) en 'fretTrainer.log'.
+   Opslag: localStorage 'fretTrainer.v1' (ongewijzigd, plus colOpen/colTab/heatH) en 'fretTrainer.log'.
    Daglicht, geen thema-knop meer: 'theme' blijft in de opslag staan maar wordt genegeerd. Houtkeuze idem ('wood').
    Toets S = geheim menu (shared/look.js); de hals volgt daar "Card style" (rosewood / paper).
    ════════════════════════════════════════════════════════════════════════════ */
@@ -55,9 +55,20 @@ select{min-height:32px;border-radius:9px;border:1px solid var(--line);background
 .chip[aria-pressed="true"]{background:var(--field);color:var(--onx);border-color:rgba(196,106,28,.45);box-shadow:0 1px 3px rgba(90,55,25,.15)}
 .chip:disabled{cursor:default}
 
-/* het oefenvak staat midden in de ruimte onder de kop; past op één scherm */
+/* bovenaan: kop met modus + weergave (Practice · Progress), daaronder één smalle balk met de vragen; dan de hals over de hele breedte */
 .wrap{min-height:100%;display:flex;flex-direction:column}
-.stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding-bottom:6px}
+.qbar{padding:10px 14px;margin-bottom:14px;container-type:inline-size}
+/* smal (kolom rechts open op 1440): de knoppen spreken voor zich, dan kunnen de labels Notes/Notation weg en blijft het één regel */
+@container (max-width:1010px){.qbar .lb.opt{display:none}}
+.lb{font-size:calc(12px * var(--dfs));color:var(--mut2);text-transform:uppercase;white-space:nowrap}
+.qbar .bar{margin:0;gap:8px 10px}
+.bar .grow{flex:1}
+.f{display:inline-flex;align-items:center;gap:7px}
+.qbar .seg button{padding:5px 9px;font-size:13px}
+.qbar .tg{font-size:14px}
+#smStep{font:600 15px "JetBrains Mono",monospace;color:var(--tx)}
+.stage{display:flex;flex-direction:column;padding-bottom:6px}
+.stage[hidden]{display:none}
 .play{position:relative;padding:22px 28px 16px}
 .qhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;min-height:76px}
 #cap{font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx)}
@@ -74,18 +85,22 @@ select{min-height:32px;border-radius:9px;border:1px solid var(--line);background
 #answers .chip.bad{background:var(--dbad);border-color:transparent;color:var(--dtx)}
 #answers.ghost,.kh.ghost{visibility:hidden;pointer-events:none}
 .kh{text-align:center;min-height:1.3em;font-size:13px;color:var(--mut)}
-/* pauze: vraag en hals vervagen (geen blur-filter, zie CLAUDE.md), grote Start-knop erover */
-#play .ov{display:none;position:absolute;inset:0;place-items:center;z-index:5;pointer-events:none}
-#play .ov .act{pointer-events:auto}
-#play.paused .ov{display:grid}
-#play.paused .qhead,#play.paused .sum,#play.paused .bwrap,#play.paused #answers,#play.paused .kh{opacity:.14;pointer-events:none;user-select:none}
-/* snaren en bereik onder de hals */
-.fil{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);min-height:48px}
-.strs{display:inline-flex;flex-wrap:wrap;gap:6px}
-.strs .chip{min-width:42px}
-.fsum{display:inline-flex;align-items:center;gap:8px;border:0;background:none;font-size:14px;color:var(--mut);padding:6px 10px;border-radius:9px}
-.fsum:hover{background:var(--fill);color:var(--tx)}
-.fsum svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* pauze: niets vervaagt. De vraag (tekst, stip, oplichtende snaar, knoppen) is weg tot je start; de hals blijft gewoon staan.
+   Start staat rechts in de kop van het oefenvak en op de plank */
+#btnStart{display:none;min-height:42px;padding:0 24px;font-size:16px}
+#play.paused #btnStart{display:inline-flex;align-items:center}
+.pz{display:none;margin:4px 0 0;font-size:30px;font-weight:700;line-height:1.2;color:var(--mut)}
+#play.paused .pz{display:block}
+#play.paused #prompt,#play.paused #fb,#play.paused .sum{display:none}
+#play.paused #answers,#play.paused .kh{visibility:hidden}
+#play.paused .cell.on i{visibility:hidden}
+#play.paused .row.hl .cell::before{background:var(--nstr);opacity:.85;box-shadow:none}
+#play.paused .row.dim .cell::before{opacity:.85}
+#play.paused .row.hl .cell.open::before,#play.paused .row.dim .cell.open::before{background:var(--mut2);opacity:.45}
+#play.paused .row .lab{opacity:1;color:var(--mut2);font-weight:600}
+#play.paused .board{pointer-events:none}
+.strs{display:inline-flex;flex-wrap:wrap;gap:4px}
+.strs .chip{min-width:31px;min-height:30px;padding:0 7px}
 
 /* ===== 3. BORD: palissander zoals de diagrammen in Chord Finder (verloop, vage nerf, lichte fretten, inlegstippen) =====
    Hoge e boven. Elk vakje tekent zijn stuk van één doorlopend verloop over de hele hals (--ri = rij van boven, 0–5). */
@@ -158,42 +173,46 @@ body[data-card="paper"] .cell.off,body[data-card="staff"] .cell.off{background-i
 .dt{display:inline-block;width:11px;height:11px;border-radius:50%;background:#6f9868;vertical-align:middle}
 .dt.slow{background:#e0a02b}.dt.bad{background:var(--err)}
 .legend .dt,.nlist .dt{width:9px;height:9px}
-/* leerpad */
-.stg{display:grid;grid-template-columns:1.1rem minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--tx)}
-.stg.lk{opacity:.5}.stg .ic{text-align:center;font-weight:700;color:var(--mut)}.stg.dn .ic{color:var(--ok)}.stg.ac .ic{color:var(--onx)}
-.stg .nn{font:600 11px "JetBrains Mono",monospace;color:var(--mut);margin-left:6px}
-.pb{position:relative;height:5px;border-radius:3px;background:var(--fill);margin-top:6px;overflow:hidden}
+/* ===== 6. VOORTGANG (weergave in het midden, zelfde breedte als de oefenhals) ===== */
+.prog{padding:20px 28px 22px}
+.phd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 12px}
+.phd h2{margin:0;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif;font-weight:400;display:flex;align-items:center;gap:8px}
+.phd .seg button{padding:5px 10px;font-size:13px}
+.phd .grow{flex:1}
+.phd.gap{margin-top:26px}
+/* leerpad: zes stappen naast elkaar, van links (begin) naar rechts */
+.pathtop{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.pathtop .act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.path{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.stg{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:var(--fill);border:1px solid var(--line);font-size:13px;color:var(--tx);min-width:0}
+.stg.ac{border-color:rgba(196,106,28,.55);box-shadow:0 0 0 1px rgba(196,106,28,.25)}
+.stg.lk{opacity:.55}
+.stg .t{display:flex;align-items:center;gap:8px}
+.stg .ic{font-weight:700;color:var(--mut)}.stg.dn .ic{color:var(--ok)}.stg.ac .ic{color:var(--onx)}
+.stg .nn{margin-left:auto;font:600 11px "JetBrains Mono",monospace;color:var(--mut)}
+.stg .d{color:var(--mut);line-height:1.35}
+.stg .act{align-self:flex-start}
+.pb{position:relative;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
 .pb i{display:block;height:100%;background:var(--glow2)}.stg.dn .pb i{background:#6f9868}
 .pb u{position:absolute;left:80%;top:0;bottom:0;width:2px;background:var(--mut);opacity:.6}
-.pathtop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 4px}
-.pathtop .act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
-/* heatmap: de hals staand (lage E links, topkam boven), zoals de hals in Chord Finder's kolom */
-.legend{display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center;font-size:12px;color:var(--mut);margin:10px 0}
+/* heatmap: dezelfde liggende hals als het oefenvak (hoge e boven, kam links); stippen gekleurd naar score.
+   Snaarafstand eigen (menu S "Heatmap string spacing", heatH), zodat leerpad en noten eronder op het scherm passen */
+.legend{display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center;font-size:12px;color:var(--mut)}
 .legend>i{display:inline-block;width:12px;height:12px;border-radius:50%}
-.hv{display:grid;grid-template-columns:1.5rem repeat(6,minmax(0,1fr));grid-template-rows:1.4rem 1.9rem repeat(12,1.75rem);max-width:270px;margin:8px auto 0}
-.hv .hwd{grid-column:2/8;grid-row:3/15;background-image:var(--fgrv),var(--fwdv);border-radius:3px}
-.hv .hs{display:grid;place-items:center;font:600 12px "JetBrains Mono",monospace;color:var(--mut)}
-.hv .hs.dim{opacity:.4}
-.hv .hn{display:grid;place-items:center;font:600 10px "JetBrains Mono",monospace;color:var(--mut2)}
-.hc{position:relative;z-index:1;border-bottom:2px solid var(--nline)}
-.hc.o{border-bottom:5px solid var(--nnut);box-shadow:inset 0 -1px 0 rgba(60,35,15,.3)}
-.hc::before{content:"";position:absolute;top:0;bottom:-2px;left:50%;width:var(--t);transform:translateX(-50%);background:var(--nstr);opacity:.8}
-.hc.o::before{background:var(--mut2);opacity:.4}
-.hc.dim::before{opacity:.3}
-.hc i{position:absolute;left:50%;top:50%;width:1.45rem;height:1.45rem;border-radius:50%;transform:translate(-50%,-50%);display:grid;place-items:center;font:700 10px/1 "Bricolage Grotesque",sans-serif;font-style:normal;z-index:2;cursor:default}
-/* noten-lijst (Weakest / Strongest / Fastest) */
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.kpis div{display:flex;flex-direction:column;min-width:0}
-.kpis b{font:600 18px/1.2 "JetBrains Mono",monospace;color:var(--tx)}.kpis span{font-size:11.5px;color:var(--mut);line-height:1.3}
-.nlist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:5px}
-.nlist li{padding:7px 10px;border-radius:10px;background:var(--fill);border:1px solid var(--line);font-size:13px}
+.heat{--rowh:var(--hrh,2.3rem)}
+.heat .cell i{cursor:default;font-size:.72rem}
+.heat .row.dim .lab{opacity:.4}
+/* noten-lijst (Weakest / Strongest / Fastest): kaartjes in rijen van vier */
+.kpis{display:flex;gap:22px}.kpis div{display:flex;flex-direction:column;min-width:0}
+.kpis b{font:600 16px/1.2 "JetBrains Mono",monospace;color:var(--tx)}.kpis span{font-size:11.5px;color:var(--mut);line-height:1.3}
+#wHelp{margin:0 0 8px}
+.nlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.nlist li{padding:8px 11px;border-radius:10px;background:var(--fill);border:1px solid var(--line);font-size:13px;min-width:0}
 .nlist .l1{display:flex;align-items:baseline;gap:8px}
 .nlist .l1 b:first-child{font-size:15px;min-width:2.4ch}
 .nlist .l1 span{color:var(--mut)}
 .nlist .l1 .sc{margin-left:auto;font:600 13px "JetBrains Mono",monospace}
 .nlist .l2{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:4px;color:var(--mut);font:12px "JetBrains Mono",monospace}
-/* uitlichten als je vanaf het bereik onder de hals hierheen komt */
-@keyframes flash{0%,40%{background:rgba(240,167,67,.28)}100%{background:transparent}}
-.flash{animation:flash 1.4s ease-out;border-radius:10px}
 /* gitaaringang */
 .gmeter{position:relative;height:12px;width:100%;border-radius:6px;background:var(--fill);overflow:hidden}
 .gmeter i{position:absolute;left:0;top:0;bottom:0;width:0;background:#6f9868;transition:width .05s linear}
@@ -221,7 +240,7 @@ dialog h2{margin:0 0 8px;font-size:calc(20px * var(--dfs))}
 textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:8px}
 #tip{position:fixed;z-index:50;pointer-events:none;display:none;max-width:260px;background:var(--field);color:var(--tx);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(60,30,10,.25)}
 #tip .cap{font-size:12px}
-@media (prefers-reduced-motion:reduce){.tray .pg i,.flash{transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){.tray .pg i{transition:none}}
 </style>
 </head>
 <body>
@@ -238,25 +257,65 @@ textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field)
         <span class="seg glass" id="uMode" role="group" aria-label="Practice mode"></span>
         <span class="help dn r wide" tabindex="0" aria-label="How it works">?<i id="howTxt"></i></span>
         <div class="grow"></div>
+        <span class="seg glass" id="uView" role="group" aria-label="View"><button type="button" data-v="play">Practice</button><button type="button" data-v="prog" data-t="ui.progress">Progress</button></span>
       </header>
 
-      <!-- oefenvak: vraag, de hals groot in het midden, snaren en bereik -->
-      <div class="stage">
+      <!-- balk: welke vragen (snaren, noten, notatie, frets, focus); in Smart practice de stap van het leerpad -->
+      <section class="paper panel qbar" id="qbar" aria-label="Questions">
+        <div class="bar" id="setQ">
+          <span id="uStr" class="strs" role="group" aria-label="Strings"></span>
+          <div class="f"><span class="lb px opt" data-t="ui.notes">Notes</span><span id="uNotes" class="seg" role="group" aria-label="Notes"></span></div>
+          <div class="f"><span class="lb px opt" data-t="ui.notation">Notation</span><span id="uAcc" class="seg" role="group" aria-label="Notation"></span></div>
+          <div class="f"><span class="lb px" data-t="ui.frets">Frets</span><select id="fMin" aria-label="From fret"></select><span class="cap">–</span><select id="fMax" aria-label="To fret"></select></div>
+          <div class="f"><label class="tg" title="Only notes below the weak threshold"><input type="checkbox" role="switch" id="uWeak"><i></i><span data-t="opt.weakOnly">Weak spots</span></label></div>
+        </div>
+        <div class="bar" id="smBar" hidden>
+          <div class="f"><span class="lb px">Step</span><b id="smStep"></b></div>
+          <span class="cap" id="smTxt"></span>
+          <span class="grow"></span>
+          <button type="button" class="lnk" id="smPath">Learning path ›</button>
+        </div>
+      </section>
+
+      <!-- oefenvak: vraag en de hals over de hele breedte -->
+      <div class="stage" id="vPlay">
       <section class="paper play paused" id="play" aria-label="Practice">
-        <div class="ov"><button type="button" class="act pri big" id="btnStart"></button></div>
         <div class="qhead">
-          <div><div class="cap px" id="cap"></div><p id="prompt"></p></div>
+          <div><div class="cap px" id="cap"></div><p id="prompt"></p><p class="pz" id="pz"></p></div>
           <div id="fb" class="pill" aria-live="polite" hidden></div>
+          <button type="button" class="act pri" id="btnStart"></button>
         </div>
         <div id="sum" class="sum"></div>
         <div class="bwrap"><div id="board" class="board"></div></div>
         <div id="answers" class="ghost" aria-hidden="true"></div>
         <div id="kh" class="kh ghost" aria-hidden="true"></div>
-        <div class="fil" id="fil">
-          <span id="uStr" class="strs" role="group" aria-label="Strings"></span>
-          <button type="button" class="fsum" id="btnFil" aria-controls="setQ"><span id="filTxt"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
-          <span class="cap" id="filSm" hidden></span>
+      </section>
+      </div>
+
+      <!-- voortgang: heatmap als liggende hals (zelfde stand als de oefenhals), leerpad als rij stappen, noten -->
+      <div class="stage" id="vProg" hidden>
+      <section class="paper prog" id="progV" aria-label="Progress">
+        <div class="phd">
+          <h2 data-t="ui.heatmap">Heatmap</h2>
+          <span id="uMap" class="seg" role="group" aria-label="Heatmap view"></span>
+          <div class="legend" id="legend"></div>
         </div>
+        <div class="bwrap"><div id="heat" class="board heat"></div></div>
+        <div class="phd gap" id="pathHd">
+          <h2><span data-t="ui.path">Learning path</span> <span class="help r" tabindex="0" aria-label="About the learning path">?<i id="pathHelp"></i></span></h2>
+          <div class="pathtop" id="pathTop"></div>
+        </div>
+        <div id="path" class="path"></div>
+        <div class="phd gap">
+          <h2><span data-t="ui.notesH">Notes</span> <span class="help r" tabindex="0" aria-label="How is the score calculated?">?<i id="sxBody"></i></span></h2>
+          <span id="uWt" class="seg" role="group" aria-label="Notes"></span>
+          <div class="kpis" id="wRec"></div>
+          <span class="grow"></span>
+          <button type="button" class="act sm" id="btnAll"></button>
+          <button type="button" class="act sm" id="btnBk" data-t="ui.backup">Backup (JSON)</button>
+        </div>
+        <p class="note" id="wHelp"></p>
+        <div id="worst"></div>
       </section>
       </div>
      </div>
@@ -272,11 +331,11 @@ textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field)
     </footer>
   </main>
 
-  <!-- kolom rechts: sessie, voortgang, instellingen (inklapbaar) -->
+  <!-- kolom rechts: sessie en instellingen (inklapbaar); voortgang is een eigen weergave in het midden -->
   <aside class="col" id="col" aria-label="Side panel">
     <button type="button" class="ib reopen" data-col="open" title="Show side panel" aria-label="Show side panel"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <div class="colhd">
-      <span class="seg" id="colTabs" role="tablist" aria-label="Side panel"><button type="button" data-tab="sess">Session</button><button type="button" data-tab="prog" data-t="ui.progress">Progress</button><button type="button" data-tab="set" data-t="ui.settings">Settings</button></span>
+      <span class="seg" id="colTabs" role="tablist" aria-label="Side panel"><button type="button" data-tab="sess">Session</button><button type="button" data-tab="set" data-t="ui.settings">Settings</button></span>
       <button type="button" class="ib" data-col="shut" title="Hide side panel" aria-label="Hide side panel"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
 
@@ -301,36 +360,8 @@ textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field)
       </div>
     </div>
 
-    <!-- voortgang: leerpad, heatmap (staande hals), noten -->
-    <div id="tabProg" hidden>
-      <h3><span data-t="ui.path">Learning path</span> <span class="help r" tabindex="0" aria-label="About the learning path">?<i id="pathHelp"></i></span></h3>
-      <div id="path"></div>
-      <h3 data-t="ui.heatmap">Heatmap</h3>
-      <span id="uMap" class="seg" role="group" aria-label="Heatmap view"></span>
-      <div class="legend" id="legend"></div>
-      <div id="heat"></div>
-      <h3><span data-t="ui.notesH">Notes</span> <span class="help r" tabindex="0" aria-label="How is the score calculated?">?<i id="sxBody"></i></span></h3>
-      <span id="uWt" class="seg" role="group" aria-label="Notes"></span>
-      <div class="kpis" id="wRec"></div>
-      <p class="note" id="wHelp" style="margin:10px 0 0"></p>
-      <div id="worst"></div>
-      <h3>Statistics</h3>
-      <div class="bar" style="margin-top:0">
-        <button type="button" class="act sm" id="btnAll"></button>
-        <button type="button" class="act sm" id="btnBk" data-t="ui.backup">Backup (JSON)</button>
-      </div>
-    </div>
-
     <!-- instellen, niet spelen -->
     <div id="tabSet" hidden>
-      <div id="setQ">
-        <h3>Questions</h3>
-        <div class="colf"><span class="lh" data-t="ui.notes">Notes</span><span id="uNotes" class="seg" role="group" aria-label="Notes"></span></div>
-        <div class="colf"><span class="lh" data-t="ui.notation">Notation</span><span id="uAcc" class="seg" role="group" aria-label="Notation"></span></div>
-        <div class="row"><span data-t="ui.frets">Frets</span><span><select id="fMin" aria-label="From fret"></select> – <select id="fMax" aria-label="To fret"></select></span></div>
-        <div class="colf"><span class="lh" data-t="ui.focus">Focus</span><span id="uWeak" class="seg" role="group" aria-label="Focus"></span></div>
-      </div>
-
       <h3 data-t="ui.gSmart">Smart practice</h3>
       <div class="colf"><span class="lh"><span><span data-t="ui.newPerDay">New per day</span></span></span><span id="uNew" class="seg" role="group" aria-label="New per day"></span></div>
       <div class="row"><span><span data-t="ui.dueMark">Mark due notes</span> <span class="help r" tabindex="0" aria-label="About due notes">?<i data-t="ui.dueMarkSub"></i></span></span><span id="uDue" class="seg" role="group" aria-label="Mark due notes"></span></div>
@@ -468,10 +499,10 @@ const TEXT={
   appName:'Fretboard Trainer',
   links:{home:'index.html'},   // bestandsnaam van Home in dezelfde map
   modes:{find:'Find a note',name:'Name the note',smart:'Smart practice'},
-  how:'<b>Find a note</b>: click the note on the lit string (or play it, see Settings → Guitar input). <b>Name the note</b>: name the marked note: click a button or type its letter. <b>Smart practice</b>: spaced repetition. Notes due today come first, then weak spots, then a few new notes each day; the learning path unlocks more strings and frets.<br><br>Score, streak and the history of each note are in the side panel (Session, Progress).',
+  how:'<b>Find a note</b>: click the note on the lit string (or play it, see Settings → Guitar input). <b>Name the note</b>: name the marked note: click a button or type its letter. <b>Smart practice</b>: spaced repetition. Notes due today come first, then weak spots, then a few new notes each day; the learning path unlocks more strings and frets.<br><br>Score, streak and the history of the current note are in the side panel (Session). <b>Progress</b> (top right) shows the heatmap, the learning path and your weakest and strongest notes.',
   keysHelp:'<b>Esc</b> start or pause · <b>Enter</b> or <b>Space</b> next question · <b>C D E F G A B</b> name a note (Shift = ♯ or ♭)',
   pathHelp:'Smart practice follows these steps. The next step unlocks once 80% of its items are correct. Pick a step to unlock up to there by hand.',
-  filHint:'Change notes, notation and frets in Settings',
+  paused:'Paused',
   trayStat:(p,n,d)=>`Score ${p} · correct ${n}`+(d!=null?` · ${d} due today`:''),
   playIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5l9.5 5.5L3 12.5z" fill="currentColor"/></svg>',
   pauseIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg>',
@@ -491,7 +522,8 @@ const TEXT={
   doneToday:'Done for today ✓',
   summary:o=>`Answered <b>${o.n}</b> (${o.pct} correct) · Again ${o.g[0]} · Hard ${o.g[1]} · Good ${o.g[2]} · Easy ${o.g[3]} · newly learned <b>${o.nw}</b> · due tomorrow <b>${o.m}</b> · Enter = next day`,
   todayProg:(d,t)=>`${d} of ${t} today`,
-  filtersFollow:'Filters follow the learning path in Smart practice',
+  filtersFollow:'Smart practice follows the learning path; strings, notes and frets come from the step you are on.',
+  stepOf:(i,n)=>`${i} of ${n}`, setByPath:'set by the learning path',
   filNotes:{nat:'Naturals',both:'Naturals + ♯/♭',acc:'♯/♭ only'}, filAcc:{sharp:'♯',flat:'♭',both:'♯ or ♭ (random)'},
   filFrets:(a,b)=>`frets ${a}–${b}`, filWeak:'weak spots only', all:'All',
   stringTitle:s=>`${s} string`,
@@ -512,13 +544,13 @@ const TEXT={
       gBehaviour:'Behaviour',autoPause:'Auto-pause',autoPauseSub:'when idle',tabPause:'Tab switch',tabPauseSub:'pause when the tab is hidden',
       sound:'Sound',onCorrect:'On correct'},
   woods:{rosewood:'Rosewood',ebony:'Ebony',pauferro:'Pau ferro',maple:'Maple',custom:'Custom'},
-  opt:{on:'On',off:'Off',nat:'Naturals only',both:'Naturals + ♯/♭',acc:'♯/♭ only',sharp:'♯',flat:'♭',bothAcc:'random',
-       weakOnly:'Weak spots only',guitar:'Guitar tone',ping:'Chime',weakest:'Weakest',strongest:'Strongest',fastest:'Fastest',
+  opt:{on:'On',off:'Off',nat:'Naturals',both:'All 12',acc:'♯/♭ only',sharp:'♯',flat:'♭',bothAcc:'mix',
+       weakOnly:'Weak spots',guitar:'Guitar tone',ping:'Chime',weakest:'Weakest',strongest:'Strongest',fastest:'Fastest',
        mast:'Mastery',speed:'Speed',accuracy:'Accuracy'},
   weakNote:v=>`Weak = score below ${v}% (accuracy + speed; recent attempts count more).`,
   path:{auto:'Automatic',manual:(c,a)=>`Manual: unlocked up to step ${c} (automatic would be step ${a}).`,
         rule:'The next step unlocks once 80% of its items are correct.',
-        row:(i,str,nat,f)=>`<b>Step ${i}</b> · ${str} · ${nat?'naturals':'all notes'} · frets 0–${f}`,
+        step:i=>`Step ${i}`, what:(str,nat,f)=>`${str} · ${nat?'naturals':'all notes'} · frets 0–${f}`,
         here:'here',upTo:'up to here',title:i=>`Unlock up to step ${i} (manual)`},
   heat:{nw:'new',mast:'weak {g} strong · yellow = weak threshold',speed:'slow {g} fast',acc:'often wrong {g} right',
         foot:'dashed ring = weak · faded = little data · blue ring = due · hover a dot for details',
@@ -564,13 +596,15 @@ const KEY='fretTrainer.v1';
 /* Oefenlogboek per dag (voor de kalender op Home): {"2026-10-08":{s:seconden,n:antwoorden,ok:goed}}. Eigen opslagsleutel. */
 var FLOG=(()=>{try{return JSON.parse(localStorage.getItem('fretTrainer.log'))||{};}catch(e){return{};}})();
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   /* lokale datum JJJJ-MM-DD */
-const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,findOnly:false,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6,colOpen:true,colTab:'sess'};
+const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,findOnly:false,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6,colOpen:true,colTab:'sess',heatH:2.3};
 /* theme en wood blijven bewaard (oude versies), maar de schil is altijd daglicht met een palissander hals.
-   colOpen = kolom rechts open/dicht, colTab = tabblad in de kolom (sess | prog | set) */
+   colOpen = kolom rechts open/dicht, colTab = tabblad in de kolom (sess | set; oud 'prog' → sess, voortgang is nu een weergave in het midden)
+   heatH = snaarafstand van de heatmap in rem (1.6–3.2, menu S). 'fade'/vervagen bij pauze bestaat niet meer. */
 const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 function hydrate(r){r=obj(r);const set={...DEF,...obj(r.settings)};
   if(!Array.isArray(set.strings)||set.strings.length!==6)set.strings=[...DEF.strings];
-  set.colOpen=set.colOpen!==false;if(!['sess','prog','set'].includes(set.colTab))set.colTab='sess';
+  set.colOpen=set.colOpen!==false;if(!['sess','set'].includes(set.colTab))set.colTab='sess';
+  set.heatH=Math.min(3.2,Math.max(1.6,+set.heatH||DEF.heatH));
   ['mood','petPos','petStage'].forEach(k=>delete set[k]);   // maatje bestaat niet meer
   return{settings:set,stats:obj(r.stats),srs:obj(r.srs),day:r.day&&typeof r.day.d==='number'?r.day:{d:0,newN:0},off:+r.off||0,maxSt:Math.max(0,+r.maxSt||0),rec:{streak:0,...obj(r.rec)}};}
 let store=hydrate({});
@@ -729,17 +763,9 @@ function buildBoard(el,onClick,inlays){el.innerHTML='';const cells=[];
   el.append(n);return cells;}
 const mark=(c,cls,txt)=>{c.classList.add('on',cls);c.firstChild.textContent=txt||'';};
 
-/* Heatmap in de kolom rechts: de hals staand (lage E links, topkam boven, fret 1–12 naar beneden), zoals neckV in Chord Finder.
-   Geeft net als buildBoard cells[snaar][fret] terug; elk vakje is .hc met een <i> (de stip). */
-function buildHeat(el){el.innerHTML='';const g=document.createElement('div');g.className='hv';const cells=[[],[],[],[],[],[]];
-  const put=(cls,r,c,txt)=>{const d=document.createElement('div');d.className=cls;d.style.gridRow=r;d.style.gridColumn=c;if(txt!=null)d.textContent=txt;g.append(d);return d;};
-  put('hwd',null,null);
-  for(let s=0;s<6;s++)put('hs',1,s+2,SNAME[s]).dataset.s=s;
-  for(let f=0;f<=12;f++){put('hn',f+2,1,[0,3,5,7,9,12].includes(f)?f:'');
-    for(let s=0;s<6;s++){const c=put('hc'+(f?'':' o'),f+2,s+2);c.style.setProperty('--t',(2.6-s*.3).toFixed(1)+'px');c.innerHTML='<i></i>';cells[s][f]=c;}}
-  el.append(g);return cells;}
+/* Heatmap (weergave Progress): dezelfde liggende hals als het oefenvak via buildBoard(el,null,true); de stip <i> per vakje krijgt de kleur. */
 
-/* ===== 5. MATEN: breedte van de hals (= middenkolom) en snaarafstand, zie applySize() in 11. UI ===== */
+/* ===== 5. MATEN: breedte van de hals (= middenkolom), snaarafstand en die van de heatmap, zie applySize() in 11. UI ===== */
 
 /* ===== 6. AUDIO: zachte feedback via WebAudio (geen bestanden) ===== */
 let AC=null;
@@ -782,7 +808,7 @@ let paused=true,runStart=0,activeMs=0,idleT=null,q=null;
 const fmtT=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
 const tick=()=>{$('#sAct').textContent=fmtT(activeMs+(paused?0:performance.now()-runStart));};
 function armIdle(){clearTimeout(idleT);const n=cfg().idleSec;if(!paused&&n)idleT=setTimeout(()=>setPaused(true),n*1000);}
-function setPaused(p){if(p===paused)return;if(p)logFlush();paused=p;if(!p)logMark=performance.now();$('#play').classList.toggle('paused',p);
+function setPaused(p){if(p===paused)return;if(!p&&view==='prog')setView('play');if(p)logFlush();paused=p;if(!p)logMark=performance.now();$('#play').classList.toggle('paused',p);
   $('#btnPause').innerHTML=T.pauseBtn(p);
   if(p){activeMs+=performance.now()-runStart;if(q)q.t0=null;clearTimeout(idleT);}
   else{runStart=performance.now();if(q&&!q.done)q.t0=performance.now();armIdle();}
@@ -859,24 +885,25 @@ function answer(pcChosen,s,f){if(!q||q.done||paused)return;q.done=true;
 /* ===== 9. LEERPAD: ontgrendeld/vergrendeld + handmatig bijsturen ===== */
 function stageStat(i){const it=ORDER.filter(x=>x.st===i);let n=0;it.forEach(x=>dirs.forEach(d=>{if(isKnown(x.s,x.pc,d))n++;}));return{n,t:it.length*dirs.length};}
 const pathChanged=()=>{cfg().mode==='smart'?restart():renderStats();};
-function renderPath(){const cur=curStage(),man=cfg().stageSet!=null,box=$('#path');box.innerHTML='';
-  const top=document.createElement('div');top.className='pathtop';
+function renderPath(){const cur=curStage(),man=cfg().stageSet!=null,box=$('#path'),top=$('#pathTop');box.innerHTML='';top.innerHTML='';
   const a=document.createElement('button');a.className='act sm';a.type='button';a.textContent=T.path.auto;a.setAttribute('aria-pressed',!man);
   a.onclick=()=>{cfg().stageSet=null;save();pathChanged();};
   const nt=document.createElement('span');nt.className='note';
   nt.textContent=man?T.path.manual(cur+1,autoStage()+1):T.path.rule;
-  top.append(a,nt);box.append(top);
+  top.append(a,nt);
+  /* zes tegels van links naar rechts: kop (✓ / ● / slot, stap, n/t), wat erin zit, voortgangsbalk (streep = 80%), knop */
   STAGES.forEach((g,i)=>{const{n,t}=stageStat(i),lk=i>cur,dn=!lk&&n>=.8*t;
     const r=document.createElement('div');r.className='stg'+(lk?' lk':dn?' dn':' ac');
-    r.innerHTML=`<span class="ic">${lk?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-label="locked"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':dn?'✓':'●'}</span><div>${T.path.row(i+1,g.s.map(x=>SNAME[x]).join(' '),g.nat,g.f)}<div class="pb"><i style="width:${Math.round(100*n/t)}%"></i><u></u></div></div>`;r.querySelector('.pb').insertAdjacentHTML('beforebegin',`<span class="nn">${n}/${t}</span>`);
+    r.innerHTML=`<div class="t"><span class="ic">${lk?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-label="locked"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':dn?'✓':'●'}</span><b>${T.path.step(i+1)}</b><span class="nn">${n}/${t}</span></div>`+
+      `<div class="d">${T.path.what(g.s.map(x=>SNAME[x]).join(' '),g.nat,g.f)}</div><div class="pb"><i style="width:${Math.round(100*n/t)}%"></i><u></u></div>`;
     const b=document.createElement('button');b.className='act sm';b.type='button';b.textContent=i===cur?T.path.here:T.path.upTo;b.disabled=i===cur;
     b.title=T.path.title(i+1);b.onclick=()=>{cfg().stageSet=i;save();pathChanged();};
     r.append(b);box.append(r);});}
 
 /* ===== 10. STATS ===== */
 function renderStats(){const cs=curStage(),H=T.heat,wl=weakLimit();
-  const cells=buildHeat($('#heat'));
-  document.querySelectorAll('#heat .hs').forEach(h=>{const off=!cfg().strings[+h.dataset.s];h.classList.toggle('dim',off);cells[+h.dataset.s].forEach(c=>c.classList.toggle('dim',off));});
+  const cells=buildBoard($('#heat'),null,true);
+  document.querySelectorAll('#heat .row').forEach(r=>r.classList.toggle('dim',cfg().mode!=='smart'&&!cfg().strings[+r.dataset.s]));   /* snaren die niet gevraagd worden */
   const ring='var(--hring)';   /* licht op palissander, donker bij kaartstijl Paper (menu S) */
   for(let s=0;s<6;s++)for(let f=0;f<=12;f++){
     const pc=(OPEN[s]+f)%12,t=st(s,pc),c=cells[s][f];c.classList.add('on');
@@ -921,7 +948,7 @@ function renderNotes(){const tab=cfg().wtab||'weak',flm=cfg().fluentSec*1000,X=T
     `<div><b>${flu}</b><span>${X.fluent}</span></div>`;
   $('#wHelp').textContent=help;
   if(!rows.length){$('#worst').innerHTML='<p class="note" style="margin-top:8px">'+empty+'</p>';return;}
-  /* lijst voor de smalle kolom: regel 1 = noot, snaar, score (of record); regel 2 = laatste pogingen, goed, mediaan */
+  /* kaartjes (vier per rij): regel 1 = noot, snaar, score (of record); regel 2 = laatste pogingen, goed, mediaan */
   const li=r=>tab==='fast'
     ?`<li><div class="l1"><b>${full(r.pc)}</b><span>${SLONG[r.s]}</span><b class="sc" title="${X.thRecord}">${sec(r.bm)}</b></div><div class="l2"><span title="${X.thMedian}">${X.thMedian} ${sec(r.m)}</span><span title="${X.thCorrect}">${goed(r)}</span></div></li>`
     :`<li><div class="l1"><b>${full(r.pc)}</b><span>${SLONG[r.s]}</span><b class="sc" title="${X.thScore}">${Math.round(100*r.sc)}%</b></div><div class="l2">${r.h.length?dots(r.h):''}<span title="${X.thCorrect}">${goed(r)}</span><span title="${X.thMedian}">${sec(r.m)}</span></div></li>`;
@@ -950,14 +977,23 @@ function weakSel(){const r=$('#wPct'),show=()=>{const v=Math.round(weakLimit()*1
   r.onchange=()=>{cfg().weakPct=+r.value;save();cfg().weak?restart():renderStats();};}
 function fluSel(){const r=$('#fSec'),show=()=>{$('#fVal').textContent=(+r.value).toFixed(1)+' s';};
   r.value=cfg().fluentSec;show();r.oninput=show;r.onchange=()=>{cfg().fluentSec=+r.value;save();renderStats();};}
-/* Snaren en bereik onder de hals; de keuzes zelf staan in de kolom (Settings → Questions). In Slim oefenen verborgen (die volgt het Leerpad) */
-function filUI(){const c=cfg(),sm=c.mode==='smart';$('#uStr').hidden=sm;$('#btnFil').hidden=sm;$('#filSm').hidden=!sm;$('#setQ').hidden=sm;$('#btnFil').title=T.filHint;
-  $('#filSm').textContent=T.filtersFollow;
-  $('#filTxt').textContent=T.filNotes[c.notes]+' · '+T.filAcc[c.acc]+' · '+T.filFrets(c.min,c.max)+(c.weak?' · '+T.filWeak:'');}
+/* Balk bovenaan: de vragen (snaren, noten, notatie, frets, focus). In Smart practice in plaats daarvan de stap van het leerpad */
+function filUI(){const c=cfg(),sm=c.mode==='smart';$('#setQ').hidden=sm;$('#smBar').hidden=!sm;
+  if(sm){const cur=curStage(),g=STAGES[cur];$('#smStep').textContent=T.stepOf(cur+1,STAGES.length);
+    $('#smTxt').textContent=T.path.what(g.s.map(x=>SNAME[x]).join(' '),g.nat,g.f)+' · '+T.setByPath;$('#smBar').title=T.filtersFollow;}}
 function restart(){newQ();renderStats();filUI();}
+/* Weergave in het midden: Practice (oefenvak) of Progress (heatmap, leerpad, noten). Progress pauzeert; Start gaat terug naar Practice.
+   Niet bewaard: de trainer opent altijd op Practice */
+let view='play';
+function setView(v){view=v;$('#vPlay').hidden=v!=='play';$('#vProg').hidden=v!=='prog';
+  $('#uView').querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  if(v==='prog'){setPaused(true);renderStats();}
+  $('#scroll').scrollTop=0;}
+$('#uView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b)setView(b.dataset.v);});
+$('#smPath').onclick=()=>{setView('prog');$('#pathHd').scrollIntoView({block:'start',behavior:'smooth'});};
 /* breedte van de hals = breedte van de middenkolom en de plank (2600 = zo breed als past) en snaarafstand */
 function applySize(){const s=cfg(),r=document.documentElement.style,w=Math.min(2600,Math.max(1000,+s.pageW||2600)),h=Math.min(4.4,Math.max(2,+s.rowH||2.6));
-  r.setProperty('--colw',w>=2600?'100%':w+'px');r.setProperty('--rowh',h+'rem');
+  r.setProperty('--colw',w>=2600?'100%':w+'px');r.setProperty('--rowh',h+'rem');r.setProperty('--hrh',s.heatH+'rem');
   const pv=$('#uPageWv'),hv=$('#uRowHv');if(pv)pv.textContent=w>=2600?T.ui.full:w+' px';if(hv)hv.textContent=h.toFixed(1)+' rem';}
 function drawSettings(){const O=T.opt;
   const pw=$('#uPageW'),rh=$('#uRowH');pw.value=cfg().pageW;rh.value=cfg().rowH;
@@ -966,7 +1002,7 @@ function drawSettings(){const O=T.opt;
   strChips();
   seg('#uNotes','notes',[['nat',O.nat],['both',O.both],['acc',O.acc]]);
   seg('#uAcc','acc',[['sharp',O.sharp],['flat',O.flat],['both',O.bothAcc]]);
-  seg('#uWeak','weak',[[false,O.off],[true,O.weakOnly]]);
+  const wk=$('#uWeak');wk.checked=!!cfg().weak;wk.onchange=()=>{cfg().weak=wk.checked;save();restart();};
   weakSel();
   seg('#uSnd','sound',[[true,O.on],[false,O.off]],()=>{if(cfg().sound)playSound(true,1,5);});
   seg('#uTone','tone',[['guitar',O.guitar],['ping',O.ping]],()=>playSound(true,1,5));
@@ -986,7 +1022,7 @@ function applyText(){document.querySelectorAll('[data-t]').forEach(el=>{const v=
   document.querySelectorAll('[data-ta]').forEach(el=>{const v=pathGet(el.dataset.ta);if(typeof v==='string'){el.setAttribute('aria-label',v);el.title=v;}});
   const h=$('#lnkHome');if(h)h.href=T.links.home;
   $('#btnStart').textContent=T.start;$('#btnPause').innerHTML=T.pauseBtn(paused);$('#btnAll').textContent=T.clearAll;
-  $('#howTxt').innerHTML=T.how;$('#keysTxt').innerHTML=T.keysHelp;$('#pathHelp').textContent=T.pathHelp;
+  $('#pz').textContent=T.paused;$('#howTxt').innerHTML=T.how;$('#keysTxt').innerHTML=T.keysHelp;$('#pathHelp').textContent=T.pathHelp;
   document.title=T.appName;}
 
 $('#btnNext').onclick=()=>{if(paused)return;if(!q&&cfg().mode==='smart')nextDay();else if(!q||q.done)newQ();};
@@ -1012,7 +1048,7 @@ $('#btnAll').onclick=function(){const b=this;
   if(!armAll){b.textContent=T.clearSure;armAll=setTimeout(()=>{armAll=null;b.textContent=T.clearAll;},4000);return;}
   clearTimeout(armAll);armAll=null;b.textContent=T.clearAll;store.stats={};store.srs={};store.day={d:0,newN:0};store.off=0;store.maxSt=0;store.rec={streak:0};save();resetSess();restart();};
 const tip=$('#tip');
-$('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.hc');
+$('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.cell');
   if(!c||!c._tip){tip.style.display='none';return;}
   tip.innerHTML=c._tip;tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;
   tip.style.left=Math.max(6,Math.min(innerWidth-w-6,e.clientX+14))+'px';
@@ -1026,15 +1062,14 @@ $('#bkImp').onclick=()=>{try{const r=JSON.parse($('#bk').value);if(!r||typeof r.
   store=hydrate(r);migrateSrs();save();
   drawSettings();applySize();colInit();resetSess();restart();$('#bkMsg').textContent=T.bk.imported;}
   catch(e){$('#bkMsg').textContent=T.bk.invalid;}};
-/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = colOpen, tabblad = colTab (Session · Progress · Settings) */
-function colShow(t){cfg().colTab=t;['sess','prog','set'].forEach(k=>{$('#tab'+{sess:'Sess',prog:'Prog',set:'Set'}[k]).hidden=k!==t;});
+/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = colOpen, tabblad = colTab (Session · Settings) */
+function colShow(t){cfg().colTab=t;['sess','set'].forEach(k=>{$('#tab'+{sess:'Sess',set:'Set'}[k]).hidden=k!==t;});
   $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));}
 function colInit(){$('#col').classList.toggle('shut',!cfg().colOpen);$('#col').setAttribute('aria-expanded',cfg().colOpen);colShow(cfg().colTab);}
 if(typeof ROOM!=='undefined')ROOM.column($('#col'),cfg().colOpen,o=>{cfg().colOpen=o;save();});
 $('#colTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){colShow(b.dataset.tab);save();}});
-/* het bereik onder de hals: kolom open op Settings → Questions, even uitgelicht */
-$('#btnFil').onclick=()=>{const c=$('#col');if(c.classList.contains('shut'))c.querySelector('[data-col="open"]').click();colShow('set');save();
-  const q=$('#setQ');q.scrollIntoView({block:'start'});q.classList.remove('flash');void q.offsetWidth;q.classList.add('flash');};
+/* menu S: snaarafstand van de heatmap (bewaard als heatH in fretTrainer.v1) */
+if(typeof LOOK!=='undefined')LOOK.add([{k:'heatH',t:'range',l:'Heatmap string spacing (Fretboard, rem)',min:1.6,max:3.2,step:.1,def:DEF.heatH,get:()=>cfg().heatH,set:v=>{cfg().heatH=Math.min(3.2,Math.max(1.6,+v||DEF.heatH));save();applySize();}}]);
 /* Meerdere tabbladen: neem opgeslagen data van een ander tabblad over */
 addEventListener('storage',e=>{
   if(e.key!==KEY||!e.newValue)return;try{store=hydrate(JSON.parse(e.newValue));}catch(x){return;}
@@ -1043,7 +1078,7 @@ addEventListener('storage',e=>{
 try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
 
 /* ===== START ===== */
-applyText();applySize();colInit();drawSettings();restart();
+applyText();applySize();colInit();drawSettings();restart();setView('play');
 </script>
 <script>
 /* ══ GITAARINGANG (test) ═══════════════════════════════════════════════════════════════════════

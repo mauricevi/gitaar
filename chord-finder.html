@@ -31,7 +31,7 @@
       </header>
 
       <!-- Find voicings: past op één scherm. Akkoord + soort bovenaan, daaronder de uitklapbare strook "Strings & filters"
-           (zelfde onderdeel als in Progression); de vormen vullen de rest (fitShapes in render.js); de gekozen vorm staat in de kolom rechts (tabblad Chord) -->
+           (zelfde onderdeel als in Progression); de vormen vullen de rest (fitShapes in render.js); de gekozen vorm staat op de transportplank onderaan (#fdTray) -->
       <div id="vFind" class="view">
       <section class="paper panel filters" aria-label="Chord and voicing">
         <div class="cin">
@@ -54,7 +54,7 @@
           <button type="button" class="lnk" id="btnShowAll">Show all</button>
           <span class="seg gtabs" id="gTabs" role="group" aria-label="Groups" hidden></span>
           <span class="help" tabindex="0" aria-label="Keys">?<i id="keysHint"></i></span>
-          <span class="frow" style="margin-left:auto"><span class="cap">Group by</span><span class="seg" id="segGroup" role="group" aria-label="Group by"></span></span>
+          <span class="frow" id="groupRow" style="margin-left:auto"><span class="cap">Group by</span><span class="seg" id="segGroup" role="group" aria-label="Group by"></span></span>
         </div>
         <div id="groups"></div>
       </section>
@@ -100,6 +100,16 @@
      </div>
     </div>
 
+    <!-- transportplank (Find voicings): de gekozen vorm. Naam en noten, bladeren, spelen, en waar hij op de hele hals ligt (klik = spelen) -->
+    <footer class="tray glass fdtray" id="fdTray" hidden>
+      <span class="fdnav"><button type="button" class="ib" id="btnPrev"></button><button type="button" class="ib" id="btnNext"></button></span>
+      <div class="fdi"><h2 id="dTitle" class="sym"></h2><div id="dInfo"></div></div>
+      <button type="button" class="play" id="btnPlay"></button>
+      <button type="button" class="ib" id="btnArp"></button>
+      <label class="tg"><input type="checkbox" role="switch" id="tgBass"><i></i>Bass</label>
+      <button type="button" class="fdneck" id="dBig" aria-label="Play this shape"></button>
+    </footer>
+
     <!-- transportplank (Progression): wat je met de gitaar op schoot nodig hebt -->
     <footer class="tray glass" id="pgTray" hidden>
       <button type="button" class="play" id="pgPlay"></button>
@@ -116,31 +126,12 @@
     </footer>
   </main>
 
-  <!-- kolom rechts: instellen, niet spelen (in Find voicings ook de gekozen vorm; in Progression alleen Settings) -->
+  <!-- kolom rechts: instellen, niet spelen (alleen Settings, in alle modi) -->
   <aside class="col" id="col" aria-label="Side panel">
     <button type="button" class="ib reopen" data-col="open" title="Show side panel" aria-label="Show side panel"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <div class="colhd">
       <h2 class="px" id="colH">Settings</h2>
-      <span class="seg" id="colTabs" role="tablist" hidden><button type="button" data-tab="chord">Chord</button><button type="button" data-tab="set">Settings</button></span>
       <button type="button" class="ib" data-col="shut" title="Hide side panel" aria-label="Hide side panel"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    </div>
-
-    <!-- Find voicings: de gekozen vorm, met de hele hals staand (klik = spelen) -->
-    <div id="tabFind" hidden>
-      <section class="detail" id="detail" aria-label="Selected shape">
-        <div class="dhead"><h2 id="dTitle" class="sym"></h2>
-          <div class="tr"><button type="button" class="ib" id="btnPrev"></button><button type="button" class="ib" id="btnNext"></button></div></div>
-        <div id="dInfo"></div>
-        <div class="tp">
-          <button type="button" class="act pri" id="btnPlay"></button>
-          <button type="button" class="act" id="btnArp"></button>
-        </div>
-        <div class="tgs">
-          <label class="tg"><input type="checkbox" role="switch" id="tgBass"><i></i>Bass</label>
-          <label class="tg"><input type="checkbox" role="switch" id="tgTones"><i></i>All chord tones</label>
-        </div>
-        <button type="button" class="big" id="dBig" aria-label="Play this shape"></button>
-      </section>
     </div>
 
     <div id="tabSet">
@@ -154,6 +145,7 @@
       <h3>Display</h3>
       <div class="row" id="labRow"><span>Labels</span><span class="seg" id="segLab" role="group" aria-label="Labels"></span></div>
       <div class="row" id="dgSizeL"><span>Diagram size</span><input type="range" id="dgSize" min="80" max="200" step="10"></div>
+      <div class="row" id="tonesRow"><span>All chord tones on the neck</span><label class="tg"><input type="checkbox" role="switch" id="tgTones" aria-label="All chord tones on the neck"><i></i></label></div>
       <div id="setDisp">
         <div class="row"><span>Card details <span class="help r" tabindex="0" aria-label="What the cards show">?<i id="pgLegend"></i></span></span><span class="seg" id="segDet" role="group" aria-label="Card details"></span></div>
       </div>

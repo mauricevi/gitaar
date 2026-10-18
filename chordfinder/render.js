@@ -57,25 +57,25 @@ function neckSvg(dots,cells){const F=MAXF,W=46,L=44,top=20,gap=22,bot=top+gap*5,
   if(cells)for(let s=0;s<6;s++)for(let f=0;f<=F;f++)
     h+='<rect class="cell" data-s="'+s+'" data-f="'+f+'" x="'+(f?L+(f-1)*W:L-42)+'" y="'+(Y(s)-gap/2)+'" width="'+(f?W:42)+'" height="'+gap+'"/>';
   return h+'</svg>';}
-/* de hele hals staand (Finder, kolom rechts): lage E links, topkam boven, fret 1–15 naar beneden, losse snaar boven de topkam */
-function neckV(dots){const F=MAXF,G=24,L=30,top=34,H=33,X=s=>L+s*G,Y=f=>f?top+(f-.5)*H:top-15,bot=top+F*H;
-  let h='<svg class="nkv" viewBox="0 0 '+(X(5)+18)+' '+(bot+8)+'" aria-hidden="true"><rect class="wd" x="'+(L-10)+'" y="'+top+'" width="'+(5*G+20)+'" height="'+(F*H)+'" rx="3"/>';
-  [.35,1.3,2.2,2.8,3.6,4.45,5.2].forEach(g=>{const x=L+g*G;h+='<line class="gr" x1="'+x+'" x2="'+(x+1.5)+'" y1="'+top+'" y2="'+bot+'"/>';});
-  [3,5,7,9,15].forEach(f=>{h+='<circle class="mk" cx="'+X(2.5)+'" cy="'+Y(f)+'" r="4"/>';});
-  [1.5,3.5].forEach(k=>{h+='<circle class="mk" cx="'+X(k)+'" cy="'+Y(12)+'" r="4"/>';});
-  for(let f=0;f<=F;f++)h+='<line class="'+(f?'fr':'nut')+'" x1="'+(L-10)+'" x2="'+(X(5)+10)+'" y1="'+(top+f*H)+'" y2="'+(top+f*H)+'"/>';
-  for(let s=0;s<6;s++)h+='<line class="st" x1="'+X(s)+'" x2="'+X(s)+'" y1="'+top+'" y2="'+bot+'" stroke-width="'+(1.9-s*.2).toFixed(2)+'"/>';
-  [3,5,7,9,12,15].forEach(f=>{h+='<text class="fn" x="9" y="'+(Y(f)+3.5)+'" text-anchor="middle">'+f+'</text>';});
-  dots.forEach(d=>{const cx=X(d.s),cy=Y(d.f);h+='<circle class="'+d.cls+(d.f?'':' opn')+'" cx="'+cx+'" cy="'+cy+'" r="'+(d.small?6.5:9.5)+'"/>';
-    if(d.lab)h+='<text class="'+(d.small?'cl':'nl')+(d.f?'':' opn')+'" x="'+cx+'" y="'+(cy+(d.small?2.6:3.4))+'" text-anchor="middle">'+esc(d.lab)+'</text>';});
+/* de hele hals liggend en laag (Find voicings, transportplank): hoge e boven, fret 1–15 naar rechts, losse snaar links van de topkam.
+   Klein gehouden: hij laat vooral zien wáár de vorm ligt (en met "All chord tones" de akkoordtonen eromheen) */
+function neckH(dots){const F=MAXF,W=34,L=26,top=8,G=14,X=f=>f?L+(f-.5)*W:L-13,Y=s=>top+(5-s)*G,bot=top+5*G;
+  let h='<svg class="nkh" viewBox="0 0 '+(L+F*W+6)+' '+(bot+22)+'" preserveAspectRatio="xMaxYMid meet" aria-hidden="true"><rect class="wd" x="'+L+'" y="'+(top-6)+'" width="'+(F*W)+'" height="'+(5*G+12)+'" rx="3"/>';
+  [3,5,7,9,15].forEach(f=>{h+='<circle class="mk" cx="'+X(f)+'" cy="'+(top+G*2.5)+'" r="3.2"/>';});
+  [1.5,3.5].forEach(k=>{h+='<circle class="mk" cx="'+X(12)+'" cy="'+(top+G*k)+'" r="3.2"/>';});
+  for(let f=0;f<=F;f++)h+='<line class="'+(f?'fr':'nut')+'" x1="'+(L+f*W)+'" x2="'+(L+f*W)+'" y1="'+(top-6)+'" y2="'+(bot+6)+'"/>';
+  for(let s=0;s<6;s++)h+='<line class="st" x1="'+(L-22)+'" x2="'+(L+F*W)+'" y1="'+Y(s)+'" y2="'+Y(s)+'" stroke-width="'+(1.7-s*.2).toFixed(2)+'"/>';
+  [3,5,7,9,12,15].forEach(f=>{h+='<text class="fn" x="'+X(f)+'" y="'+(bot+19)+'" text-anchor="middle">'+f+'</text>';});
+  dots.forEach(d=>{const cx=X(d.f),cy=Y(d.s);h+='<circle class="'+d.cls+(d.f?'':' opn')+'" cx="'+cx+'" cy="'+cy+'" r="'+(d.small?4.6:6.8)+'"/>';
+    if(d.lab&&!d.small)h+='<text class="ml" x="'+cx+'" y="'+(cy+2.7)+'" text-anchor="middle">'+esc(d.lab)+'</text>';});
   return h+'</svg>';}
-/* de gekozen vorm op de hele hals (staand), en eventueel alle akkoordtonen klein */
+/* de gekozen vorm op de hele hals (liggend), en eventueel alle akkoordtonen klein */
 function neck(c,v){const dots=[];
   if(S.allTones){const pcs=new Set(QUAL[c.q].iv.map(x=>mod(c.rootPc+x,12)));if(c.bassPc!=null)pcs.add(c.bassPc);
     for(let s=0;s<6;s++)for(let f=0;f<=MAXF;f++){const pc=mod(OPEN[s]+f,12);if(!pcs.has(pc)||v&&v.f[s]===f)continue;
       dots.push({s,f,small:true,cls:'ct'+(pc===c.rootPc?' cr':''),lab:labOf(c,{pc})});}}
   if(v)v.notes.forEach(x=>dots.push({s:x.s,f:x.f,cls:(x.pc===c.rootPc?'rt':'dt')+ivCls(c,x),lab:labOf(c,x)}));
-  return neckV(dots);}
+  return neckH(dots);}
 
 /* ── akkoord kiezen ── (de akkoordsoorten staan in een uitklapvenster achter de knop "Type") */
 function renderChord(){const c=D.c,inp=$('#inChord');
@@ -101,7 +101,7 @@ const lowTxt=l=>l in ROLE?T.invShort[ROLE[l]]:T.inBass(l);
 
 /* ── soort en filters (de knoppen tonen alleen wat er voor dit akkoord bestaat, met het aantal vormen) ── */
 function renderFilters(){const A=D.all;
-  seg($('#segType'),VTYPES.map(t=>[t,T.types[t]]),S.type,'type');
+  seg($('#segType'),VTYPES.map(t=>[t,T.types[t]]).concat([['fav',T.favType]]),S.type,'type');$('#groupRow').hidden=S.type==='fav';
   $('#typeHelp').textContent=T.typeHelp[S.type];
   const count=(f)=>{const m=new Map();A.forEach(v=>{const k=f(v);m.set(k,(m.get(k)||0)+1);});return m;};
   const sets=count(v=>v.strs),lows=count(v=>v.low),tops=count(v=>v.top);
@@ -116,15 +116,14 @@ function renderFilters(){const A=D.all;
   seg($('#segGroup'),Object.entries(T.group),S.group,'group');
   $('#tgTones').checked=S.allTones;$('#tgBass').checked=S.bass;}
 
-/* ── de gekozen vorm (kolom rechts, tabblad Chord): gegevens, noten, spelen, en de vorm op de hele hals ── */
-function renderDetail(){const c=D.c,v=D.sel,box=$('#detail');
-  $('#dTitle').textContent=c.sym;$('#dBig').innerHTML=neck(c,v);
-  if(!v){$('#dInfo').innerHTML='<p class="note">'+esc(D.all.length?T.noneFilter:T.noneType(T.types[S.type]))+'</p>';box.classList.add('empty');return;}
-  box.classList.remove('empty');
-  const notes=v.notes.map(x=>'<span class="nt"><b>'+esc(toneName(c,x.pc))+'</b><small>'+esc(ivName(mod(x.pc-c.rootPc,12),c.q))+'</small></span>').join('');
+/* ── de gekozen vorm (transportplank #fdTray): naam, soort, noten, frets, spelen, en de vorm op de hele hals ── */
+function renderDetail(){const c=D.c,v=D.sel;
+  $('#dTitle').textContent=c.sym;$('#dBig').innerHTML=neck(c,v);$('#fdTray').classList.toggle('empty',!v);
+  $('#btnPlay').disabled=$('#btnArp').disabled=$('#dBig').disabled=!v;
+  if(!v){$('#dInfo').innerHTML='<p class="dmeta">'+esc(D.all.length?T.noneFilter:noneTxt())+'</p>';$('#btnPrev').disabled=$('#btnNext').disabled=true;return;}
+  const notes=v.notes.map(x=>'<span class="fdn"><b>'+esc(toneName(c,x.pc))+'</b><small>'+esc(ivName(mod(x.pc-c.rootPc,12),c.q))+'</small></span>').join('');
   $('#dInfo').innerHTML='<p class="dmeta">'+esc(T.types[v.type])+' · '+esc(invTxt(v))+' · '+esc(T.topIs(v.top))+'</p>'+
-    '<p class="cap">'+esc(T.strName(v.strs))+' · '+esc(T.frets)+' <span class="mono">'+esc(fretTxt(v))+'</span></p>'+
-    '<h3>'+esc(T.notes)+'</h3><div class="nts">'+notes+'</div>';
+    '<p class="fdl" aria-label="'+esc(T.notes)+'">'+notes+'<span class="mono" title="'+esc(T.strName(v.strs))+'">'+esc(fretTxt(v))+'</span></p>';
   const O=D.shown||D.order,i=O.indexOf(v);$('#btnPrev').disabled=i<=0;$('#btnNext').disabled=i<0||i>=O.length-1;}
 
 /* ── favorieten: een verschuifbare vorm = akkoordsoort + voicingsoort + snarenset + interval per snaar (halve tonen boven de grondtoon),
@@ -138,9 +137,17 @@ const isFav=(c,v)=>FAVS.has(favKey(c,v));
 function favToggle(c,v){const k=favKey(c,v),j=S.favs.findIndex(f=>favId(f)===k);
   if(j>=0)S.favs.splice(j,1);else if(S.favs.length<300)S.favs.push({q:c.q,t:v.type,s:v.strs,i:favIv(c,v)});
   favSync();save();}
+/* keuze "★ Favourites": alle favorieten van deze akkoordsoort, van elke voicingsoort, op deze grondtoon (per soort in volgorde van VTYPES; dezelfde frets één keer) */
+function favVoicings(c){const ts=new Set(S.favs.filter(f=>f.q===c.q).map(f=>f.t)),seen=new Set();
+  return VTYPES.filter(t=>ts.has(t)).flatMap(t=>voicingsOf(c,t).filter(v=>isFav(c,v))).filter(v=>!seen.has(v.key)&&seen.add(v.key));}
+const noneTxt=()=>S.type==='fav'?T.noFavs(QUAL[D.c.q].sym||T.major):T.noneType(T.types[S.type]);
 
 /* ── raster: per groep een rij vormen, van laag naar hoog op de hals; de favorieten (★) als eerste groep ── */
-function groupsOf(list){const fv=list.filter(v=>isFav(D.c,v)),fg=fv.length?[{key:'fav',title:T.favT,tab:T.favG,vs:fv}]:[];
+function groupsOf(list){
+  /* "★ Favourites": één groep per voicingsoort (Group by geldt hier niet) */
+  if(S.type==='fav'){const m=new Map();list.forEach(v=>{if(!m.has(v.type))m.set(v.type,[]);m.get(v.type).push(v);});
+    return[...m].map(([t,vs])=>({key:'t'+t,title:T.types[t],tab:T.types[t],vs}));}
+  const fv=list.filter(v=>isFav(D.c,v)),fg=fv.length?[{key:'fav',title:T.favT,tab:T.favG,vs:fv}]:[];
   if(S.group==='none')return fg.concat([{key:'all',title:fg.length?T.grpAll:'',tab:T.grpAll,vs:list}]);
   const m=new Map(),key=v=>S.group==='set'?v.strs:v.inv!=null?'i'+v.inv:'b'+v.low;
   list.forEach(v=>{const k=key(v);if(!m.has(k))m.set(k,[]);m.get(k).push(v);});
@@ -174,7 +181,7 @@ function renderResults(){const c=D.c,L=D.list,G=D.groups,tabs=$('#gTabs');
   $('#resCount').textContent=T.count(L.length)+(L.length<D.all.length?' / '+D.all.length:'');
   $('#btnShowAll').hidden=L.length===D.all.length;
   const keys=new Set(G.map(g=>g.key));[...RES.gsel].forEach(k=>{if(!keys.has(k))RES.gsel.delete(k);});
-  if(!L.length){tabs.hidden=true;D.shown=[];$('#groups').innerHTML='<p class="note">'+esc(D.all.length?T.noneFilter:T.noneType(T.types[S.type]))+'</p>';return;}
+  if(!L.length){tabs.hidden=true;D.shown=[];$('#groups').innerHTML='<p class="note">'+esc(D.all.length?T.noneFilter:noneTxt())+'</p>';return;}
   const own=RES.gsel.size>0,paged=!own&&RES.paged&&G.length>1;let show=own?G.filter(g=>RES.gsel.has(g.key)):G;
   if(paged){const g=G.find(x=>x.key===RES.page)||G.find(x=>x.key!=='fav'&&x.vs.includes(D.sel))||G[0];RES.page=g.key;show=[g];}
   if(own){const seen=new Set();show=show.map(g=>Object.assign({},g,{vs:g.vs.filter(v=>!seen.has(v.key)&&seen.add(v.key))})).filter(g=>g.vs.length);}
@@ -182,10 +189,10 @@ function renderResults(){const c=D.c,L=D.list,G=D.groups,tabs=$('#gTabs');
   /* tabjes: All + elke groep (met aantal); ingedrukt = wat er te zien is */
   tabs.hidden=G.length<2;
   tabs.innerHTML='<button type="button" data-g="" aria-pressed="'+!on.size+'">'+esc(T.grpAll)+'</button>'+
-    G.map(x=>'<button type="button" data-g="'+esc(x.key)+'" aria-pressed="'+on.has(x.key)+'" title="'+esc((x.title||x.tab)+' · '+T.grpL)+'">'+esc(x.tab)+' <small>'+x.vs.length+'</small></button>').join('');
+    G.map(x=>'<button type="button" data-g="'+esc(x.key)+'" aria-pressed="'+on.has(x.key)+'" title="'+esc((x.title||x.tab)+' · '+T.grpL)+'">'+(x.key==='fav'?'<span class="gst" aria-hidden="true">★</span><span class="vh">'+esc(T.favT)+'</span>':esc(x.tab))+' <small>'+x.vs.length+'</small></button>').join('');
   const seen=new Set();D.shown=show.flatMap(g=>g.vs).filter(v=>!seen.has(v.key)&&seen.add(v.key));   /* volgorde voor ← → */
-  $('#groups').innerHTML=show.map(g=>{const t=g.title&&!paged;return'<div class="grp'+(t?'':' solo')+(g.key==='fav'?' fav':'')+'">'+
-    (t?'<button type="button" class="gh" data-g="'+esc(g.key)+'" aria-pressed="'+on.has(g.key)+'" title="'+esc(T.grpL)+'">'+esc(g.title)+' <small>'+g.vs.length+'</small></button>':'')+'<div class="dgs">'+
+  $('#groups').innerHTML=show.map(g=>{const t=g.title&&!paged;return'<div class="grp'+(t?'':' solo')+(g.key==='fav'?' gfav':'')+'">'+
+    (t?'<button type="button" class="gh" data-g="'+esc(g.key)+'" aria-pressed="'+on.has(g.key)+'" title="'+esc(T.grpL)+'">'+'<span>'+(g.key==='fav'?'<span class="gst" aria-hidden="true">★</span> ':'')+esc(g.title)+'</span> <small>'+g.vs.length+'</small></button>':'')+'<div class="dgs">'+
     g.vs.map(v=>{const cap=S.group==='inv'?[...v.strs].join(' '):invTxt(v,true),fv=isFav(c,v);
       return'<div class="dgw"><button type="button" class="dg'+(v===D.sel?' on':'')+'" data-k="'+v.key+'" aria-pressed="'+(v===D.sel)+'" aria-label="'+esc(T.shapeBtn(c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
         diagram(c,v)+'<span class="cp">'+esc(cap)+' · '+esc(T.topIs(v.top))+'</span></button>'+

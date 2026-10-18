@@ -165,7 +165,16 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgRows').innerHTML=!P.list.length?'<p class="note pgempty">'+esc(T.pg.empty)+'</p>':secs.map(s=>'<div class="pgrow">'+s.xs.map(pgCard).join('')+'</div>').join('');
   $('#pgLegend').hidden=!P.ok.length;
   pgMark(PGP&&!PGP.loading?PGP.cur:-1);
-  pgRenderSel();pgRenderModal();pgTransport();}
+  pgRenderSel();pgRenderModal();pgTransport();pgFit();}
+/* De kaarten passen op het scherm (de pagina scrolt niet, net als Find voicings): pgFit() zoekt de grootste schaal (--fit, PG_FIT_MIN–1 maal
+   "Diagram size") waarbij alle regels in het vak #pgRows passen; groter dan "Diagram size" worden ze niet. Past het ook op PG_FIT_MIN niet,
+   dan scrolt alleen het vak met de kaarten. Opnieuw bij elke weergave en bij een ander venster of kolom (refit() in ui.js). */
+const PG_FIT_MIN=.56;
+function pgFit(){const g=$('#pgRows');if(!g||!g.offsetParent)return;
+  g.style.overflow='hidden';   /* tijdens het meten geen schuifbalk (die verandert de breedte) */
+  const fits=f=>{g.style.setProperty('--fit',f);return g.scrollHeight<=g.clientHeight+1;};
+  if(!fits(1)&&fits(PG_FIT_MIN)){let lo=PG_FIT_MIN,hi=1;for(let i=0;i<7;i++){const m=(lo+hi)/2;if(fits(m))lo=m;else hi=m;}g.style.setProperty('--fit',lo);}
+  g.style.overflow='';}
 /* invoerveld zo hoog als de tekst (één regel als het past) */
 function pgGrow(){const t=$('#pgIn');if(!t.offsetParent)return;t.style.height='auto';t.style.height=t.scrollHeight+2+'px';}
 /* strook "Strings & filters" (zelfde onderdeel als in Find voicings, stripRender in render.js) */

@@ -20,7 +20,7 @@ const PG_TOPS=['R','3','5','7','x'];
 function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='object'&&!Array.isArray(o)?o:{}),str=x=>typeof x==='string'?x.slice(0,40):'all';
   s.theme=['auto','light','dark'].includes(s.theme)?s.theme:'auto';
   s.chord=typeof s.chord==='string'&&parseChord(s.chord)?s.chord:DEF.chord;
-  s.type=VTYPES.includes(s.type)?s.type:DEF.type;
+  s.type=VTYPES.includes(s.type)||s.type==='fav'?s.type:DEF.type;   /* 'fav' = keuze "★ Favourites" (alle favorieten van deze akkoordsoort) */
   s.str=str(s.str);s.low=str(s.low);s.top=str(s.top);s.sel=typeof s.sel==='string'?s.sel.slice(0,40):null;
   s.from=Math.min(MAXF,Math.max(1,Math.round(+s.from)||1));s.to=Math.min(MAXF,Math.max(s.from,Math.round(+s.to)||MAXF));
   s.labels=Object.keys(T.lab).includes(s.labels)?s.labels:'int';s.group=Object.keys(T.group).includes(s.group)?s.group:'set';
@@ -55,18 +55,15 @@ let S=load();favSync();
 (function(){const t=read(THEMEKEY);if(['auto','light','dark'].includes(t))S.theme=t;})();   /* thema: alleen nog bewaard (de schil is altijd daglicht), niet meer gebruikt */
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 
-/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = S.colOpen. In Find voicings twee tabbladen:
-   Chord (de gekozen vorm op de hele hals) en Settings; in Progression en What's this chord? alleen Settings
-   (Progression: band, weergave, bewerken; een vorm kiezen gaat daar in het venster "choose a shape"). Filters staan nooit hier,
-   maar in de strook "Strings & filters" onder de voicingsoort. Ook: transportplank alleen in Progression, Labels niet in What's this chord?. */
-let colTab='chord';
-function renderCol(){const m=S.mode,pg=m==='prog',tabs=m==='find',t=tabs?colTab:'set';
-  $('#colTabs').hidden=!tabs;$('#colH').hidden=tabs;$('#tabFind').hidden=!(tabs&&t==='chord');$('#tabSet').hidden=t!=='set';
-  $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));
-  ['#setBand','#setDisp','#setEdit'].forEach(id=>{$(id).hidden=!pg;});$('#labRow').hidden=m==='id';$('#pgTray').hidden=!pg;
+/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = S.colOpen. In alle modi alleen Settings (instellen, niet spelen):
+   Progression ook band, kaartdetails, bewerken; Find voicings ook "All chord tones". De gekozen vorm (Find voicings) staat op de
+   transportplank #fdTray, een vorm kiezen in Progression gaat in het venster "choose a shape". Filters staan nooit hier,
+   maar in de strook "Strings & filters" onder de voicingsoort. Labels niet in What's this chord?. */
+function renderCol(){const m=S.mode,pg=m==='prog';
+  ['#setBand','#setDisp','#setEdit'].forEach(id=>{$(id).hidden=!pg;});$('#labRow').hidden=m==='id';$('#tonesRow').hidden=m!=='find';
+  $('#pgTray').hidden=!pg;$('#fdTray').hidden=m!=='find';
   document.body.dataset.mode=m;
   seg($('#segDet'),Object.entries(T.det),S.cardDet,'det');document.body.dataset.detail=S.cardDet;}
-function colShow(t){colTab=t;renderCol();}
 
 /* oefenlogboek: tijd telt tussen twee acties (max 60 s); de akkoorden die je liet klinken komen in de lijst van die dag */
 let LOG=(()=>{const l=readSafe(LOGKEY);return l&&typeof l==='object'&&!Array.isArray(l)?l:{};})(),lastAct=0,logDirty=false;
@@ -86,7 +83,7 @@ addEventListener('pagehide',logSave);
 /* ═══════════ 6. AFLEIDEN (S → D) EN BEDIENING ═══════════
    D = {c (akkoord), all (alle vormen van de soort), list (na filters), groups, order (volgorde op het scherm), sel (gekozen vorm)} */
 let D=null,prevSel=null;
-function derive(){const c=parseChord(S.chord)||parseChord(DEF.chord),all=voicingsOf(c,S.type);
+function derive(){const c=parseChord(S.chord)||parseChord(DEF.chord),all=S.type==='fav'?favVoicings(c):voicingsOf(c,S.type);
   /* een filter dat voor dit akkoord niet bestaat, gaat terug naar "alle" */
   if(S.str!=='all'&&!all.some(v=>v.strs===S.str))S.str='all';
   if(S.low!=='all'&&!all.some(v=>v.low===S.low))S.low='all';
@@ -98,8 +95,8 @@ function derive(){const c=parseChord(S.chord)||parseChord(DEF.chord),all=voicing
   if(!sel&&prevSel&&D.order.length)sel=D.order.reduce((b,v)=>{const k=v2=>Math.abs(v2.center-prevSel.center)+(v2.strs===prevSel.strs?0:3);return k(v)<k(b)?v:b;});
   D.sel=sel||D.order[0]||null;if(D.sel){S.sel=D.sel.key;prevSel=D.sel;}}
 function update(){derive();save();renderChord();renderFilters();renderDetail();RES.paged=false;renderResults();}
-/* opnieuw passend maken (ander venster, kolom open/dicht, andere diagramgrootte) */
-function refit(){if(S.mode!=='find'||!D)return;RES.paged=false;renderResults();}
+/* opnieuw passend maken (ander venster, kolom open/dicht, andere diagramgrootte): de vormen in Find voicings, de kaarten in Progression */
+function refit(){if(S.mode==='prog'){pgFit();return;}if(S.mode!=='find'||!D)return;RES.paged=false;renderResults();}
 function setChord(c){if(!c)return;S.chord=c.ascii;$('#chordErr').textContent='';act();update();}
 function pick(v,play){if(!v)return;S.sel=v.key;prevSel=v;D.sel=v;save();renderDetail();
   document.querySelectorAll('#groups .dg').forEach(b=>{const on=b.dataset.k===v.key;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
@@ -129,7 +126,6 @@ function bind(){
   document.addEventListener('click',e=>{if(!qp.hidden&&!e.target.closest('.qpop'))qShow(false);});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!qp.hidden){qShow(false);qb.focus();}});
   ROOM.column($('#col'),S.colOpen,o=>{S.colOpen=o;save();});
-  $('#colTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)colShow(b.dataset.tab);});
   $('#segDet').addEventListener('click',e=>{const b=e.target.closest('[data-det]');if(!b)return;S.cardDet=b.dataset.det;save();renderCol();LOOK.render();});
   /* akkoord intypen: pas na een korte pauze lezen; een onbekend akkoord laat de vorige staan */
   let tm=null;
@@ -151,7 +147,7 @@ function bind(){
   $('#groups').addEventListener('click',e=>{const f=e.target.closest('[data-fav]'),g=e.target.closest('.gh'),b=e.target.closest('.dg');
     if(f){const v=D.order.find(x=>x.key===f.dataset.fav);if(v){favToggle(D.c,v);update();}return;}
     if(g){groupClick(g.dataset.g,e.shiftKey);return;}
-    if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);if(colTab!=='chord')colShow('chord');});
+    if(!b)return;pick(D.order.find(v=>v.key===b.dataset.k),true);});
   $('#btnPlay').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel);logChord(D.c.sym);}});
   $('#btnArp').addEventListener('click',()=>{if(D.sel){playShape(D.c,D.sel,true);logChord(D.c.sym);}});
   $('#dBig').addEventListener('click',()=>{if(D.sel)playShape(D.c,D.sel);});

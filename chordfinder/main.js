@@ -3,7 +3,7 @@
 function init(){
   document.title=T.title;$('#h1').textContent=T.title;
   $('#inChord').placeholder=T.chordPh;$('#keysHint').textContent=T.keysHint;$('#howTxt').textContent=T.how;
-  $('#btnPlay').innerHTML=ICON.play+'<span>'+esc(T.play)+'</span>';$('#btnArp').innerHTML=ICON.arp+'<span>'+esc(T.arp)+'</span>';
+  $('#btnPlay').innerHTML=ICON.play+'<span>'+esc(T.play)+'</span>';$('#btnArp').innerHTML=ICON.arp;$('#btnArp').setAttribute('aria-label',T.arp);$('#btnArp').title=T.arp;
   $('#btnPrev').innerHTML=ICON.prev;$('#btnPrev').setAttribute('aria-label',T.prev);$('#btnNext').innerHTML=ICON.next;$('#btnNext').setAttribute('aria-label',T.next);
   const h=decodeURIComponent((location.hash||'').slice(1)),hc=h&&parseChord(h);if(hc)S.chord=hc.ascii;
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}   /* in een ingesloten weergave leidt de zijbalk nergens heen */

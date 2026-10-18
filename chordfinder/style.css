@@ -78,9 +78,6 @@ svg .cell:hover{fill:rgba(255,240,220,.16)}
 .nts{display:flex;flex-wrap:wrap;gap:6px}
 .nt{display:inline-grid;justify-items:center;min-width:44px;padding:5px 8px;border-radius:10px;background:var(--fill);border:1px solid var(--line)}
 .nt b{font-size:16px}.nt small{font:600 11px "JetBrains Mono",monospace;color:var(--mut)}
-.tp{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:16px}
-.tgs{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:14px;font-size:14px}
-.detail.empty .tp{display:none}
 .rhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:6px}
 .panel .rhead h3{margin:0}
 
@@ -100,13 +97,15 @@ body[data-mode="find"] #vFind{flex:1;min-height:0;display:flex;flex-direction:co
   font:400 calc(12.5px * var(--dfs))/1.35 var(--df),sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--onx)}
 .grp .gh:hover{background:var(--fill)}
 .grp .gh[aria-pressed="true"]{background:var(--field);box-shadow:inset 0 0 0 1px rgba(196,106,28,.45)}
-.grp.fav .gh{font-size:calc(14px * var(--dfs))}
+.grp.gfav .gh{font-size:calc(14px * var(--dfs))}   /* gfav: niet .fav, dat is de sterknop op elk diagram */
 .gtabs button{padding:5px 10px;font-size:13px}
+.gst{font-size:20px;line-height:1;color:var(--glow2);text-shadow:0 0 6px rgba(240,167,67,.45);vertical-align:-2px}
+.gh .gst{font-size:22px}
 .gtabs small{font:600 10.5px "JetBrains Mono",monospace;color:var(--mut2);margin-left:2px}
 /* ster (favoriet) op elke vorm: zichtbaar bij aanwijzen, altijd als hij aan staat */
 .dgw{position:relative;display:grid;min-width:0}
-.fav{position:absolute;top:3px;right:3px;display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:7px;background:none;color:var(--mut2);font-size:15px;line-height:1;opacity:0;transition:opacity .15s,color .15s}
-.dgw:hover .fav,.fav:focus-visible{opacity:.8}
+.fav{position:absolute;top:2px;right:2px;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:9px;background:none;color:var(--mut2);font-size:24px;line-height:1;opacity:.3;transition:opacity .15s,color .15s}
+.dgw:hover .fav,.fav:focus-visible{opacity:.85}
 .fav:hover{opacity:1;color:var(--onx);background:var(--fill)}
 .fav.on{opacity:1;color:var(--glow2);text-shadow:0 0 6px rgba(240,167,67,.5)}
 /* strook "Strings & filters" (Find voicings en Progression): knop achter de voicingsoort, strook eronder */
@@ -124,17 +123,26 @@ body[data-mode="find"] #vFind{flex:1;min-height:0;display:flex;flex-direction:co
 .qpop{position:relative;display:inline-flex}
 #btnQual b{color:var(--onx)}
 .qpanel{position:absolute;left:0;top:calc(100% + 8px);z-index:40;display:block;width:720px;padding:14px 16px;background:#f9efdc}
-/* kolom: de gekozen vorm, met de hele hals staand */
-.colf{display:grid;gap:7px;margin:12px 0;color:var(--mut);font-size:14px}
-#detail .dhead h2{font-size:24px}
-#detail .dmeta{font-size:15px}
-#detail h3{margin:14px 0 8px}
-#detail .tp{margin-top:14px}
-#detail .tgs{margin-top:12px}
-.big{display:block;margin:14px auto 0;border:0;background:none;padding:6px;border-radius:14px}
-.big:hover{background:var(--fill)}
-svg.nkv{width:170px;height:auto;display:block}
-svg circle.ct.opn{stroke:var(--mut2)} svg text.cl.opn{fill:var(--mut)}
+/* Find voicings: bredere middenkolom (desktop), zodat de transportplank met de hals ernaast past */
+body[data-mode="find"]{--colw:1320px}
+/* transportplank (Find voicings): de gekozen vorm, met de hele hals liggend (klik = spelen) */
+.fdtray{gap:16px;padding:10px 22px}
+.fdnav{display:flex;gap:6px;flex:none}
+.fdtray .ib{width:34px;height:34px;background:rgba(255,240,220,.12);border-color:var(--glass-line);color:var(--gtx)}
+.fdtray .ib:hover{background:rgba(255,240,220,.22)}
+.fdi{flex:0 0 auto;min-width:200px;display:grid;gap:3px}
+.fdi h2{font-size:24px;color:var(--gtx);white-space:nowrap}
+.fdi .dmeta{margin:0;font-size:13.5px;font-weight:600;color:var(--gmut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fdl{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:15px}
+.fdn b{color:var(--gtx);font-weight:700}
+.fdn small{margin-left:2px;font:600 10.5px "JetBrains Mono",monospace;color:rgba(255,240,220,.65)}
+.fdl .mono{font:600 12.5px "JetBrains Mono",monospace;color:rgba(255,240,220,.65)}
+.fdtray button:disabled{opacity:.45;cursor:default}
+.fdneck{flex:1 1 380px;min-width:0;display:flex;align-items:center;justify-content:flex-end;align-self:stretch;border:0;background:none;padding:2px 4px;border-radius:12px}
+.fdneck:hover:not(:disabled){background:rgba(255,240,220,.12)}
+svg.nkh{display:block;width:100%;max-width:640px;height:auto;max-height:96px}
+svg .ml{fill:var(--dtx);font:700 7.5px "Bricolage Grotesque",sans-serif;pointer-events:none}
+svg circle.ct.opn{stroke:var(--mut2)}
 
 /* ── What's this chord? ── */
 .idres{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:start}
@@ -150,7 +158,7 @@ svg circle.ct.opn{stroke:var(--mut2)} svg text.cl.opn{fill:var(--mut)}
 /* ── Progression: invoer ── */
 .input{display:grid;gap:12px}
 .chords{position:relative}
-.chords textarea{display:block;width:100%;min-height:50px;resize:none;overflow:hidden;padding:12px 210px 12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--tx);font:500 16px/1.55 "JetBrains Mono",monospace;outline:none}
+.chords textarea{display:block;width:100%;min-height:50px;max-height:calc(4 * 1.55em + 26px);resize:none;overflow:hidden auto;scrollbar-width:thin;padding:12px 210px 12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--tx);font:500 16px/1.55 "JetBrains Mono",monospace;outline:none}
 .chords textarea:focus{border-color:rgba(196,106,28,.55)}
 .chords .from{position:absolute;right:10px;top:10px;display:flex;align-items:center;gap:8px}
 .chords .from select{min-height:28px;max-width:170px;border-radius:9px;padding:0 6px;font-size:13px;color:var(--mut);background:#fff6e6}
@@ -162,30 +170,40 @@ svg circle.ct.opn{stroke:var(--mut2)} svg text.cl.opn{fill:var(--mut)}
 #pgApprox{margin-top:-4px}
 
 /* ── Progression: kaarten (perkament met palissander hals), één rij per regel van de invoer, gecentreerd ── */
-.lines{display:grid;gap:14px}
+.lines{display:grid;gap:calc(14px * var(--fit,1))}
+/* Progression past op één scherm: de kaarten vullen de rest en schalen mee (--fit, pgFit in progression.js); pas als het echt niet past, scrolt dit vak */
+body[data-mode="prog"] .wrap{height:100%;display:flex;flex-direction:column}
+body[data-mode="prog"] #vProg{flex:1;min-height:0;display:flex;flex-direction:column}
+#pgRows{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;align-content:start;--fit:1;--cw:calc((150px * var(--dg) + 20px) * var(--fit) + 2px);
+  padding:2px 14px 26px;margin:0 -14px -26px}   /* ruimte voor de schaduw van de kaarten (overflow knipt die anders af) */
 /* Progression op één scherm (1920×1080, drie regels akkoorden): iets minder lucht tussen invoer en kaarten,
    en een bredere middenkolom (desktop), zodat de strook "Strings & filters" op één regel past */
 body[data-mode="prog"]{--colw:max(940px,calc(5 * var(--cw) + 4 * 14px),1320px)}
-#vProg{gap:14px}
-#vProg .input{gap:10px;padding:14px 18px}
-#vProg .input .opts{gap:10px 18px}
-#vProg .input .opts .seg button{padding:5px 9px;font-size:13.5px}
+body[data-mode="prog"] .scroll{padding-top:16px}
+body[data-mode="prog"] .top{margin-bottom:12px}
+#vProg{gap:10px}
+#vProg .input{gap:8px;padding:12px 16px}
+#vProg .chords textarea{min-height:44px;padding-top:9px;padding-bottom:9px;font-size:15px}
+#vProg .input .opts{gap:8px 18px}
+#vProg .input .opts .seg button{padding:4px 9px;font-size:13.5px}
 #vProg .input .fbtn{margin-left:auto}
-.pgrow{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
-.pgc{position:relative;width:var(--cw);display:grid;justify-items:center;align-content:start;gap:4px;padding:9px 10px;border-radius:14px;background:var(--card);border:1px solid var(--cline);color:var(--ctx);cursor:pointer;box-shadow:0 8px 22px rgba(60,30,10,.25);transition:box-shadow .2s,border-color .2s,background-color .2s}
+#vProg .fstrip{padding:6px 12px;gap:6px 22px}
+#vProg .fstrip .chip{min-height:26px}
+.pgrow{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(14px * var(--fit,1))}
+.pgc{position:relative;width:var(--cw);display:grid;justify-items:center;align-content:start;gap:calc(4px * var(--fit,1));padding:calc(9px * var(--fit,1)) calc(10px * var(--fit,1));border-radius:14px;background:var(--card);border:1px solid var(--cline);color:var(--ctx);cursor:pointer;box-shadow:0 8px 22px rgba(60,30,10,.25);transition:box-shadow .2s,border-color .2s,background-color .2s}
 .pgc:hover{border-color:var(--line2)}
-.pgh{justify-self:stretch;display:flex;align-items:center;gap:6px;min-height:24px;padding:0 2px 0 4px}
-.pgh b{margin-right:auto;font-weight:700;font-size:calc(17px * var(--dg));letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgh{justify-self:stretch;display:flex;align-items:center;gap:6px;min-height:calc(24px * var(--fit,1));padding:0 2px 0 4px}
+.pgh b{margin-right:auto;font-weight:700;font-size:max(12.5px,calc(17px * var(--dg) * var(--fit,1)));letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pgh .cap{font-size:12px;color:var(--cmut);white-space:nowrap}
-.pglk{display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:none;color:var(--glow2);flex:none}
+.pglk{display:grid;place-items:center;width:max(16px,calc(22px * var(--fit,1)));height:max(16px,calc(22px * var(--fit,1)));padding:0;border:0;border-radius:6px;background:none;color:var(--glow2);flex:none}
 .pglk svg{width:14px;height:14px}
 .pglk.free{color:var(--mut2);opacity:0;transition:opacity .15s}
 .pgc:hover .pglk.free,.pgc.sel .pglk.free,.pglk.free:focus-visible{opacity:1}
 .pglk.free:hover{background:var(--fill);color:var(--tx)}
 .pglk.held{color:var(--mut)}
 .pgdg{border:0;background:none;padding:0;border-radius:10px;color:inherit}
-.pgdg svg{width:calc(150px * var(--dg));height:auto;display:block;margin:2px 0}
-.pgi{font-size:12.5px;color:var(--cmut);text-align:center;line-height:1.3}
+.pgdg svg{width:calc(150px * var(--dg) * var(--fit,1));height:auto;display:block;margin:2px 0}
+.pgi{font-size:max(11px,calc(12.5px * var(--fit,1)));color:var(--cmut);text-align:center;line-height:1.3}
 .pgt{color:var(--onx);font-weight:600}
 .pgv{justify-self:stretch;list-style:none;margin:4px 0 0;padding:0;display:grid;gap:3px;font:500 12px/1 "JetBrains Mono",monospace}
 .pgv li{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;border-radius:7px;background:rgba(90,55,25,.07)}
