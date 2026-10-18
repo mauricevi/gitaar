@@ -168,7 +168,7 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   pgRenderSide();pgTransport();}
 /* balk boven de kaarten: alles selecteren, vastgehouden akkoorden loslaten, alle locks weg */
 function pgRenderBar(){const L=PG.list,nh=L.filter(x=>x.held).length,nl=L.filter(x=>x.lock&&!x.held).length;
-  $('#pgSelAll').hidden=L.length<2;$('#pgRefitAll').hidden=!nh;$('#pgRefitAll').textContent=T.pg.refitAll(nh);
+  $('#pgSelAll').hidden=L.length<2;$('#pgRefitAll').hidden=!nh;$('#pgRefitAll').textContent=T.pg.release(nh);$('#pgRefitAll').title=T.pg.releaseL;
   $('#pgUnlock').hidden=!nl&&!nh;$('#pgUnlock').textContent=T.pg.unlockAll(nl+nh);}
 const pgSel=()=>[...PGSET].filter(i=>PG.list[i]).sort((a,b)=>a-b);
 /* zijpaneel: het gekozen akkoord (of de selectie), acties, eigen voicingsoort, alternatieven */
@@ -182,6 +182,7 @@ function pgRenderSide(){const box=$('#pgSide');box.hidden=!PG.list.length;if(box
   const allL=wv.length&&wv.every(y=>pgState(y)==='lock'),lb=$('#pgSLock');
   lb.innerHTML=ICON.lock+'<span>'+esc(allL?T.pg.unlock:T.pg.lock)+'</span>';lb.disabled=!wv.length;lb.setAttribute('aria-pressed',!!allL);
   $('#pgSRefit').innerHTML=ICON.refit+'<span>'+esc(T.pg.refit)+'</span>';$('#pgSRefit').disabled=!wv.length;$('#pgSRefit').title=T.pg.refitL;
+  const nh=PG.list.filter(y=>y.held).length,rb=$('#pgSRel');rb.hidden=!nh;rb.innerHTML=ICON.pin+'<span>'+esc(T.pg.release(nh))+'</span>';rb.title=T.pg.releaseL;
   const pb=$('#pgSPlay');pb.hidden=multi||!x.v;pb.innerHTML=ICON.play+'<span>'+esc(T.pg.hear)+'</span>';
   /* eigen soort: knop ingedrukt als de hele selectie dezelfde heeft */
   const own=xs.every(y=>!y.own)?'def':xs.every(y=>y.own&&y.tp===xs[0].tp)?xs[0].tp:null;
@@ -215,7 +216,8 @@ function pgDo(kind,arg,idx){const sel=idx||pgSel(),xs=sel.map(i=>PG.list[i]).fil
   pgSet(()=>{
     if(kind==='pick'){const x=PG.list[sel[0]];if(keep)pgHold([x.i]);S.pLock[x.i]=pgLk(x,arg);}
     else if(kind==='lock')xs.forEach(y=>{S.pLock[y.i]=pgLk(y,y.v);});
-    else if(kind==='unlock'){if(keep)pgHold(sel);sel.forEach(i=>{delete S.pLock[i];});}
+    else if(kind==='unlock')sel.forEach(i=>{delete S.pLock[i];});                   /* alleen de lock eraf; de andere akkoorden niet vasthouden */
+    else if(kind==='release')sel.forEach(i=>{if(S.pLock[i]&&S.pLock[i].h)delete S.pLock[i];});
     else if(kind==='refit'){pgHold(sel);sel.forEach(i=>{delete S.pLock[i];});}       /* alleen de selectie opnieuw, de rest blijft staan */
     else if(kind==='type'){if(keep)pgHold(sel);
       sel.forEach(i=>{const y=PG.list[i];if(arg==='def')delete S.pTypes[i];else S.pTypes[i]={s:y.c.sym,t:arg};delete S.pLock[i];});}
@@ -320,13 +322,14 @@ function pgBind(){
   $('#pgRefitAll').addEventListener('click',()=>pgDo('refitAll'));
   $('#pgSelAll').addEventListener('click',()=>{PGSET=new Set(PG.list.map(x=>x.i));pgSelect(PGSEL,false,'keep');});
   $('#pgRows').addEventListener('click',e=>{const u=e.target.closest('[data-lk]');
-    if(u){pgToggleLock([+u.dataset.lk]);return;}
+    if(u){const i=+u.dataset.lk;if(PG.list[i].held)pgDo('release',null,[i]);else pgToggleLock([i]);return;}   /* punaise = loslaten */
     const c=e.target.closest('.pgc');if(!c)return;const how=e.shiftKey?'range':e.ctrlKey||e.metaKey?'toggle':'one';
     pgSelect(+c.dataset.i,how==='one'&&!!e.target.closest('.pgdg'),how);});
   /* Shift-klik selecteert geen tekst */
   $('#pgRows').addEventListener('mousedown',e=>{if(e.shiftKey)e.preventDefault();});
   $('#pgSLock').addEventListener('click',()=>pgToggleLock());
   $('#pgSRefit').addEventListener('click',()=>pgDo('refit'));
+  $('#pgSRel').addEventListener('click',()=>pgDo('refitAll'));
   $('#pgSPlay').addEventListener('click',()=>{const x=PG.list[PGSEL];if(x&&x.v){playShape(x.c,x.v);logChord(x.c.sym);}});
   $('#pgSType').addEventListener('click',e=>{const b=e.target.closest('[data-pgstype]');if(b)pgDo('type',b.dataset.pgstype);});
   $('#pgFit').addEventListener('click',e=>{const b=e.target.closest('[data-pgfit]');if(b)pgSet(()=>{S.pFit=b.dataset.pgfit;});});
