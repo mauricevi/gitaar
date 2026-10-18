@@ -5,8 +5,7 @@ Gitaar-oefenapp voor jazz/gitaar: een verzameling losse, zelfstandige HTML-train
 ## Bestanden
 | Bestand | Wat |
 |---|---|
-| `index.html` | Startpagina "Practice Room": navigatie, 3D-fretboard, kalender oefentijd, samenvattingen uit de trainers (leest alleen localStorage) |
-| `room.html` | Nieuwe Home (prototype, nog naast `index.html`): schermvullend beeld `home/room.png`, objecten zijn links (klikzones in TOOLS), labels met rec-lampje, mini-kalender + kalendervenster, beweging alleen óver het beeld (lampjes, stof, damp, zzz, vogels; geen vervorming). Toets E = klikzones tekenen, S = geheim menu (opslag `practiceRoom.room`) |
+| `index.html` | Startpagina "Practice Room": schermvullend beeld `home/room.png` van de oefenkamer; objecten zijn links naar de trainers (klikzones in TOOLS), labels met rec-lampje en samenvatting uit de trainers, mini-kalender + kalendervenster (oefentijd, doelen, back-up). Beweging alleen óver het beeld (lampjes, stof, damp, zzz, vogels; geen vervorming), dag/nacht op de klok. Toets E = klikzones tekenen, S = geheim menu (opslag `practiceRoom.room`). Leest trainerdata alleen |
 | `toonladder-trainer.html` | **Scale Trainer**: dunne schil (HTML-structuur + `<script src>`-lijst); code staat in `toonladder/` (zie hieronder) |
 | `fretboard-trainer.html` | **Fretboard Trainer**: noten op de hals, spaced repetition ("notes due today") |
 | `chord-moves.html` | **Chord Moves**: akkoordwisselingen oefenen, piano + bas |

@@ -5,97 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Practice Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=DotGothic16&family=Pixelify+Sans:wght@400..700&family=VT323&family=Space+Mono:wght@400;700&family=Handjet:wght@300..700&display=swap" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════════════════════════════════════
-   HOME · Practice Room
-   Teksten en trainers pas je aan in het blok "JOUW INSTELLINGEN" onderaan (in het <script>).
-   De lampjes op het bord tonen wat je aan het leren bent:
-   · Your progression  → de laatst geopende progressie uit de Scale Trainer, akkoord na akkoord
-   · Notes due today   → de noten die de Fretboard Trainer vandaag wil herhalen
-   Beide lezen de opgeslagen gegevens van de trainers in deze browser (alleen lezen).
+   HOME · Practice Room (de kamer)
+   Eén schermvullend beeld (home/room.png). Elk object in de kamer is een link naar een trainer.
+   · Klikzones en labelplekken staan in "JOUW INSTELLINGEN" onderaan (TOOLS: spot + at).
+   · Druk op E: bewerkmodus. Klik punten rond een object; de coördinaten verschijnen rechtsonder.
+   · Druk op S: geheim menu (lettertype, labels, dag/nacht, beweging). Bewaard in deze browser (practiceRoom.room).
+   · Beweging, zonder het beeld zelf te vervormen: lampjes flakkeren/pulseren, stof in de zonnestraal,
+     damp uit de mok, zzz bij de kat, af en toe vogels achter het raam. Alles in SCENE (hoort bij dit beeld). Uit: motion:false.
+   · Hover: alleen het label reageert (rec-lampje gaat aan), het beeld blijft zoals het is.
+   · Dagdeel: 's avonds en 's nachts wordt de kamer donkerder en gaan de lampen meer gloeien.
+     Testen: index.html?hour=22
    ════════════════════════════════════════════════════════════════════════════ */
-:root{--bg:#07070c;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;--rose:#ff8fab;--sky:#7cc4ff;
-  --wd1:#3e2518;--wfret:rgba(205,198,186,.32);--wnut:#d9d3c7;--wstr:#d6cfc1;--winl:rgba(232,225,210,.32);
-  --fr:.9fr .944fr .891fr .841fr .794fr .749fr .707fr .667fr .63fr .595fr .561fr .53fr .5fr .472fr .446fr .42fr;color-scheme:dark}
+:root{--bg:#0b0806;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;--rose:#ff8fab;--sky:#7cc4ff;
+  --glass:rgba(18,13,10,.62);--rec:#ff3b30;
+  --df:"DotGothic16";--dw:400;--dfs:1;--dls:0;   /* lo-fi lettertype voor titels en labels (keuze in het menu S) */
+ --line:rgba(255,231,200,.16);color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Bricolage Grotesque",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--tx)}a:hover{color:var(--glow)}
+html,body{height:100%}
+body{margin:0;overflow:hidden;background:var(--bg);color:var(--tx);font:16px/1.5 "Bricolage Grotesque",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--tx)}
 button{font:inherit;color:inherit;cursor:pointer}
 a:focus-visible,button:focus-visible{outline:3px solid var(--glow);outline-offset:3px;border-radius:8px}
 .m{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
-.page{min-height:100vh;background:radial-gradient(60% 42% at 50% 50%,rgba(255,181,71,.13),rgba(7,7,12,0) 70%),var(--bg)}
-.wrap{max-width:1240px;margin:0 auto;padding:0 40px 56px}
-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:26px 0}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
-.live{width:8px;height:8px;border-radius:50%;background:var(--glow);box-shadow:0 0 12px var(--glow);animation:pulse 2.4s ease-in-out infinite}
+/* lo-fi lettertype: titel, labels, mini-kalender, kop van de kalender */
+.brand h1,.brand p,.lab,.mh span,.mh button,.big b,.big small,.wk div,.mt,.calh h2,.cst b,.setbox h3{font-family:var(--df),"Bricolage Grotesque",sans-serif;letter-spacing:var(--dls)}
+.brand h1,.lab b,.big b,.calh h2,.cst b,.setbox h3{font-weight:var(--dw)}
+
+/* ── scène: het beeld bedekt altijd het hele venster; alles erin schaalt mee (posities in % van het beeld) ── */
+.scene{position:fixed;inset:0;overflow:hidden;background:#1a110a;transition:opacity .35s ease,filter .35s ease}
+body.leave .scene{opacity:0;filter:blur(6px)}
+.room{position:absolute;left:50%;top:50%;width:max(100vw,calc(100vh * var(--ar)));aspect-ratio:var(--ar);transform:translate(-50%,-50%)}
+.art{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+/* dagdeel */
+.tod{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:0;transition:opacity 2s}
+/* lichtjes: zacht gloeiend, sterker naarmate het donkerder is (--n = 0 overdag … 1 's nachts) */
+.gl{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1;pointer-events:none;mix-blend-mode:screen;opacity:calc(var(--a) + var(--n,0) * var(--b))}
+.gl i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,var(--c) 0,transparent 68%);animation:var(--k) var(--d) ease-in-out infinite}
+@keyframes kFlick{0%,100%{opacity:1}7%{opacity:.82}9%{opacity:.97}31%{opacity:.9}52%{opacity:1}64%{opacity:.86}67%{opacity:.98}88%{opacity:.92}}
+@keyframes kPulse{50%{opacity:.45}}
+@keyframes kSlow{50%{opacity:.7;transform:scale(1.05)}}
+.room.nolights .gl i{animation:none}
+canvas.fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* hover: het object licht op */
+svg.hit{position:absolute;inset:0;width:100%;height:100%}
+.hp{fill:transparent;cursor:pointer;outline:none}
+.hbg{fill:transparent;pointer-events:none}
+/* labels bij de objecten */
+.lab{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:2px;text-decoration:none;padding:5px 12px 6px;border-radius:12px;
+  background:rgba(18,13,10,.76);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.35);
+  font-size:calc(clamp(12px,.78vw,15px) * var(--dfs));line-height:1.25;white-space:nowrap;transition:background .25s,border-color .25s,opacity .2s}
+body.lab-hover .lab:not(.on):not(:focus-visible){opacity:0;pointer-events:none}   /* menu: labels alleen bij hover */
+.lab b{display:flex;align-items:center;gap:7px}
+.lab b::before{content:"";width:7px;height:7px;border-radius:50%;background:#5a2723;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);transition:background .15s,box-shadow .15s}   /* rec-lampje: uit */
+.lab.on b::before{background:var(--rec);box-shadow:0 0 6px var(--rec),0 0 14px rgba(255,59,48,.55)}                                                            /* … en aan bij hover */
+.lab small{position:absolute;left:50%;top:calc(100% + 6px);transform:translate(-50%,-4px);padding:4px 10px;border-radius:10px;background:rgba(20,14,10,.85);border:1px solid var(--line);
+  color:#ffd79a;font-size:.86em;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+.lab .bd{position:absolute;right:-8px;top:-8px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--teal);color:#06201c;font:600 11px/20px "JetBrains Mono",monospace;text-align:center;box-shadow:0 0 12px rgba(79,227,208,.6)}
+.lab.on{background:rgba(30,20,12,.88);border-color:rgba(255,190,110,.5);z-index:2}
+.lab.on small{opacity:1;transform:translate(-50%,0)}
+/* bewerkmodus (toets E) */
+body.edit .hp{fill:rgba(79,227,208,.12);stroke:var(--teal);stroke-width:1.5;stroke-dasharray:5 4;vector-effect:non-scaling-stroke}
+body.edit .hbg{pointer-events:all;cursor:crosshair}
+.draft{fill:rgba(255,181,71,.15);stroke:var(--glow);stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+.edbox{position:fixed;right:16px;bottom:16px;z-index:20;width:420px;padding:14px;border-radius:14px;background:#16120f;border:1px solid var(--teal);font-size:13px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.edbox p{margin:0 0 8px;color:var(--mut)}.edbox textarea{width:100%;height:90px;background:#0d0b09;color:var(--tx);border:1px solid var(--line);border-radius:8px;font:12px/1.4 "JetBrains Mono",monospace;padding:8px;resize:vertical}
+.edbox .row{display:flex;gap:8px;margin-top:8px;align-items:center}.edbox output{margin-left:auto;color:var(--teal)}
+/* geheim menu (toets S) */
+.setbox{position:fixed;right:16px;top:16px;z-index:21;width:330px;max-height:calc(100vh - 32px);overflow:auto;padding:14px 16px;border-radius:16px;background:#16120f;border:1px solid rgba(255,59,48,.45);font-size:13px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.sh{display:flex;align-items:center;justify-content:space-between}.setbox h3{margin:0;font-size:calc(20px * var(--dfs))}
+.x2{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:transparent;font-size:14px}.x2:hover{border-color:var(--glow)}
+.setbox .note{margin:4px 0 6px;color:var(--mut);font-size:12px}
+.sgh{margin:12px 0 2px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--glow)}
+.sr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;cursor:pointer}.sr.sub{padding-left:14px;color:var(--mut)}.sr.off{opacity:.35;pointer-events:none}
+.sr select{background:#0d0b09;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;max-width:180px}
+.sr input[type=checkbox]{width:16px;height:16px;accent-color:var(--rec)}.sr input[type=range]{width:110px;accent-color:var(--glow)}
+.sr .rv{display:flex;align-items:center;gap:8px}.sr output{min-width:30px;text-align:right;color:var(--tx);font:12px "JetBrains Mono",monospace}
+.setbox .row{display:flex;gap:8px;margin-top:12px}
+
+/* ── vaste lagen boven de scène ── */
+.brand{position:fixed;left:20px;bottom:18px;z-index:5;padding:10px 18px 11px;border-radius:16px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.brand h1{margin:0;display:flex;align-items:center;gap:10px;font-size:calc(22px * var(--dfs));line-height:1.1}
+.live{width:9px;height:9px;border-radius:50%;background:var(--rec);box-shadow:0 0 6px var(--rec),0 0 16px rgba(255,59,48,.6);animation:rec 2s ease-in-out infinite}   /* rec-lampje: knippert */
+@keyframes rec{0%,52%{opacity:1}62%,92%{opacity:.18;box-shadow:none}}
 @keyframes pulse{50%{opacity:.35}}
-nav{display:flex;flex-wrap:wrap;gap:24px;font-size:15px}
-nav a{color:var(--mut);text-decoration:none}nav a:hover{color:var(--tx)}
-.hero{text-align:center;padding:48px 0 4px}
-.kick{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--glow)}
-h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacing:-.035em;margin:18px auto 18px;max-width:13ch}
-.sub{font-size:19px;line-height:1.5;color:var(--mut);max-width:42ch;margin:0 auto;min-height:3em}   /* vaste hoogte: het bord springt niet bij wisselen */
-.seg{display:inline-flex;padding:4px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09)}
-.seg button{min-height:38px;padding:0 18px;border:0;border-radius:999px;background:none;color:var(--mut);font-weight:600;font-size:14px}
-.seg button[aria-pressed="true"]{background:var(--tx);color:var(--bg)}
-.ctr{display:flex;justify-content:center;margin:30px 0 4px}
-/* ── bord ── */
-.stage{perspective:1500px;padding:30px 0 0}
-.tilt{transform:rotateX(24deg);transform-origin:50% 85%}
-.bwrap{overflow-x:auto;padding:4px 2px 30px}
-.neck{position:relative;min-width:860px;filter:drop-shadow(0 34px 60px rgba(0,0,0,.75))}
-.row{position:relative;display:grid;grid-template-columns:var(--fr);height:48px}
-.c{position:relative;background:var(--wd1);border-right:4px solid var(--wfret)}
-.c.o{background:transparent;border-right:7px solid var(--wnut)}
-.row:first-child .c:last-child{border-top-right-radius:10px}.row:last-child .c:last-child{border-bottom-right-radius:10px}
-.c::before{content:"";position:absolute;left:0;right:-4px;top:50%;height:var(--t);transform:translateY(-50%);background:var(--wstr);opacity:.85;z-index:2}
-.c.o::before{right:0;opacity:.25}
-.inl{position:absolute;inset:0;display:grid;grid-template-columns:var(--fr);pointer-events:none;z-index:1}
-.inl span{position:relative}
-.inl b{position:absolute;left:50%;width:11px;height:11px;border-radius:50%;background:var(--winl);transform:translate(-50%,-50%)}
-.inl b.m{top:50%}.inl b.u{top:33.33%}.inl b.d{top:66.67%}
-.ghost{position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(245,239,230,.18);z-index:3}
-.lt{position:absolute;left:50%;top:50%;width:30px;height:30px;border-radius:50%;transform:translate(-50%,-50%) scale(.55);opacity:0;display:grid;place-items:center;
-  font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;color:#1a1006;background:var(--glow);z-index:4;transition:opacity .45s ease,transform .45s ease,box-shadow .45s ease}
-.lt.r{background:#f5efe6;box-shadow:0 0 0 2px #f5efe6}
-.lt.on{opacity:1;transform:translate(-50%,-50%) scale(1);box-shadow:0 0 18px 5px rgba(255,181,71,.55)}
-.lt.r.on{box-shadow:0 0 0 2px #f5efe6,0 0 22px 6px rgba(245,239,230,.45)}
-.lt.n{background:var(--teal)}
-.lt.n.on{box-shadow:0 0 18px 5px rgba(79,227,208,.5);animation:breathe 3.2s ease-in-out infinite,ripple 6s ease-in-out infinite}
-@keyframes ripple{0%,9%,100%{transform:translate(-50%,-50%) scale(1)}4%{transform:translate(-50%,-50%) scale(1.32)}}
-.lt.g{background:#ffe08a;color:#1a1006}                                   /* beheerste noot: goud */
-.lt.g.tw{animation:twinkle 1.9s ease-out}
-@keyframes twinkle{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.06);box-shadow:0 0 22px 8px rgba(255,224,138,.6)}
-  60%{opacity:.85;transform:translate(-50%,-50%) scale(1);box-shadow:0 0 12px 3px rgba(255,224,138,.35)}100%{opacity:0;transform:translate(-50%,-50%) scale(.7);box-shadow:0 0 0 0 rgba(255,224,138,0)}}
-.lgs{display:flex;justify-content:center;gap:20px;margin-top:8px;font-size:13px}
-.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:-1px}.lg i.n{background:var(--teal);box-shadow:0 0 8px var(--teal)}.lg i.g{background:#ffe08a;box-shadow:0 0 8px #ffe08a}
-@keyframes breathe{50%{box-shadow:0 0 6px 1px rgba(79,227,208,.25);opacity:.75}}
-/* ── akkoordrij onder het bord ── */
-.chords{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 10px;margin-top:6px;min-height:52px}
-.chords .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut2);margin-right:8px}
-.chords button{border:0;background:none;font-size:28px;font-weight:800;letter-spacing:-.02em;color:rgba(245,239,230,.3);padding:2px 6px;border-radius:10px;transition:color .4s,text-shadow .4s}
-.chords button.on{color:var(--tx);text-shadow:0 0 22px rgba(255,181,71,.6)}
-.chords .ar{color:#5d574e}
-.cnote{text-align:center;font-size:15px;color:var(--mut);min-height:24px}
-/* ── kaarten ── */
-.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px;margin-top:64px}
-.card{display:grid;gap:16px;align-content:start;padding:28px;border-radius:24px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);text-decoration:none;color:var(--tx);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:border-color .2s,transform .2s}
-.card:hover{border-color:rgba(255,181,71,.45);transform:translateY(-2px);color:var(--tx)}
-.ch{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.ck{font-size:36px;font-weight:800;letter-spacing:-.025em;line-height:1.05;color:var(--tx)}   /* titel van de kaart: trekt de aandacht */
-.go{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;font-size:20px}
-.ct{font-size:19px;font-weight:600;line-height:1.3;color:var(--glow)}   /* status eronder */
-.cm{display:flex;flex-wrap:wrap;gap:6px 22px;color:var(--mut);font-size:15px}
-.cm b{color:var(--tx)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips span{padding:5px 10px;border-radius:10px;font-size:13px;background:rgba(255,255,255,.07);transition:background .4s,color .4s}
-.chips span.on{background:var(--glow);color:#1a1006}
-/* ── oefenkalender ── */
-.cal{position:relative;margin-top:72px;padding:28px;border-radius:24px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);--cs:15px}
-.calh{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;margin-bottom:22px}
+.brand p{margin:3px 0 0 18px;font-size:13px;color:var(--mut)}
+.mini{position:fixed;right:20px;bottom:18px;z-index:5;width:330px;padding:14px 16px 13px;border-radius:18px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 14px 34px rgba(0,0,0,.4)}
+.mh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.mh span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--glow)}
+.mh button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);border-radius:999px;padding:4px 12px;font-size:12.5px}
+.mh button:hover{border-color:var(--glow)}
+.mrow{display:flex;align-items:center;gap:16px}
+.big{display:grid;line-height:1}.big b{font-size:calc(34px * var(--dfs));color:var(--glow)}.big small{font-size:11.5px;color:var(--mut);margin-top:4px}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;flex:1}
+.wk div{display:grid;justify-items:center;gap:4px;font-size:10.5px;color:var(--mut2)}
+.dr{width:24px;height:24px;border-radius:50%;background:conic-gradient(var(--glow) calc(var(--p) * 1turn),rgba(255,255,255,.13) 0);-webkit-mask:radial-gradient(circle,transparent 6.5px,#000 7.5px);mask:radial-gradient(circle,transparent 6.5px,#000 7.5px)}
+.dr.met{background:var(--glow);box-shadow:0 0 10px rgba(255,181,71,.55);-webkit-mask:none;mask:none}
+.dr.rest{background:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);-webkit-mask:none;mask:none}
+.dr.fut{opacity:.35}
+.wk .td{color:var(--tx);font-weight:600}
+.mt{margin-top:9px;font-size:13px;color:var(--mut)}.mt b{color:var(--tx)}
+
+/* ── volledige kalender (venster) ── */
+dialog.cdlg{width:min(1160px,94vw);max-height:92vh;padding:0;border:1px solid var(--line);border-radius:24px;background:rgba(16,12,10,.94);color:var(--tx);box-shadow:0 30px 80px rgba(0,0,0,.7)}
+dialog.cdlg::backdrop{background:rgba(6,4,3,.5);backdrop-filter:blur(5px)}
+.x{position:absolute;right:16px;top:14px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:transparent;font-size:18px;z-index:7}
+.x:hover{border-color:var(--glow)}
+.cal{position:relative;padding:28px;--cs:15px}
+.calh{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;margin-bottom:22px;padding-right:44px}
 .calh h2{margin:0;font-size:36px;font-weight:800;letter-spacing:-.025em}
 .cst{display:flex;flex-wrap:wrap;gap:10px 30px}.cst div{display:grid}.cst b{font-size:22px;font-weight:700;color:var(--glow)}.cst small{font-size:12px;color:var(--mut)}
 .calbox{overflow-x:auto;padding-bottom:6px}
@@ -116,9 +136,9 @@ h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacin
 .calbtn{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--tx);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
 .calbtn:hover,.calbtn[aria-expanded="true"]{border-color:var(--glow)}
 .calgoals{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.calgoals p{margin:0 0 10px;font-size:13px;color:var(--mut)}
-.gl{display:flex;flex-wrap:wrap;gap:10px}.gl label{display:grid;gap:4px;font-size:12px;color:var(--mut)}
-.gl input{width:84px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:10px;color:var(--tx);padding:7px 9px;font:inherit;font-size:15px}
-.gl small{font-size:11px;color:var(--mut2)}
+.gl2{display:flex;flex-wrap:wrap;gap:10px}.gl2 label{display:grid;gap:4px;font-size:12px;color:var(--mut)}
+.gl2 input{width:84px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:10px;color:var(--tx);padding:7px 9px;font:inherit;font-size:15px}
+.gl2 small{font-size:11px;color:var(--mut2)}
 .caltip{position:absolute;z-index:5;white-space:pre-line;pointer-events:none;background:#16151c;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 11px;font-size:12.5px;line-height:1.45;max-width:340px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
 .calpop{position:absolute;z-index:6;width:250px;background:#16151c;border:1px solid rgba(255,181,71,.4);border-radius:14px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.6)}
 .calpop p{margin:4px 0 10px;font-size:13px;color:var(--mut)}
@@ -127,50 +147,60 @@ h1{font-size:clamp(46px,7vw,100px);line-height:.97;font-weight:800;letter-spacin
 .stp output{font-size:20px;font-weight:700;color:var(--glow)}
 .qk{display:flex;flex-wrap:wrap;gap:6px}.qk button{border:0;border-radius:999px;padding:5px 10px;background:rgba(255,255,255,.08);color:var(--tx);font:inherit;font-size:12px;cursor:pointer}
 .qk button:hover,.stp button:hover{background:rgba(255,181,71,.2)}
-.foot{margin-top:40px;font-size:13px;color:var(--mut2);text-align:center}
-@media (max-width:720px){.cal{padding:20px;--cs:12px}.calh h2{font-size:28px}.wrap{padding:0 16px 40px}.hero{padding-top:24px}.tilt{transform:none}.chords button{font-size:22px}.card{padding:22px}.ck{font-size:28px}.ct{font-size:17px}}
-@media (prefers-reduced-motion:reduce){.live,.lt.n.on{animation:none}.lt.g{opacity:.35;transform:translate(-50%,-50%) scale(.8)}.lt,.chords button,.chips span,.card{transition:none}}
-.bk{margin-top:28px;display:grid;justify-items:center;text-align:center;color:var(--mut)}.bk .prb-row{justify-content:center}
+.bk{margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);display:grid;justify-items:center;text-align:center;color:var(--mut)}.bk .prb-row{justify-content:center}
 .prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
+.foot{margin:14px 0 0;font-size:13px;color:var(--mut2);text-align:center}
+@media (prefers-reduced-motion:reduce){.gl i,.live{animation:none}.scene,.lab{transition:none}}
 </style>
 </head>
 <body>
-<div class="page">
-<div class="wrap">
-  <header>
-    <div class="brand"><span class="live" aria-hidden="true"></span><span id="brand"></span></div>
-    <nav id="nav" aria-label="Trainers"></nav>
-    <span class="m" id="date" style="font-size:13px;color:var(--mut)"></span>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="kick m" id="greet"></div>
-      <h1 id="headline"></h1>
-      <p class="sub" id="subline"></p>
-    </section>
-
-    <div class="ctr"><div class="seg" role="group" id="modeSeg"><button type="button" data-m="prog"></button><button type="button" data-m="notes"></button></div></div>
-
-    <div class="stage" aria-hidden="true"><div class="tilt"><div class="bwrap"><div class="neck" id="neck"></div></div></div></div>
-    <div class="chords" id="chords"></div>
-    <p class="cnote" id="cnote" aria-live="polite"></p>
-
-    <section class="tools" id="tools" aria-label="Trainers"></section>
-
-    <!-- oefenkalender: één stip per dag; teal = Fretboard, goud = Scale, violet = Note Prompter, wit = zonder app; ring = dagdoel gehaald -->
-    <section class="cal" id="cal" aria-labelledby="calH">
-      <div class="calh"><h2 id="calH"></h2><div class="cst" id="calStats"></div></div>
-      <div class="calbox"><div class="calmo" id="calMonths"></div><div class="calrow"><div class="calwd" id="calWd"></div><div class="calgrid" id="calGrid" role="grid"></div></div></div>
-      <div class="calf"><div class="callg" id="calLegend"></div><button type="button" class="calbtn" id="calGoalsBtn" aria-expanded="false"></button></div>
-      <div class="calgoals" id="calGoals" hidden></div>
-      <div class="caltip" id="calTip" role="tooltip" hidden></div>
-      <div class="calpop" id="calPop" role="dialog" hidden></div>
-    </section>
-    <section class="bk" aria-label="Backup"><div id="prBackup" data-app="Home" data-btn="calbtn"></div></section>
-    <p class="foot" id="foot"></p>
-  </main>
+<div class="scene" id="scene">
+  <div class="room" id="room">
+    <img class="art" id="art" alt="" draggable="false">
+    <div class="tod" id="todCool"></div>
+    <div class="tod" id="todNight"></div>
+    <div id="gls"></div>
+    <canvas class="fx" id="fx" aria-hidden="true"></canvas>
+    <svg class="hit" id="hit" aria-hidden="true"></svg>
+    <nav id="labs" aria-label="Trainers"></nav>
+  </div>
 </div>
+
+<header class="brand"><h1><span class="live" aria-hidden="true"></span><span id="brandT"></span></h1><p id="greet"></p></header>
+
+<aside class="mini" id="mini" aria-label="Practice this week">
+  <div class="mh"><span id="miniH"></span><button type="button" id="openCal"></button></div>
+  <div class="mrow"><div class="big"><b id="mStreak">0</b><small id="mStreakL"></small></div><div class="wk" id="mWeek"></div></div>
+  <div class="mt" id="mToday"></div>
+</aside>
+
+<dialog class="cdlg" id="calDlg" aria-labelledby="calH">
+  <button type="button" class="x" id="calClose" aria-label="Close">✕</button>
+  <!-- oefenkalender: één stip per dag; teal = Fretboard, goud = Scale, violet = Note Prompter, wit = zonder app; ring = dagdoel gehaald -->
+  <section class="cal" id="cal">
+    <div class="calh"><h2 id="calH"></h2><div class="cst" id="calStats"></div></div>
+    <div class="calbox"><div class="calmo" id="calMonths"></div><div class="calrow"><div class="calwd" id="calWd"></div><div class="calgrid" id="calGrid" role="grid"></div></div></div>
+    <div class="calf"><div class="callg" id="calLegend"></div><button type="button" class="calbtn" id="calGoalsBtn" aria-expanded="false"></button></div>
+    <div class="calgoals" id="calGoals" hidden></div>
+    <div class="caltip" id="calTip" role="tooltip" hidden></div>
+    <div class="calpop" id="calPop" role="dialog" hidden></div>
+    <div class="bk" aria-label="Backup"><div id="prBackup" data-app="Home" data-btn="calbtn"></div></div>
+    <p class="foot" id="foot"></p>
+  </section>
+</dialog>
+
+<div class="edbox" id="edBox" hidden>
+  <p>Edit mode (E to leave). Click around an object to draw a zone; copy the points into <b>spot</b> in TOOLS. Existing zones are dashed.</p>
+  <textarea id="edOut" readonly spellcheck="false"></textarea>
+  <div class="row"><button type="button" class="calbtn" id="edCopy">Copy</button><button type="button" class="calbtn" id="edUndo">Undo point</button><button type="button" class="calbtn" id="edClear">Clear</button><output class="m" id="edPos"></output></div>
+</div>
+
+<div class="setbox" id="setBox" role="dialog" aria-labelledby="setH" hidden>
+  <div class="sh"><h3 id="setH">Settings</h3><button type="button" class="x2" id="setClose" aria-label="Close">✕</button></div>
+  <p class="note">Secret menu: press S to open or close. Saved in this browser.</p>
+  <div id="setRows"></div>
+  <p class="note" id="setRm" hidden>Animations are turned off in Windows, so the room stays still.</p>
+  <div class="row"><button type="button" class="calbtn" id="setReset">Reset to defaults</button></div>
 </div>
 
 <script>
@@ -256,32 +286,58 @@ const CONFIG={
   name:'Maurice',
   brand:'Practice Room',
   greetings:{morning:'Good morning',afternoon:'Good afternoon',evening:'Good evening',night:'Good night'},
-  headline:'Whatever glows is yours to learn.',
-  subline:{
-    prog:'The progression you’re working on, chord by chord. Click a chord to hold it.',
-    notes:'The notes the Fretboard Trainer wants back today.'
-  },
-  toggle:{prog:'Your progression',notes:'Notes due today'},
+  image:'home/room.png',     /* het beeld van de kamer */
+  imageSize:[1672,941],      /* breedte en hoogte in pixels; alle coördinaten hieronder gaan over dit beeld */
+  dayNight:true,             /* false = altijd de kamer zoals op het beeld */
+  motion:true,               /* false = de kamer staat stil (lampjes, stofjes, damp, vogels) */
+                             /* dayNight en motion zijn de standaard; het geheime menu (toets S) overschrijft ze en onthoudt dat in deze browser */
   footer:'Progress is saved in this browser. Open the trainers in the same browser to keep it.'
 };
 
-/* Trainers: één blok { … } per trainer. Een nieuwe toevoegen?
-   1. Zet het HTML-bestand in dezelfde map.
-   2. Kopieer het laatste blok hieronder (van { tot en met },) en plak het eronder.
-   3. Pas file, name en tagline aan. Laat live weg of zet live:'' voor een nieuwe trainer
-      (live:'fretboard', 'scales', 'prompter' en 'moves' tonen je actuele voortgang uit die trainers). */
+/* Trainers: één blok { … } per trainer.
+   spot = de klikzone: punten [x,y] rond het object, in pixels van het beeld (druk E op de pagina om ze te tekenen).
+   at   = waar het label staat [x,y].
+   live = 'fretboard', 'scales', 'prompter' of 'moves' toont je actuele voortgang in het label. */
 const TOOLS=[
-  {file:'fretboard-trainer.html', name:'Fretboard Trainer', tagline:'Find every note, on every string.', live:'fretboard'},
-  {file:'toonladder-trainer.html', name:'Scale Trainer', tagline:'Scales, arpeggios and progressions.', live:'scales'},
-  {file:'note-prompter.html', name:'Note Prompter', tagline:'Random notes and chords, on your foot pedal.', live:'prompter'},
-  {file:'chord-moves.html', name:'Chord Moves', tagline:'New progressions, one move at a time.', live:'moves'},
-  {file:'chord-finder.html', name:'Chord Finder', tagline:'Every voicing of a chord, all over the neck.'},
-  {file:'lick-lab.html', name:'Lick Lab', tagline:'Record a lick, play it over every chord.'},
-  {file:'tuner.html', name:'Tuner', tagline:'Strobe tuner, through your audio interface.'},
+  {file:'fretboard-trainer.html', name:'Fretboard Trainer', tagline:'Find every note, on every string.', live:'fretboard',
+   spot:[[0,240],[42,232],[50,92],[46,64],[64,58],[82,90],[78,232],[102,250],[136,250],[138,88],[150,82],[162,88],[166,252],[194,270],[210,268],[214,110],[222,104],[234,108],[236,268],[254,286],[254,420],[236,428],[198,420],[160,434],[120,432],[100,446],[60,450],[0,447]], at:[126,470]},
+  {file:'lick-lab.html', name:'Lick Lab', tagline:'Record a lick, play it over every chord.',
+   spot:[[92,568],[110,560],[180,553],[185,546],[235,545],[240,552],[300,555],[306,565],[305,738],[290,750],[150,772],[96,772]], at:[198,800]},
+  {file:'chord-finder.html', name:'Chord Finder', tagline:'Every voicing of a chord, all over the neck.',
+   spot:[[484,392],[589,387],[592,456],[622,463],[620,474],[498,476],[486,466]], at:[537,362]},
+  {file:'tuner.html', name:'Tuner', tagline:'Strobe tuner, through your audio interface.',
+   spot:[[640,778],[662,767],[700,762],[760,764],[784,768],[795,796],[792,824],[700,828],[641,826],[635,800]], at:[716,856]},
+  {file:'toonladder-trainer.html', name:'Scale Trainer', tagline:'Scales, arpeggios and progressions.', live:'scales',
+   spot:[[1150,381],[1311,376],[1292,497],[1226,501],[1226,700],[1286,756],[1274,763],[1220,714],[1130,754],[1122,746],[1210,700],[1210,499],[1144,491]], at:[1230,352]},
+  {file:'chord-moves.html', name:'Chord Moves', tagline:'New progressions, one move at a time.', live:'moves',
+   spot:[[1312,329],[1384,331],[1454,329],[1530,322],[1556,300],[1592,190],[1635,100],[1665,92],[1672,100],[1672,140],[1622,230],[1600,330],[1672,372],[1672,795],[1580,790],[1556,808],[1540,780],[1478,745],[1430,746],[1272,746],[1268,478],[1312,470]], at:[1365,560]},
+  {file:'note-prompter.html', name:'Note Prompter', tagline:'Random notes and chords, on your foot pedal.', live:'prompter',
+   spot:[[1410,255],[1428,255],[1452,328],[1387,330]], at:[1419,356]},
 ];
+/* De wandkalender opent je oefenkalender. */
+const CALSPOT={name:'Calendar',spot:[[1440,30],[1500,12],[1572,8],[1575,250],[1444,264]],at:[1508,290]};
 /* ═════════════════════════ einde van jouw instellingen ═════════════════════ */
 
-/* Overige teksten (kaarten en meldingen). Mag je ook aanpassen. */
+/* SCÈNE — hoort bij home/room.png. Nieuw beeld? Dan deze punten opnieuw afstemmen (E toont coördinaten).
+   gl = lichtje: at = plek, r = straal, c = kleur, a = sterkte overdag, b = extra 's nachts
+   fx = dingen die het canvas tekent */
+const SCENE={
+  gl:[
+    {at:[395,392],r:95,c:'rgba(255,190,110,.55)',a:.55,b:.6,k:'kFlick',d:6},                  /* bureaulamp */
+    {at:[1184,222],r:48,c:'rgba(255,170,90,.7)',a:.5,b:.6,k:'kFlick',d:4.3},                  /* lantaarntje in de kast */
+    {at:[292,567],r:16,c:'rgba(255,70,40,.95)',a:.7,b:.3,k:'kPulse',d:2.8},                   /* lampje versterker */
+    {at:[702,778],r:24,c:'rgba(90,255,120,.75)',a:.5,b:.5,k:'kPulse',d:3.4},                  /* tuner */
+    {at:[537,428],r:75,c:'rgba(190,210,255,.28)',a:.4,b:.6,k:'kSlow',d:7},                    /* laptopscherm */
+  ],
+  fx:{
+    beam:[[380,40],[800,40],[1150,880],[420,900]],   /* zonnestraal met stofjes: hoeken boven-links, boven-rechts, onder-rechts, onder-links */
+    steam:[661,437],                                   /* mok */
+    zzz:[590,768],                                     /* kat: hier beginnen de z'tjes */
+    panes:[[371,30,515,131],[371,150,515,420],[535,35,721,136],[535,155,721,420],[741,44,803,142],[741,159,803,420]]   /* ruiten: vogels vliegen alleen daarachter */
+  }
+};
+
+/* Overige teksten. Mag je ook aanpassen. */
 const TEXT={
   cal:{title:'Your practice',streak:n=>n===1?'day streak':'days streak',best:'longest streak',week:'this week',month:'this month',today:'today / goal',rest:'rest day',
        fret:'Fretboard Trainer',scale:'Scale Trainer',prompt:'Note Prompter',moves:'Chord Moves',finder:'Chord Finder',manual:'Without the app',promptT:(m,n)=>`Prompter ${m}`+(n?` (${n} prompts)`:''),movesT:(m,l)=>`Chord Moves ${m}`+(l?` (${l})`:''),finderT:(m,l)=>`Chord Finder ${m}`+(l?` (${l})`:''),goalMet:'Daily goal met',none:'no practice',goal:g=>`goal ${g}`,
@@ -289,19 +345,9 @@ const TEXT={
        popQ:'Practised without the app?',less:'5 minutes less',more:'5 minutes more',clear:'Clear',
        goalsBtn:'Daily goals',goalsHelp:'Minutes per day of the week. 0 = rest day: it doesn’t count and doesn’t break your streak.',
        wd:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],wdLong:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']},
-  example:'Example',open:'Open',practise:'Practise this progression',
-  due:n=>n===1?'1 note is waiting to be found again.':`${n} notes are waiting to be found again.`,
-  caughtUp:'All caught up for today.',
-  noFret:'Start a session and your notes show up here.',
-  promptToday:n=>`<b>${n}</b> prompts today`,promptEver:(n,d)=>`<b>${n}</b> prompts on ${d} day${d===1?'':'s'}`,
-  acc:p=>`<b>${p}%</b> correct all-time`,streak:n=>`best streak <b>${n}</b>`,practised:n=>`<b>${n}</b> of 72 notes practised`,
-  noDue:'Nothing due today. Here are your weakest notes instead.',noNotes:'No notes practised yet. Open the Fretboard Trainer to start.',
-  dueNote:n=>n===1?'1 note on the board':`${n} notes on the board`,
-  lgDue:'due today',lgWeak:'weakest notes',lgMastered:n=>`mastered (${n})`,
-  progEmpty:'No progression yet. Make one in the Scale Trainer.',
-  movesLast:n=>`Last opened: ${n}`,movesLearned:(n,t)=>`<b>${n}</b> of ${t} moves learned`,movesStarted:n=>`<b>${n}</b> started`,
-  chordsBars:(n,b)=>`${n} chords · ${b} bars`,
-  exampleNote:'Example: the minor ii–V–i. Make your own in the Scale Trainer.'
+  mini:{title:'This week',open:'Calendar',today:(a,b)=>`Today <b>${a}</b> of ${b}`,rest:'Rest day today',wd:['M','T','W','T','F','S','S']},
+  due:n=>n===1?'1 note due today':`${n} notes due today`,caughtUp:'All caught up for today',
+  promptToday:n=>`${n} prompts today`,movesLearned:(n,t)=>`${n} of ${t} moves learned`,calSub:n=>n?`${n} day streak`:'Your practice log'
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -311,139 +357,216 @@ const TEXT={
 'use strict';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const mod=(n,m)=>((n%m)+m)%m;
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const OPEN=[4,9,2,7,11,4],NF=15;                         /* open snaren laag E → hoog e, frets 0–15 op Home */
-const SH=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
-const LPC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-const rootPc=id=>{if(!id||LPC[id[0]]==null)return null;let p=LPC[id[0]];for(const ch of id.slice(1))p+=ch==='#'?1:ch==='b'?-1:0;return mod(p,12);};
-/* akkoordformules (gelijk aan de arpeggio's in de Scale Trainer) */
-const ARP={aMaj:'1 3 5',aMin:'1 b3 5',aDim:'1 b3 b5',aAug:'1 3 #5',aSus2:'1 2 5',aSus4:'1 4 5',a6:'1 3 5 6',am6:'1 b3 5 6',a69:'1 3 5 6 9',am69:'1 b3 5 6 9',
-  aAdd9:'1 3 5 9',amAdd9:'1 b3 5 9',aMaj7:'1 3 5 7',aM7:'1 b3 5 b7',aDom7:'1 3 5 b7',aM7b5:'1 b3 b5 b7',aDim7:'1 b3 b5 bb7',aMMaj7:'1 b3 5 7',aMaj7s5:'1 3 #5 7',
-  a7sus4:'1 4 5 b7',aMaj9:'1 3 5 7 9',am9:'1 b3 5 b7 9',a9:'1 3 5 b7 9',amMaj9:'1 b3 5 7 9',am9b5:'1 b3 b5 b7 9',am7b9:'1 b3 5 b7 b9',aMaj9s5:'1 3 #5 7 9',
-  a9sus4:'1 4 5 b7 9',aMaj7s11:'1 3 5 7 #11',am11:'1 b3 5 b7 9 11',aMaj13:'1 3 5 7 9 13',a13:'1 3 5 b7 9 13',a7b5:'1 3 b5 b7',a7s5:'1 3 #5 b7',
-  a7b9:'1 3 5 b7 b9',a7s9:'1 3 5 b7 #9',a7s11:'1 3 5 b7 #11',a7b9b13:'1 3 5 b7 b9 b13',a7alt:'1 3 b5 b7 b9 #9'};
-const MAJ=[0,2,4,5,7,9,11];
-function tones(c){const r=rootPc(c.root),f=ARP[c.type];if(r==null||!f)return null;
-  return f.split(' ').map(t=>{const m=/^([b#]*)(\d+)$/.exec(t),acc=[...m[1]].reduce((a,x)=>a+(x==='#'?1:-1),0),d=+m[2];
-    return{pc:mod(r+MAJ[(d-1)%7]+acc,12),lab:m[1].replace(/b/g,'♭').replace(/#/g,'♯')+d,root:d===1};});}
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;   /* Windows: animaties uit → kamer staat stil */
+const [W,H]=CONFIG.imageSize,IMG=CONFIG.image;
+const px=x=>(x/W*100).toFixed(3)+'%',py=y=>(y/H*100).toFixed(3)+'%';
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
-/* Gegevens die een trainer meegaf in de link naar Home (#pr=…): bewaren in Home's eigen cache.
-   Nodig in browsers die de opslag per lokaal bestand scheiden; in Chrome/Edge leest Home de trainers ook direct. */
+/* Gegevens die een trainer meegaf in de link naar Home (#pr=…): bewaren in Home's eigen cache. */
 let CACHE=read('practiceRoom.cache')||{};
 (function(){const m=/[#&]pr=([^&]*)/.exec(location.hash);if(!m)return;
   try{const d=JSON.parse(decodeURIComponent(m[1]));if(d&&typeof d==='object'){Object.assign(CACHE,d);localStorage.setItem('practiceRoom.cache',JSON.stringify(CACHE));}}catch(e){}
-  try{history.replaceState(null,'',location.pathname);}catch(e){}})();
-addEventListener('hashchange',()=>{if(/[#&]pr=/.test(location.hash))location.reload();});   /* nieuwe gegevens via een link op dezelfde pagina */
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}})();
+addEventListener('hashchange',()=>{if(/[#&]pr=/.test(location.hash))location.reload();});
 
 /* ── gegevens uit de trainers (alleen lezen) ── */
-function fretData(){const sum=read('practiceRoom.fretSum');if(sum&&Array.isArray(sum.due))return sum;   /* samenvatting van de trainer: telt precies zoals de trainer */
-  const s=read('fretTrainer.v1');if(!s||typeof s!=='object')return CACHE.fret&&Array.isArray(CACHE.fret.due)?CACHE.fret:null;
+function fretDue(){const sum=read('practiceRoom.fretSum');if(sum&&Array.isArray(sum.due))return{due:sum.due.length,practised:sum.practised};
+  const s=read('fretTrainer.v1');if(!s||typeof s!=='object')return CACHE.fret&&Array.isArray(CACHE.fret.due)?{due:CACHE.fret.due.length,practised:CACHE.fret.practised}:null;
   const today=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(+s.off||0);
-  const due=new Map();Object.entries(s.srs||{}).forEach(([k,e])=>{if(e&&e.due<=today){const[a,b]=k.split(':').map(Number);due.set(a+':'+b,[a,b]);}});
-  let n=0,ok=0;const st=s.stats||{};Object.values(st).forEach(t=>{n+=t.n||0;ok+=t.ok||0;});
-  const weak=Object.entries(st).filter(([,t])=>(t.n||0)>=2).map(([k,t])=>{const h=(t.hf||[]).concat(t.hn||[]),a=h.length?h.filter(x=>x[0]).length/h.length:t.ok/t.n;return{k:k.split(':').map(Number),a};})
-    .sort((x,y)=>x.a-y.a).slice(0,6).filter(x=>x.a<1).map(x=>x.k);
-  const mastered=Object.entries(st).filter(([k,t])=>!due.has(k)&&(t.n||0)>=3&&t.ok/t.n>=.9).map(([k])=>k.split(':').map(Number));
-  return{due:[...due.values()],acc:n?Math.round(100*ok/n):null,streak:(s.rec&&s.rec.streak)||0,practised:Object.keys(st).length,weak,mastered};}
-function scaleData(){const s=read('toonladderTrainer:v1');
-  if(!s||!Array.isArray(s.progs)||!s.progs.length){const c=CACHE.scale;return c&&Array.isArray(c.chords)&&c.chords.length?Object.assign({},c,{chords:c.chords.filter(x=>tones(x))}):null;}
-  const p=s.progs.find(x=>x.id===(s.view&&s.view.prog))||s.progs[0];
-  const chords=(p.sections||[]).flatMap(x=>(x&&x.chords)||[]).filter(c=>tones(c));
-  const pv=s.pv||{},span=[4,5,6].includes(+pv.span)?+pv.span:5,lo=pv.win===false?3:Math.max(0,Math.min(NF-span+1,+pv.lo||0));
-  return{p,chords,lo,hi:lo+span-1};}
-const EXAMPLE={p:null,chords:[{sym:'Dm7♭5',root:'D',type:'aM7b5',bars:1},{sym:'G7♭9',root:'G',type:'a7b9',bars:1},{sym:'Cm7',root:'C',type:'aM7',bars:2}],lo:2,hi:6};
+  const due=Object.values(s.srs||{}).filter(e=>e&&e.due<=today).length;
+  return{due,practised:Object.keys(s.stats||{}).length};}
+function progName(){const s=read('toonladderTrainer:v1');
+  if(!s||!Array.isArray(s.progs)||!s.progs.length)return CACHE.scale&&CACHE.scale.p&&CACHE.scale.p.name||null;
+  const p=s.progs.find(x=>x.id===(s.view&&s.view.prog))||s.progs[0];return p&&p.name||null;}
+/* label: tweede regel (bij hover) en eventueel een teller */
+function summary(t){
+  if(t.live==='fretboard'){const d=fretDue();if(d&&d.practised)return d.due?{line:TEXT.due(d.due),badge:d.due}:{line:TEXT.caughtUp};}
+  if(t.live==='scales'){const n=progName();if(n)return{line:n};}
+  if(t.live==='prompter'){const L=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},td=L[dKey(new Date())];if(td&&td.n)return{line:TEXT.promptToday(td.n)};}
+  if(t.live==='moves'){const m=read('practiceRoom.movesSum')||(CACHE.moves&&CACHE.moves.sum);if(m&&m.total)return{line:TEXT.movesLearned(+m.learned||0,+m.total)};}
+  return{line:t.tagline||''};}
 
-/* ── houtsoort, gedeeld met de trainers ── */
-const WOODS={rosewood:'#3e2518',ebony:'#25201d',pauferro:'#6e432a',maple:'#ecd6aa'};
-function applyWood(){const b=read('practiceRoom.board')||{},c=WOODS[b.wood]||(/^#[0-9a-f]{6}$/i.test(b.custom||'')&&b.wood==='custom'?b.custom:WOODS.rosewood);
-  const n=parseInt(c.slice(1),16),l=(.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255))/255,r=document.documentElement.style;
-  r.setProperty('--wd1',c);
-  if(l>.55){r.setProperty('--wfret','rgba(110,92,64,.4)');r.setProperty('--wnut','#7d7a73');r.setProperty('--wstr','#6f675b');r.setProperty('--winl','rgba(110,92,64,.45)');}}
+/* ══ SCÈNE ══════════════════════════════════════════════════════════════════════ */
+const room=$('#room'),SPOTS=TOOLS.map((t,i)=>Object.assign({id:'t'+i},t)).concat([Object.assign({id:'cal',file:'#calendar'},CALSPOT)]);
+function buildScene(){
+  room.style.setProperty('--ar',W+' / '+H);document.documentElement.style.setProperty('--ar',W/H);
+  $('#art').src=IMG;
+  $('#gls').innerHTML=SCENE.gl.map(g=>'<div class="gl" style="left:'+px(g.at[0])+';top:'+py(g.at[1])+';width:'+px(2*g.r)+';--a:'+g.a+';--b:'+g.b+'"><i style="--c:'+g.c+';--k:'+g.k+';--d:'+g.d+'s"></i></div>').join('');
+  const pts=s=>s.spot.map(p=>p.join(',')).join(' ');   /* punten van een klikzone */
+  const svg=$('#hit');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('preserveAspectRatio','none');
+  svg.innerHTML='<rect class="hbg" width="'+W+'" height="'+H+'"/>'+SPOTS.map(s=>'<polygon class="hp" data-id="'+s.id+'" points="'+pts(s)+'"/>').join('')+'<polygon class="draft" id="draft" points=""/>';
+  renderLabels();}
+function renderLabels(){
+  $('#labs').innerHTML=SPOTS.map(s=>{const sm=s.id==='cal'?{line:TEXT.calSub(streaks(calLogs(),goals()).cur)}:summary(s);
+    return '<a class="lab" href="'+esc(s.file)+'" data-id="'+s.id+'" style="left:'+px(s.at[0])+';top:'+py(s.at[1])+'"><b>'+esc(s.name)+'</b>'
+      +(sm.line?'<small>'+esc(sm.line)+'</small>':'')+(sm.badge?'<span class="bd" aria-label="'+esc(sm.line)+'">'+sm.badge+'</span>':'')+'</a>';}).join('');}
 
-/* ── bord ── */
-let cells=[];
-function buildNeck(){const neck=$('#neck');neck.innerHTML='';cells=[];
-  const inl=document.createElement('div');inl.className='inl';
-  [3,5,7,9,12,15].forEach(f=>{const sp=document.createElement('span');sp.style.gridColumn=String(f+1);sp.innerHTML=f===12?'<b class="u"></b><b class="d"></b>':'<b class="m"></b>';inl.append(sp);});
-  neck.append(inl);
-  for(let s=5;s>=0;s--){const row=document.createElement('div');row.className='row';row.style.setProperty('--t',(1.6+(5-s)*0.4).toFixed(2)+'px')   /* hoge e minstens 1,6 px, anders verdwijnt hij op sommige schermen */;cells[s]=[];
-    for(let f=0;f<=NF;f++){const c=document.createElement('div');c.className='c'+(f?'':' o');row.append(c);cells[s][f]=c;}
-    neck.append(row);}}
-function clearLights(){clearInterval(twTimer);cells.flat().forEach(c=>{c.querySelectorAll('.lt,.ghost').forEach(x=>x.remove());});}
-const addLight=(s,f,cls,lab,ch)=>{const c=cells[s]&&cells[s][f];if(!c)return null;const e=document.createElement('span');e.className='lt '+cls;e.textContent=lab;if(ch!=null)e.dataset.ch=ch;c.append(e);return e;};
-const addGhost=(s,f)=>{const c=cells[s][f];if(c&&!c.querySelector('.ghost')){const g=document.createElement('span');g.className='ghost';c.append(g);}};
+/* hover: het label licht op (rec-lampje aan); het beeld blijft zoals het is */
+let active=null;
+function setActive(id){if(id===active)return;active=id;
+  document.querySelectorAll('.lab').forEach(e=>e.classList.toggle('on',e.dataset.id===id));
+  room.style.cursor=id?'pointer':'';}
+function go(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;
+  if(s.file==='#calendar'){openCal();return;}
+  if(reduce){location.href=s.file;return;}
+  document.body.classList.add('leave');setTimeout(()=>{location.href=s.file;},300);}
+function bindScene(){
+  const hit=$('#hit'),labs=$('#labs');
+  hit.addEventListener('mouseover',e=>{const p=e.target.closest('.hp');if(!edit)setActive(p?p.dataset.id:null);});
+  hit.addEventListener('mouseleave',()=>setActive(null));
+  hit.addEventListener('click',e=>{if(edit){edClick(e);return;}const p=e.target.closest('.hp');if(p)go(p.dataset.id);});
+  labs.addEventListener('mouseover',e=>{const a=e.target.closest('.lab');setActive(a?a.dataset.id:null);});
+  labs.addEventListener('focusin',e=>{const a=e.target.closest('.lab');if(a)setActive(a.dataset.id);});
+  labs.addEventListener('mouseleave',()=>setActive(null));
+  labs.addEventListener('click',e=>{const a=e.target.closest('.lab');if(!a||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();go(a.dataset.id);});
+  addEventListener('pageshow',()=>{document.body.classList.remove('leave');});}   /* terug met de knop Vorige */
 
-/* modus 1: progressie, akkoord na akkoord */
-let timer=null,cur=0,hold=null,prog=null;
-function showProg(){
-  prog=scaleData()||EXAMPLE;const P=prog,ch=P.chords;clearLights();
-  if(!ch.length){$('#chords').innerHTML='';$('#cnote').textContent=TEXT.progEmpty;return;}
-  ch.forEach((c,i)=>{const t=tones(c);
-    for(let s=0;s<6;s++)for(let f=P.lo;f<=Math.min(P.hi,NF);f++){const pc=mod(OPEN[s]+f,12),x=t.find(y=>y.pc===pc);
-      if(x){addLight(s,f,x.root?'r':'',x.lab,i);}}});   /* geen lichte 'spook'-puntjes meer: die botsten met de fretmarkeringen */
-  $('#chords').innerHTML='<span class="lbl m">'+esc(P.p?P.p.name:TEXT.example)+'</span>'
-    +ch.map((c,i)=>(i?'<span class="ar" aria-hidden="true">→</span>':'')+'<button type="button" data-i="'+i+'">'+esc(c.sym)+'</button>').join('');
-  $('#cnote').textContent=P.p?TEXT.chordsBars(ch.length,ch.reduce((a,c)=>a+(+c.bars||1),0)):TEXT.exampleNote;
-  cur=0;light(0);if(!reduce)schedule();}
-function light(i){cur=i;
-  document.querySelectorAll('#neck .lt').forEach(e=>e.classList.toggle('on',+e.dataset.ch===i));
-  document.querySelectorAll('#chords button').forEach(b=>b.classList.toggle('on',+b.dataset.i===i));
-  document.querySelectorAll('.chips span').forEach(b=>b.classList.toggle('on',+b.dataset.i===i));}
-function schedule(){clearTimeout(timer);if(!prog||!prog.chords.length)return;
-  const c=prog.chords[cur],ms=Math.max(1400,1700*(+c.bars||1));
-  timer=setTimeout(()=>{if(hold)return;light((cur+1)%prog.chords.length);schedule();},ms);}
+/* ══ GEHEIM MENU (toets S) ══════════════════════════════════════════════════════
+   Opslag: practiceRoom.room (alleen Home schrijft hier). Onleesbaar → kopie naar practiceRoom.room.bad, standaard gebruiken. */
+const FONTS={            /* naam, font-family, gewicht, grootte-factor, letterafstand */
+  dotgothic:['DotGothic16','"DotGothic16"',400,1,'0'],
+  pixelify:['Pixelify Sans','"Pixelify Sans"',500,1,'0'],
+  vt323:['VT323','"VT323"',400,1.3,'.01em'],
+  spacemono:['Space Mono','"Space Mono"',700,.92,'-.01em'],
+  handjet:['Handjet','"Handjet"',500,1.15,'0'],
+  bricolage:['Bricolage (original)','"Bricolage Grotesque"',700,1,'-.02em']};
+const SKEY='practiceRoom.room';
+const DEF={font:'dotgothic',labels:'always',day:CONFIG.dayNight?'auto':'day',motion:CONFIG.motion!==false,lights:true,dust:true,dustAmount:90,steam:true,zzz:true,zzzStrength:.6,zzzEvery:3.5,birds:true};
+const SETUI=[
+  {k:'font',t:'select',l:'Font',o:Object.entries(FONTS).map(([k,f])=>[k,f[0]])},
+  {k:'labels',t:'select',l:'Labels',o:[['always','Always visible'],['hover','Only on hover']]},
+  {k:'day',t:'select',l:'Day & night',o:[['auto','Follow the clock'],['day','Always day'],['night','Always night']]},
+  {h:'Motion'},
+  {k:'motion',t:'check',l:'Motion in the room'},
+  {k:'lights',t:'check',l:'Flickering lights',sub:1},
+  {k:'dust',t:'check',l:'Dust in the sunbeam',sub:1},
+  {k:'dustAmount',t:'range',l:'Amount of dust',min:20,max:200,step:10,sub:1},
+  {k:'steam',t:'check',l:'Steam from the mug',sub:1},
+  {k:'zzz',t:'check',l:'Cat zzz',sub:1},
+  {k:'zzzStrength',t:'range',l:'zzz strength',min:.2,max:1,step:.05,sub:1},
+  {k:'zzzEvery',t:'range',l:'zzz every (s)',min:1.5,max:10,step:.5,sub:1},
+  {k:'birds',t:'check',l:'Birds',sub:1}];
+function loadSet(){const s=Object.assign({},DEF);let raw=null;try{raw=localStorage.getItem(SKEY);}catch(e){}
+  if(raw==null)return s;let o=null;try{o=JSON.parse(raw);}catch(e){}
+  if(!o||typeof o!=='object'||Array.isArray(o)){try{localStorage.setItem(SKEY+'.bad',raw);}catch(e){}return s;}
+  SETUI.forEach(u=>{if(!u.k||!(u.k in o))return;const v=o[u.k];
+    if(u.t==='check'&&typeof v==='boolean')s[u.k]=v;
+    else if(u.t==='select'&&u.o.some(x=>x[0]===v))s[u.k]=v;
+    else if(u.t==='range'&&typeof v==='number'&&isFinite(v))s[u.k]=Math.max(u.min,Math.min(u.max,v));});
+  return s;}
+let S=loadSet();
+const saveSet=()=>{try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}};
+const moving=()=>S.motion&&!reduce;
+function applySet(){const f=FONTS[S.font]||FONTS.dotgothic,r=document.documentElement.style;
+  r.setProperty('--df',f[1]);r.setProperty('--dw',f[2]);r.setProperty('--dfs',f[3]);r.setProperty('--dls',f[4]);
+  document.body.classList.toggle('lab-hover',S.labels==='hover');
+  room.classList.toggle('nolights',!(moving()&&S.lights));
+  applyTod();kickFx();}
+function renderSet(){const off=!moving();
+  $('#setRows').innerHTML=SETUI.map(u=>{if(u.h)return '<div class="sgh">'+esc(u.h)+'</div>';
+    const cls='sr'+(u.sub?' sub':'')+(u.sub&&off?' off':''),v=S[u.k];let c='';
+    if(u.t==='check')c='<input type="checkbox" data-k="'+u.k+'"'+(v?' checked':'')+(u.k==='motion'&&reduce?' disabled':'')+'>';
+    if(u.t==='select')c='<select data-k="'+u.k+'">'+u.o.map(([k,n])=>'<option value="'+k+'"'+(k===v?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>';
+    if(u.t==='range')c='<span class="rv"><input type="range" data-k="'+u.k+'" min="'+u.min+'" max="'+u.max+'" step="'+u.step+'" value="'+v+'"><output>'+v+'</output></span>';
+    return '<label class="'+cls+'"><span>'+esc(u.l)+'</span>'+c+'</label>';}).join('');
+  $('#setRm').hidden=!reduce;}
+function bindSet(){const box=$('#setBox');
+  const toggle=open=>{box.hidden=!open;if(open)renderSet();};
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden){toggle(false);return;}
+    if(e.key!=='s'&&e.key!=='S'||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select')||$('#calDlg').open)return;toggle(box.hidden);});
+  $('#setClose').onclick=()=>toggle(false);
+  $('#setRows').addEventListener('input',e=>{const el=e.target.closest('[data-k]');if(!el)return;const k=el.dataset.k;
+    S[k]=el.type==='checkbox'?el.checked:el.type==='range'?+el.value:el.value;
+    if(el.type==='range')el.nextElementSibling.textContent=el.value;
+    saveSet();applySet();if(k==='motion')renderSet();});
+  $('#setReset').onclick=()=>{S=Object.assign({},DEF);saveSet();applySet();renderSet();};}
 
-/* modus 2: noten die vandaag due zijn (of je zwakste noten) */
-/* "Notes due today": te oefenen noten (teal) ademen, met om de paar seconden een golf van links naar rechts;
-   noten die je beheerst (goud) flitsen af en toe kort op, als sterretjes. */
-let twTimer=null;
-function showNotes(){clearTimeout(timer);clearLights();$('#chords').innerHTML='';
-  const d=fretData();let list=[],note='';
-  if(!d||!d.practised){note=TEXT.noNotes;}
-  else if(d.due.length){list=d.due;note=TEXT.dueNote(d.due.length);}
-  else{list=d.weak||[];note=TEXT.noDue;}
-  const key=new Set(list.map(([s,pc])=>s+':'+pc));
-  list.forEach(([s,pc],j)=>{for(let f=0;f<=12;f++)if(mod(OPEN[s]+f,12)===pc){const e=addLight(s,f,'n on',SH[pc]);
-    if(e)e.style.animationDelay=(j*.35%3.2).toFixed(2)+'s,'+(f*.09+s*.03).toFixed(2)+'s';}});   /* ademen + golf (per fret iets later) */
-  const ms=[];((d&&d.mastered)||[]).forEach(([s,pc])=>{if(key.has(s+':'+pc))return;
-    for(let f=0;f<=12;f++)if(mod(OPEN[s]+f,12)===pc){const e=addLight(s,f,'g',SH[pc]);if(e)ms.push(e);}});
-  if(ms.length&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    const flash=()=>{const k=1+Math.floor(Math.random()*2);for(let i=0;i<k;i++){const e=ms[Math.floor(Math.random()*ms.length)];e.classList.remove('tw');void e.offsetWidth;e.classList.add('tw');}};
-    flash();twTimer=setInterval(flash,700);}
-  const lg=(c,t)=>'<span class="lg"><i class="'+c+'"></i>'+esc(t)+'</span>';
-  $('#cnote').innerHTML=esc(note)+(list.length||ms.length?'<span class="lgs">'+(list.length?lg('n',d.due.length?TEXT.lgDue:TEXT.lgWeak):'')+(ms.length?lg('g',TEXT.lgMastered(d.mastered.length)):'')+'</span>':'');}
+/* ── dagdeel: n = hoe donker (0…1), m = koel ochtendlicht (0…1) ── */
+const lerpT=(P,h)=>{for(let i=1;i<P.length;i++)if(h<=P[i][0]){const[a,va]=P[i-1],[b,vb]=P[i];return va+(vb-va)*(h-a)/(b-a);}return P[P.length-1][1];};
+const NIGHT=[[0,1],[5,1],[7,.35],[8.5,0],[18.5,0],[20.5,.55],[22,1],[24,1]],COOL=[[0,0],[5,0],[7,.7],[9.5,0],[24,0]];
+let night=0;
+function applyTod(){const q=new URLSearchParams(location.search).get('hour'),d=new Date(),h=q!=null&&q!==''&&!isNaN(+q)?+q:d.getHours()+d.getMinutes()/60;
+  night=S.day==='night'?1:S.day==='day'?0:lerpT(NIGHT,h);const cool=S.day==='auto'?lerpT(COOL,h):0;   /* menu: volg de klok, altijd dag of altijd nacht */
+  $('#todNight').style.cssText='background:radial-gradient(70% 80% at 30% 45%,rgb(70,72,130),rgb(28,30,70));opacity:'+(night*.72).toFixed(3);
+  $('#todCool').style.cssText='background:rgb(175,200,255);opacity:'+(cool*.35).toFixed(3);
+  room.style.setProperty('--n',night.toFixed(3));}
 
-/* ── kaarten ── */
-function card(t){
-  let body='<div class="ct">'+esc(t.tagline||'')+'</div>',meta='';
-  if(t.live==='fretboard'){const d=fretData();
-    if(d&&d.practised){body='<div class="ct">'+esc(d.due.length?TEXT.due(d.due.length):TEXT.caughtUp)+'</div>';
-      meta='<div class="cm">'+(d.acc!=null?'<span>'+TEXT.acc(d.acc)+'</span>':'')+'<span>'+TEXT.practised(d.practised)+'</span>'+(d.streak?'<span>'+TEXT.streak(d.streak)+'</span>':'')+'</div>';}
-    else meta='<div class="cm"><span>'+esc(TEXT.noFret)+'</span></div>';}
-  if(t.live==='prompter'){const L=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},td=L[dKey(new Date())],all=Object.values(L);
-    if(all.length)meta='<div class="cm">'+(td&&td.n?'<span>'+TEXT.promptToday(td.n)+'</span>':'')+'<span>'+TEXT.promptEver(all.reduce((a,x)=>a+(x.n||0),0),all.length)+'</span></div>';}
-  if(t.live==='moves'){const m=read('practiceRoom.movesSum')||(CACHE.moves&&CACHE.moves.sum);
-    if(m&&m.total){if(m.last&&m.last.name)body='<div class="ct">'+esc(TEXT.movesLast(m.last.name))+'</div>';
-      meta='<div class="cm"><span>'+TEXT.movesLearned(+m.learned||0,+m.total)+'</span>'+(m.started?'<span>'+TEXT.movesStarted(+m.started)+'</span>':'')+'</div>';}}
-  if(t.live==='scales'){const d=scaleData();
-    if(d&&d.chords.length){body='<div class="ct">'+esc(d.p.name)+'</div>';
-      meta='<div class="chips">'+d.chords.map((c,i)=>'<span data-i="'+i+'">'+esc(c.sym)+'</span>').join('')+'</div>';}}
-  return '<a class="card" href="'+esc(t.file)+'" data-file="'+esc(t.file)+'"'+(t.live==='scales'&&scaleData()?' data-prog="1"':'')+'><div class="ch"><span class="ck">'+esc(t.name)+'</span><span class="go" aria-hidden="true">→</span></div>'+body+meta+'</a>';}
+/* ── canvas: stof in de zonnestraal, damp, zzz bij de kat, vogels achter het raam ──
+   z'tjes en vogels zijn vooraf getekende, licht vervaagde plaatjes (sprites): zacht zoals het schilderij,
+   en goedkoop per frame (geen filter tijdens het afspelen, ook vlot in Firefox). */
+const SPR=4;                                                                          /* sprites: 4 px per beeldpixel */
+function sprite(w,h,draw){const c=document.createElement('canvas');c.width=w*SPR;c.height=h*SPR;const g=c.getContext('2d');g.scale(SPR,SPR);g.lineCap='round';g.lineJoin='round';draw(g);return c;}
+const blur=(g,b)=>{g.filter=b?'blur('+(b*SPR).toFixed(1)+'px)':'none';};
+/* een z als penseelstreek: zachte gloed, daarop een iets scheve kern en een warme tweede streek */
+function zSprite(){return sprite(14,14,g=>{
+  const path=()=>{g.beginPath();g.moveTo(4,4.4);g.quadraticCurveTo(7,3.7,10.2,4.1);g.quadraticCurveTo(7.3,7.1,4.1,10.2);g.quadraticCurveTo(7.2,9.7,10.5,10.1);};
+  blur(g,1.1);g.strokeStyle='rgba(255,224,176,.45)';g.lineWidth=2.8;path();g.stroke();
+  blur(g,.22);g.strokeStyle='rgba(255,246,230,.97)';g.lineWidth=1.35;path();g.stroke();
+  g.translate(.35,.3);blur(g,.25);g.strokeStyle='rgba(255,206,150,.45)';g.lineWidth=.7;path();g.stroke();});}
+/* vogel in 9 vleugelstanden (w = -1 omlaag … 1 omhoog): getaperde vleugels, wazig zoals verre vogels op het doek */
+function birdSprites(){return Array.from({length:9},(_,i)=>{const w=i/4-1;return sprite(18,12,g=>{
+  blur(g,.45);g.fillStyle='rgb(92,68,60)';
+  [-1,1].forEach(sg=>{const tx=9+sg*7,ty=6-w*4;g.beginPath();g.moveTo(9,6.3);g.quadraticCurveTo(9+sg*3,6-w*1.3-1.3,tx,ty);g.quadraticCurveTo(9+sg*3.3,6-w*1.1+.3,9,7.2);g.fill();});
+  g.beginPath();g.ellipse(9,6.7,1.4,.9,0,0,6.283);g.fill();});});}
+let fxKick=null;
+const kickFx=()=>{if(fxKick)fxKick();};
+const fxWanted=()=>moving()&&(S.dust||S.steam||S.zzz||S.birds);
+function startFx(){
+  const cv=$('#fx'),ctx=cv.getContext('2d'),F=SCENE.fx,B=F.beam;let sc=1;
+  const size=()=>{const r=Math.min(devicePixelRatio||1,1.5);cv.width=Math.round(room.offsetWidth*r);cv.height=Math.round(room.offsetHeight*r);sc=cv.width/W;};
+  size();addEventListener('resize',size);
+  const bil=(u,v)=>{const tx=B[0][0]+(B[1][0]-B[0][0])*u,ty=B[0][1]+(B[1][1]-B[0][1])*u,bx=B[3][0]+(B[2][0]-B[3][0])*u,by=B[3][1]+(B[2][1]-B[3][1])*u;return[tx+(bx-tx)*v,ty+(by-ty)*v];};
+  const mote=()=>({u:Math.random(),v:Math.random(),s:.5+Math.random()*1.4,f:.2+Math.random()*.5,ph:Math.random()*6.28,tw:.4+Math.random()*1.2});
+  const dust=[];
+  const steam=[],zz=[],ZS=zSprite(),BS=birdSprites();let birds=[],nextBird=performance.now()+4000,nextSteam=0,nextZ=performance.now()+1500,last=performance.now();
+  let run=false;
+  function frame(now){const dt=Math.min(50,now-last)/1000,t=now/1000;last=now;
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(sc,0,0,sc,0,0);
+    if(!fxWanted()){run=false;return;}                                              /* alles uit: canvas leeg, lus stopt */
+    const day=1-night;
+    /* stofjes */
+    while(dust.length<S.dustAmount)dust.push(mote());dust.length=S.dustAmount;
+    if(S.dust&&day>.05){ctx.globalCompositeOperation='lighter';
+      for(const p of dust){p.v+=dt*.006*p.f;p.u+=Math.sin(t*p.f+p.ph)*dt*.004;if(p.v>1){p.v=0;p.u=Math.random();}if(p.u<0||p.u>1)p.u=Math.random();
+        const[x,y]=bil(p.u,p.v),edge=Math.sin(Math.PI*p.u)*Math.sin(Math.PI*p.v),a=edge*day*(.25+.35*(.5+.5*Math.sin(t*p.tw+p.ph)));
+        ctx.fillStyle='rgba(255,226,170,'+a.toFixed(3)+')';ctx.beginPath();ctx.arc(x,y,p.s,0,6.283);ctx.fill();}
+      ctx.globalCompositeOperation='source-over';}
+    /* damp uit de mok */
+    if(S.steam&&now>nextSteam){steam.push({x:F.steam[0]+(Math.random()-.5)*6,y:F.steam[1],age:0,life:2.6+Math.random(),ph:Math.random()*6});nextSteam=now+260;}
+    for(let i=steam.length-1;i>=0;i--){const s=steam[i];s.age+=dt;if(s.age>s.life){steam.splice(i,1);continue;}
+      const k=s.age/s.life,x=s.x+Math.sin(s.age*2+s.ph)*3*k,y=s.y-s.age*13,r=2+k*8,a=.13*Math.sin(Math.PI*k);
+      const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,248,235,'+a.toFixed(3)+')');g.addColorStop(1,'rgba(255,248,235,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,6.283);ctx.fill();}
+    /* zzz bij de kat: om de paar seconden een z die zacht opstijgt, groeit en vervaagt */
+    if(S.zzz&&now>nextZ){zz.push({age:0,life:4.2+Math.random()*.8,tilt:(Math.random()-.5)*.25});nextZ=now+S.zzzEvery*1000*(.85+Math.random()*.3);}
+    for(let i=zz.length-1;i>=0;i--){const z=zz[i];z.age+=dt;if(z.age>z.life){zz.splice(i,1);continue;}
+      const k=z.age/z.life,s=14*(.62+.5*k);ctx.save();ctx.globalAlpha=S.zzzStrength*Math.sin(Math.PI*k)*Math.min(1,k*4);
+      ctx.translate(F.zzz[0]+k*15+Math.sin(z.age*1.5)*2.5,F.zzz[1]-k*30);ctx.rotate(z.tilt-.12+k*.15);ctx.drawImage(ZS,-s/2,-s/2,s,s);ctx.restore();}
+    /* vogels: een klein groepje, af en toe, alleen in de ruiten; klapperen en zweven afwisselend */
+    if(S.birds&&now>nextBird&&day>.3){const n=2+Math.floor(Math.random()*3),y0=55+Math.random()*170,sp=22+Math.random()*10;
+      birds=Array.from({length:n},(_,i)=>({x:F.panes[0][0]-20-i*(14+Math.random()*12),y:y0+(Math.random()-.5)*24,sp:sp*(.92+Math.random()*.16),ph:Math.random()*6,ph2:Math.random()*6,s:.55+Math.random()*.3}));nextBird=now+22000+Math.random()*26000;}
+    if(birds.length){ctx.save();ctx.beginPath();F.panes.forEach(r=>ctx.rect(r[0],r[1],r[2]-r[0],r[3]-r[1]));ctx.clip();ctx.globalAlpha=.62*day;
+      for(const b of birds){b.x+=b.sp*dt;const yy=b.y+Math.sin(t*1.1+b.ph)*2.5,env=.3+.7*Math.max(0,Math.sin(t*.7+b.ph2)),w=Math.sin(t*6.5+b.ph)*env;
+        ctx.drawImage(BS[Math.round((w+1)*4)],b.x-9*b.s,yy-6*b.s,18*b.s,12*b.s);}
+      ctx.restore();if(birds.every(b=>b.x>F.panes[F.panes.length-1][2]+20))birds=[];}
+    requestAnimationFrame(frame);}
+  fxKick=()=>{if(!run&&fxWanted()){run=true;last=performance.now();requestAnimationFrame(frame);}};}
 
-/* ── tekst en navigatie ── */
-function greeting(){const h=new Date().getHours(),g=CONFIG.greetings;return(h>=5&&h<12?g.morning:h>=12&&h<18?g.afternoon:h>=18&&h<23?g.evening:g.night)+', '+CONFIG.name;}
-let mode='prog';
-function setMode(m){mode=m;try{localStorage.setItem('practiceRoom.home',JSON.stringify({mode:m}));}catch(e){}
-  document.querySelectorAll('#modeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
-  $('#subline').textContent=CONFIG.subline[m];
-  if(m==='prog')showProg();else showNotes();}
-/* ══ OEFENKALENDER ══════════════════════════════════════════════════════════════
+/* ── bewerkmodus (toets E): klikzones tekenen ── */
+let edit=false,pts=[];
+const edPt=e=>{const m=$('#hit').getScreenCTM().inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m);return[Math.round(p.x),Math.round(p.y)];};
+function edShow(){$('#draft').setAttribute('points',pts.map(p=>p.join(',')).join(' '));$('#edOut').value=pts.length?JSON.stringify(pts):'';}
+function edClick(e){pts.push(edPt(e));edShow();}
+function bindEdit(){
+  addEventListener('keydown',e=>{if(e.key!=='e'&&e.key!=='E'||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea')||$('#calDlg').open)return;
+    edit=!edit;document.body.classList.toggle('edit',edit);$('#edBox').hidden=!edit;setActive(null);});
+  $('#hit').addEventListener('mousemove',e=>{if(edit)$('#edPos').textContent=edPt(e).join(', ');});
+  $('#edCopy').onclick=()=>{const o=$('#edOut');o.select();try{navigator.clipboard.writeText(o.value);}catch(x){document.execCommand('copy');}};
+  $('#edUndo').onclick=()=>{pts.pop();edShow();};$('#edClear').onclick=()=>{pts=[];edShow();};}
+
+/* ══ OEFENKALENDER (gelijk aan de vorige Home) ══════════════════════════════════
    Bronnen: logboek van de Fretboard Trainer (fretTrainer.log), van de Scale Trainer (toonladderTrainer:log),
    van de Note Prompter (notePrompter.log), van Chord Moves (chordMoves.log), van Chord Finder (chordFinder.log),
-   en wat je zelf invult (practiceRoom.manual, minuten per dag). Dagdoelen per weekdag: practiceRoom.goals (ma…zo, 0 = rustdag).
-   Werkt de browser met gescheiden opslag, dan komen de logboeken via de Home-link mee (zie CACHE). */
-const CAL={weeksWide:52,weeksNarrow:26,step:5};                                    /* aanpassen naar smaak */
+   en wat je zelf invult (practiceRoom.manual, minuten per dag). Dagdoelen per weekdag: practiceRoom.goals (ma…zo, 0 = rustdag). */
+const CAL={weeksWide:52,weeksNarrow:26,step:5};
 const dKey=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
 const wdIdx=d=>(d.getDay()+6)%7;                                                     /* 0 = maandag */
@@ -456,7 +579,6 @@ function calLogs(){
 const goals=()=>{const g=read('practiceRoom.goals');return Array.isArray(g)&&g.length===7?g.map(x=>Math.max(0,Math.min(600,+x||0))):[20,20,20,20,20,20,20];};
 function dayInfo(L,k,d,G){const f=(L.fl[k]&&L.fl[k].s||0)/60,sc=(L.sl[k]&&L.sl[k].s||0)/60,p=(L.pl[k]&&L.pl[k].s||0)/60,cm=(L.ml[k]&&L.ml[k].s||0)/60,cf=(L.cfl[k]&&L.cfl[k].s||0)/60,m=+L.man[k]||0,t=f+sc+p+cm+cf+m,g=G[wdIdx(d)];
   return{f,sc,p,cm,cf,m,t,g,met:g>0&&t>=g,rest:g===0,fe:L.fl[k],se:L.sl[k],pe:L.pl[k],me:L.ml[k],cfe:L.cfl[k]};}
-/* reeks: dagen met gehaald doel achter elkaar; rustdagen tellen niet mee en breken niets; vandaag (nog bezig) breekt niets */
 function streaks(L,G){const today=new Date();today.setHours(0,0,0,0);
   const keys=[...Object.keys(L.fl),...Object.keys(L.sl),...Object.keys(L.pl),...Object.keys(L.ml),...Object.keys(L.cfl),...Object.keys(L.man)].sort();if(!keys.length)return{cur:0,best:0};
   const [y,mo,da]=keys[0].split('-').map(Number);let d=new Date(y,mo-1,da),run=0,best=0;
@@ -474,15 +596,15 @@ function renderCal(){const T=TEXT.cal,L=calLogs(),G=goals(),today=new Date();tod
       cells+='<button type="button" class="cd'+(i.t>0?' on':'')+(i.met?' met':'')+(i.rest?' rest':'')+(+d===+today?' today':'')+'" data-k="'+k+'" style="'+bg+'" aria-label="'+esc(calLabel(i,d))+'"></button>';}}
   $('#calGrid').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';$('#calMonths').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';
   $('#calGrid').innerHTML=cells;$('#calMonths').innerHTML=months;
-  const box=$('.calbox');box.scrollLeft=box.scrollWidth;                              /* smal scherm: vandaag in beeld */
+  const box=$('.calbox');box.scrollLeft=box.scrollWidth;
   $('#calWd').innerHTML=T.wd.map((x,j)=>'<span>'+(j%2?'':esc(x))+'</span>').join('');
-  /* cijfers: reeks, langste reeks, deze week, deze maand */
   const st=streaks(L,G),mon=addDays(today,-wdIdx(today)),first=new Date(today.getFullYear(),today.getMonth(),1);let wk=0,mo=0;
   for(let d=new Date(Math.min(+mon,+first));d<=today;d=addDays(d,1)){const t=dayInfo(L,dKey(d),d,G).t;if(d>=mon)wk+=t;if(d>=first)mo+=t;}
   const ti=dayInfo(L,dKey(today),today,G);
   $('#calStats').innerHTML=[[st.cur,T.streak(st.cur)],[st.best,T.best],[fmtMin(wk),T.week],[fmtMin(mo),T.month],[ti.rest?T.rest:fmtMin(ti.t)+' / '+fmtMin(ti.g),T.today]]
     .map(([v,l])=>'<div><b>'+esc(String(v))+'</b><small>'+esc(l)+'</small></div>').join('');
-  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],['c',T.moves],['cf',T.finder],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');}
+  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],['c',T.moves],['cf',T.finder],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');
+  renderMini();}
 function calLabel(i,d){const T=TEXT.cal,parts=[];
   if(i.f)parts.push(T.fretT(fmtMin(i.f),i.fe&&i.fe.n,i.fe&&i.fe.n?Math.round(100*i.fe.ok/i.fe.n):null));
   if(i.sc)parts.push(T.scaleT(fmtMin(i.sc),i.se&&i.se.p&&i.se.p.length?i.se.p.join(', '):''));
@@ -491,7 +613,6 @@ function calLabel(i,d){const T=TEXT.cal,parts=[];
   if(i.cf)parts.push(T.finderT(fmtMin(i.cf),i.cfe&&Array.isArray(i.cfe.p)&&i.cfe.p.length?i.cfe.p.slice(0,8).join(', '):''));
   if(i.m)parts.push(T.manT(fmtMin(i.m)));
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+(i.t?fmtMin(i.t):T.none)+(i.rest?' · '+T.rest:' · '+T.goal(fmtMin(i.g)))+(parts.length?'\n'+parts.join('\n'):'');}
-/* zelf invullen: klik op een dag → minuten zonder app (stappen van 5) */
 function calPop(btn){const T=TEXT.cal,k=btn.dataset.k,[y,mo,da]=k.split('-').map(Number),d=new Date(y,mo-1,da),man=read('practiceRoom.manual')||{},v=+man[k]||0;
   const pop=$('#calPop');pop.dataset.k=k;
   pop.innerHTML='<b>'+esc(d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}))+'</b><p>'+esc(T.popQ)+'</p>'
@@ -503,7 +624,7 @@ function calSetMan(k,v){const man=read('practiceRoom.manual')||{};if(v>0)man[k]=
   try{localStorage.setItem('practiceRoom.manual',JSON.stringify(man));}catch(e){}renderCal();
   const b=document.querySelector('#calGrid [data-k="'+k+'"]');if(b&&!$('#calPop').hidden){$('#calPop output').textContent=fmtMin(v);}}
 function renderGoals(){const T=TEXT.cal,G=goals();
-  $('#calGoals').innerHTML='<p>'+esc(T.goalsHelp)+'</p><div class="gl">'+T.wdLong.map((x,j)=>'<label><span>'+esc(x)+'</span><input type="number" min="0" max="600" step="5" data-g="'+j+'" value="'+G[j]+'"><small>min</small></label>').join('')+'</div>';}
+  $('#calGoals').innerHTML='<p>'+esc(T.goalsHelp)+'</p><div class="gl2">'+T.wdLong.map((x,j)=>'<label><span>'+esc(x)+'</span><input type="number" min="0" max="600" step="5" data-g="'+j+'" value="'+G[j]+'"><small>min</small></label>').join('')+'</div>';}
 function bindCal(){const T=TEXT.cal;$('#calH').textContent=T.title;$('#calGoalsBtn').textContent=T.goalsBtn;
   const tip=$('#calTip'),pop=$('#calPop');
   $('#calGrid').addEventListener('mouseover',e=>{const b=e.target.closest('.cd[data-k]');if(!b){tip.hidden=true;return;}
@@ -515,30 +636,36 @@ function bindCal(){const T=TEXT.cal;$('#calH').textContent=T.title;$('#calGoalsB
   pop.addEventListener('click',e=>{const k=pop.dataset.k,man=read('practiceRoom.manual')||{},v=+man[k]||0,b=e.target.closest('button');if(!b)return;
     if(b.dataset.d)calSetMan(k,Math.max(0,Math.min(600,v+ +b.dataset.d)));else if(b.dataset.set!=null)calSetMan(k,+b.dataset.set);});
   document.addEventListener('click',e=>{if(!pop.hidden&&!e.target.closest('#calPop,#calGrid'))pop.hidden=true;});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')pop.hidden=true;});
   $('#calGoalsBtn').addEventListener('click',()=>{const g=$('#calGoals'),open=g.hidden;g.hidden=!open;$('#calGoalsBtn').setAttribute('aria-expanded',open);if(open)renderGoals();});
   $('#calGoals').addEventListener('input',e=>{const i=e.target.closest('[data-g]');if(!i)return;const G=goals();G[+i.dataset.g]=Math.max(0,Math.min(600,+i.value||0));
     try{localStorage.setItem('practiceRoom.goals',JSON.stringify(G));}catch(x){}renderCal();});
-  let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderCal,200);});   /* breedte wijzigt → aantal weken opnieuw */
+  const dlg=$('#calDlg');
+  $('#openCal').onclick=openCal;$('#calClose').onclick=()=>dlg.close();
+  dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});                 /* klik naast het venster sluit */
+  dlg.addEventListener('cancel',e=>{if(!pop.hidden){e.preventDefault();pop.hidden=true;}});   /* Escape: eerst het popupje */
+  dlg.addEventListener('close',()=>{pop.hidden=true;tip.hidden=true;renderLabels();});
+  let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderCal,200);});
   renderCal();}
+function openCal(){const dlg=$('#calDlg');if(dlg.open)return;setActive(null);renderCal();dlg.showModal();}
 
+/* ── mini-kalender rechtsonder: reeks + deze week ── */
+function renderMini(){const T=TEXT.mini,L=calLogs(),G=goals(),today=new Date();today.setHours(0,0,0,0);
+  const st=streaks(L,G),mon=addDays(today,-wdIdx(today));
+  $('#mStreak').textContent=st.cur;$('#mStreakL').textContent=TEXT.cal.streak(st.cur);
+  $('#mWeek').innerHTML=T.wd.map((w,j)=>{const d=addDays(mon,j),i=dayInfo(L,dKey(d),d,G),fut=d>today,p=i.g?Math.min(1,i.t/i.g):(i.t>0?1:0);
+    return '<div title="'+esc(calLabel(i,d))+'"><span class="dr'+(i.met?' met':'')+(i.rest&&!i.t?' rest':'')+(fut?' fut':'')+'" style="--p:'+p.toFixed(3)+'"></span><span'+(+d===+today?' class="td"':'')+'>'+w+'</span></div>';}).join('');
+  const ti=dayInfo(L,dKey(today),today,G);
+  $('#mToday').innerHTML=ti.rest&&!ti.t?esc(T.rest):T.today(esc(fmtMin(ti.t)),esc(fmtMin(ti.g)));}
+
+function greeting(){const h=new Date().getHours(),g=CONFIG.greetings;return(h>=5&&h<12?g.morning:h>=12&&h<18?g.afternoon:h>=18&&h<23?g.evening:g.night)+', '+CONFIG.name;}
 function init(){
-  document.title=CONFIG.brand;$('#brand').textContent=CONFIG.brand;
-  $('#greet').textContent=greeting();$('#headline').textContent=CONFIG.headline;$('#foot').textContent=CONFIG.footer;
-  $('#date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-  $('#nav').innerHTML=TOOLS.map(t=>'<a href="'+esc(t.file)+'">'+esc(t.name)+'</a>').join('');
-  document.querySelectorAll('#modeSeg button').forEach(b=>{b.textContent=CONFIG.toggle[b.dataset.m];b.onclick=()=>setMode(b.dataset.m);});
-  $('#modeSeg').setAttribute('aria-label','What the board shows');
-  $('#tools').innerHTML=TOOLS.map(card).join('');
-  /* klik op de Scale Trainer-kaart opent direct die progressie */
-  $('#tools').addEventListener('click',e=>{const a=e.target.closest('a[data-prog]');if(!a)return;
-    try{const s=read('toonladderTrainer:v1'),d=scaleData();if(s&&d){s.view=s.view||{};s.view.mode='prog';s.view.prog=d.p.id;localStorage.setItem('toonladderTrainer:v1',JSON.stringify(s));}}catch(x){}});
-  $('#chords').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;
-    clearTimeout(hold);light(+b.dataset.i);hold=setTimeout(()=>{hold=null;if(!reduce)schedule();},8000);clearTimeout(timer);});
-  applyWood();buildNeck();bindCal();
-  const saved=read('practiceRoom.home'),fd=fretData();
-  setMode(saved&&(saved.mode==='notes'||saved.mode==='prog')?saved.mode:(scaleData()||!fd||!fd.due.length?'prog':'notes'));
-  addEventListener('storage',e=>{if(e.key==='practiceRoom.board')applyWood();});}
+  document.title=CONFIG.brand;$('#brandT').textContent=CONFIG.brand;
+  $('#greet').textContent=greeting()+' · '+new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  $('#miniH').textContent=TEXT.mini.title;$('#openCal').textContent=TEXT.mini.open;$('#foot').textContent=CONFIG.footer;
+  bindCal();buildScene();bindScene();bindEdit();startFx();bindSet();applySet();setInterval(applyTod,60000);
+  /* na een import van een back-up: kalender openen, zodat je de melding ziet */
+  try{if(sessionStorage.getItem('prImportDone'))setTimeout(openCal,50);}catch(e){}
+  addEventListener('storage',()=>{renderCal();renderLabels();});}
 init();
 })();
 </script>
