@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Scale Trainer</title>
 <!-- SCALE TRAINER (Practice Room): twee toonladders (A en B) op één hals vergelijken, of een progressie met per akkoord een toonladder,
-     posities (CAGED, 3 per snaar, Pat Martino-vormen …), backing track (piano, bas, drums).
+     posities (CAGED, 3 per snaar, Pat Martino-vormen …), backing track (gitaar, bas, drums).
      Schil (icoonbalk, achtergrond, kolom rechts, transportplank): shared/room.css + shared/rail.js; toets S = geheim menu (shared/look.js).
      Code in toonladder/ (gewone scripts, één gedeelde scope, volgorde telt). Opslag: 'toonladderTrainer:v1' (+ ':scalePref', ':log'). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -165,6 +165,7 @@
 <!-- volgorde telt: alle scripts delen één scope -->
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
+<script src="shared/guitar.js"></script>       <!-- zachte jazzgitaar (GTR): toonladder en comping -->
 <script src="backing-sounds.js"></script>  <!-- opnames voor de backing track (mag ontbreken) -->
 <script src="shared/backup.js"></script>         <!-- back-up (PRB), vóór de app -->
 <script src="toonladder/text.js"></script>

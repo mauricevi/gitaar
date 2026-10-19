@@ -336,6 +336,14 @@ function pluck(f,t,d,out){
   o.connect(lp);o2.connect(g2);g2.connect(lp);lp.connect(g);g.connect(out);
   o.start(t);o2.start(t);o.stop(t+d+0.05);o2.stop(t+d+0.05);
 }
+/* Toonladder en comping klinken als zachte jazzgitaar (shared/guitar.js, GTR); lukt dat niet, dan de oude synth en de piano.
+   GTR_LVL = niveau van de gitaar in de band (afgesteld op gelijke luidheid met de piano), GTR_SCALE = bij Play A/B. */
+const GTR_LVL=.45,GTR_SCALE=.5;let gtrState=null;
+function gtrOn(){if(gtrState==null)gtrState=!!(typeof GTR!=='undefined'&&actx&&GTR.ok(actx));return gtrState;}
+if(typeof GTR!=='undefined')GTR.look();                                       /* regels "Guitar sound" in het menu S */
+/* bij de eerste klik ergens op de pagina: AudioContext maken en de gitaarnoten alvast uitrekenen */
+addEventListener('pointerdown',()=>{const AC=window.AudioContext||window.webkitAudioContext;if(!AC||typeof GTR==='undefined')return;
+  try{actx=actx||new AC();}catch(e){return;}if(gtrOn())GTR.warm(actx);},{once:true});
 function playScale(k,over){
   if(playing===k){stopPlay();return;}
   stopPlay();
@@ -351,9 +359,12 @@ function playScale(k,over){
   const step=60/clamp(state.set.tempo,40,240)/2,t0=actx.currentTime+0.06;
   playing=k;syncPlayBtns();
   playBus=actx.createGain();playBus.gain.value=1;playBus.connect(actx.destination);
-  const bus=playBus;
+  const bus=playBus;let gb=null;
+  if(gtrOn()){const verb=actx.createConvolver();verb.buffer=GTR.ir(actx);verb.connect(bus);       /* eigen galm via playBus: stoppen dooft alles */
+    gb=GTR.bus(actx,bus,{verb,gain:GTR_SCALE});}
   seq.forEach((q,i)=>{
-    pluck(440*Math.pow(2,(q.m-69)/12),t0+i*step,step*2.2,bus);
+    if(gb)GTR.note(actx,gb,q.m,t0+i*step,{len:step*2.2,vel:80});                       /* volgende noot dempt de vorige */
+    else pluck(440*Math.pow(2,(q.m-69)/12),t0+i*step,step*2.2,bus);
     playTimers.push(setTimeout(()=>{
       document.querySelectorAll('#notes'+k+' .nc.playing').forEach(e=>e.classList.remove('playing'));
       const c=document.querySelector('#notes'+k+' .nc[data-pc="'+q.pc+'"]');if(c)c.classList.add('playing');

@@ -15,7 +15,7 @@
    3. Transponeren: de hele vorm schuift een aantal frets op, dus de vingerzetting blijft gelijk. Welke afstand:
       Pat Martino's mineurconversie (m7 → zelf, 7 → vanaf de 5, maj7 → vanaf de 6, m7♭5 → vanaf de ♭3), of per akkoord
       zelf gekozen ("Play from"). Het octaaf: zo dicht mogelijk bij de opgenomen positie, of een octaaf hoger/lager.
-   4. Oefenen: de lick over een progressie, met piano, bas en klik (backing-sounds.js, mag ontbreken), in een loop en
+   4. Oefenen: de lick over een progressie, met gitaarakkoorden, bas en klik (backing-sounds.js, mag ontbreken), in een loop en
       eventueel elke ronde een paar BPM sneller.
    Schil (icoonbalk, achtergrond = de versterker, kolom rechts, transportplank): shared/room.css + shared/rail.js;
    toets S = geheim menu (shared/look.js). Daglicht: geen thema-knop meer.
@@ -180,7 +180,7 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
           <span class="hl"><b>1 · Set up first:</b> the chord you play the lick over, the position (where your index finger sits) and a slow tempo; grid and length are in the side panel. Press <b>Record</b>: one bar of clicks, then play. Notes in the count-in bar become pickups.</span>
           <span class="hl"><b>2 · Check the fingering.</b> Every note goes on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also move earlier or later, be deleted, or be added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher; <b>Octave ↓ / ↑</b> moves it 12 frets (on another chord only where you play it over that chord).</span>
           <span class="hl"><b>3 · Pick a chord.</b> The whole shape slides along the neck, so your fingers do exactly the same thing. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> picks any other degree.</span>
-          <span class="hl"><b>4 · Practise</b> over the progression with piano, bass and click. In the side panel you can add a few BPM per round.</span>
+          <span class="hl"><b>4 · Practise</b> over the progression with guitar chords, bass and click. In the side panel you can add a few BPM per round.</span>
           <span class="hl">First time? Press <b>Calibrate timing</b> (side panel) and play a short muted note on each of the last eight clicks, so your notes land on the grid.</span>
         </i></span>
         <div class="grow"></div>
@@ -308,6 +308,7 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
 <script src="shared/backup.js"></script>         <!-- back-up (PRB), vóór de app -->
+<script src="shared/guitar.js"></script>       <!-- zachte jazzgitaar (GTR) voor lick en comping -->
 <script src="backing-sounds.js"></script>  <!-- piano- en basopnames, dezelfde als in de Scale Trainer (mag ontbreken) -->
 <script>
 (function(){
@@ -473,8 +474,8 @@ function openCol(sel){if(hasROOM)ROOM.open();
 const applyNeck=()=>document.documentElement.style.setProperty('--llneck',S.neckW+'%');
 
 /* ═══════════ 6. KLANK ═══════════
-   Piano en bas uit backing-sounds.js (zelfde opnames en afstelling als Chord Moves), de lick als gezupte snaar
-   (Karplus-Strong, zoals in de Fretboard Trainer), de klik als korte sinus. Eén AudioContext voor in- én uitgang,
+   Lick en comping als zachte jazzgitaar (shared/guitar.js), bas uit backing-sounds.js (zelfde opnames en afstelling als
+   Chord Moves); zonder GTR de piano en een eenvoudige gezupte snaar. De klik als korte sinus. Eén AudioContext voor in- én uitgang,
    zodat opname en metronoom dezelfde klok delen. */
 let actx=null,IR=null,SND=null,sndPromise=null;
 const VEL={piano:80,bass:105},midiF=m=>440*Math.pow(2,(m-69)/12);
@@ -496,11 +497,14 @@ function chain(){const out=actx.createGain();out.gain.value=1;out.connect(actx.d
   const comp=actx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=2.5;comp.attack.value=.01;comp.release.value=.2;comp.knee.value=10;comp.connect(out);
   if(!IR)IR=makeIR();const verb=actx.createConvolver();verb.buffer=IR;const wet=actx.createGain();wet.gain.value=.16;verb.connect(wet).connect(comp);
   const sc=SND?SND.scale:{piano:1,bass:1},db=x=>Math.pow(10,x/20);
-  const pg=actx.createGain();pg.gain.value=(SND?.5*db(4.5)/sc.piano:.5)*.8;
+  let pg=actx.createGain();pg.gain.value=(SND?.5*db(4.5)/sc.piano:.5)*.8;
   const pk=actx.createBiquadFilter();pk.type='peaking';pk.frequency.value=1600;pk.Q.value=.8;pk.gain.value=4;pg.connect(pk).connect(comp);
   const ps=actx.createGain();ps.gain.value=.22;pg.connect(ps).connect(verb);
   const bg=actx.createGain();bg.gain.value=(SND?.5*db(2.7)/sc.bass:.35);bg.connect(comp);
-  const gt=actx.createGain();gt.gain.value=1;gt.connect(comp);const gs=actx.createGain();gs.gain.value=.12;gt.connect(gs).connect(verb);
+  let gt;
+  if(gtrOn()){gt=GTR.bus(actx,comp,{verb,wetScale:1/.16,gain:GTR_LICK}).vol;         /* lick: eigen gitaarbus (comping dempt hem niet) */
+    pg=GTR.bus(actx,comp,{verb,wetScale:1/.16,gain:GTR_COMP}).vol;}                   /* comping: tweede gitaarbus in plaats van de piano */
+  else{gt=actx.createGain();gt.gain.value=1;gt.connect(comp);const gs=actx.createGain();gs.gain.value=.12;gt.connect(gs).connect(verb);}
   const ck=actx.createGain();ck.gain.value=1;ck.connect(out);
   return{out,piano:pg,bass:bg,gtr:gt,click:ck};}
 function playSample(s,t,gain,out,rate,len,rel){const src=actx.createBufferSource(),g=actx.createGain();src.buffer=s.buf;src.playbackRate.value=rate||1;
@@ -518,7 +522,7 @@ function bassPlay(m,t,len,v,bus){if(!SND){synth(midiF(m),t,len,bus,'triangle',.4
 function click(t,accent,count,out){const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=accent?1760:1320;
   const v=count?.45:accent?.3:.2;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+.045);
   o.connect(g).connect(out||actx.destination);o.start(t);o.stop(t+.06);}
-/* gezupte snaar (Karplus-Strong), één buffer per toonhoogte */
+/* reserve voor de lick als GTR ontbreekt: gezupte snaar (Karplus-Strong), één buffer per toonhoogte */
 const PLK=new Map();
 function ks(m){if(PLK.has(m))return PLK.get(m);
   const sr=actx.sampleRate,f=midiF(m),N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*1.8),buf=actx.createBuffer(1,len,sr),y=buf.getChannelData(0);
@@ -527,11 +531,22 @@ function ks(m){if(PLK.has(m))return PLK.get(m);
   let mx=0,e=0;const W=Math.floor(sr*.4);for(let i=0;i<len;i++){mx=Math.max(mx,Math.abs(y[i]));if(i<W)e+=y[i]*y[i];}
   const k=Math.min(1/(mx||1),.13/(Math.sqrt(e/W)||1));for(let i=0;i<len;i++)y[i]*=k;
   const r={buf,rate:f*(N+.5)/sr};PLK.set(m,r);return r;}
-function guitarNote(m,t,len,out){const r=ks(m),src=actx.createBufferSource(),g=actx.createGain(),lp=actx.createBiquadFilter();
+function ksNote(m,t,len,out){const r=ks(m),src=actx.createBufferSource(),g=actx.createGain(),lp=actx.createBiquadFilter();
   src.buffer=r.buf;src.playbackRate.value=r.rate;lp.type='lowpass';lp.frequency.value=3400;
   const end=t+Math.max(.1,len);g.gain.setValueAtTime(.55,t);g.gain.setValueAtTime(.55,end);g.gain.linearRampToValueAtTime(0,end+.07);
   src.connect(lp).connect(g).connect(out||actx.destination);src.start(Math.max(t,actx.currentTime));src.stop(end+.1);}
 function previewNote(m){if(!audio()||PL||REC)return;guitarNote(m,actx.currentTime+.01,.6);}
+/* Lick en comping klinken als zachte jazzgitaar (shared/guitar.js, GTR); lukt dat niet, dan de oude gezupte snaar en de piano.
+   GTR_LICK/GTR_COMP = niveau van de gitaarbussen (afgesteld op de luidheid van de oude snaar en piano). */
+const GTR_LICK=1,GTR_COMP=.4,GTR_BUS=b=>typeof GTR!=='undefined'&&!!GTR.busOf(b);let gtrState=null,gtrPrev=null;
+function gtrOn(){if(gtrState==null)gtrState=!!(typeof GTR!=='undefined'&&actx&&GTR.ok(actx));return gtrState;}
+if(typeof GTR!=='undefined')GTR.look();                                       /* regels "Guitar sound" in het menu S */
+/* gezupte snaar van de lick: gitaar op een gitaarbus, anders Karplus-Strong zoals vroeger */
+function guitarNote(m,t,len,out){if(typeof GTR!=='undefined'&&GTR.busOf(out)){GTR.note(actx,out,m,t,{len,vel:84});return;}
+  if(!out&&gtrOn()){if(!gtrPrev)gtrPrev=GTR.bus(actx,actx.destination,{gain:GTR_LICK});GTR.note(actx,gtrPrev,m,t,{len,vel:84});return;}
+  ksNote(m,t,len,out);}
+/* gitaarnoten alvast uitrekenen bij de eerste klik ergens op de pagina */
+addEventListener('pointerdown',()=>{if(audio()&&gtrOn())GTR.warm(actx);},{once:true});
 /* pianovoicing: de laagste stem tussen D3 en C♯4, de rest erboven */
 function voicing(c){const v=QUAL[c.q].v,low=50+mod(c.root+v[0]-50,12);return v.map(x=>low+x-v[0]);}
 function nearBass(pc,ref){let best=null;for(let m=28;m<=43;m++)if(mod(m,12)===pc&&(best==null||Math.abs(m-ref)<Math.abs(best-ref)))best=m;return best;}
@@ -731,7 +746,8 @@ function segment(p,L,ci,T,spb){const c=chordAt(ci),P=place(L,c),mx=p.mix,bars=li
     if(S.snd.lick&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
   const V=voicing(c),sw=S.swing?SWING:.5;let bassRef=36;
   for(let b=0;b<bars;b++){const B=T+b*4*spb;
-    if(S.snd.piano){V.forEach((m,k)=>{pianoNote(m,B+k*.012,1.4*spb,72,mx.piano);pianoNote(m,B+(1+sw)*spb+k*.012,1.1*spb,62,mx.piano);});}
+    if(S.snd.piano){if(GTR_BUS(mx.piano)){GTR.chord(actx,mx.piano,V,B,{strum:.012,len:1.4*spb,vel:72});GTR.chord(actx,mx.piano,V,B+(1+sw)*spb,{strum:.012,len:1.1*spb,vel:62});}
+      else V.forEach((m,k)=>{pianoNote(m,B+k*.012,1.4*spb,72,mx.piano);pianoNote(m,B+(1+sw)*spb+k*.012,1.1*spb,62,mx.piano);});}
     if(S.snd.bass){const r=nearBass(c.root,bassRef),f5=nearBass(mod(c.root+QUAL[c.q].iv[2],12),r);bassRef=r;
       bassPlay(r,B,2*spb*.95,110,mx.bass);bassPlay(f5,B+2*spb,2*spb*.95,98,mx.bass);}
     if(S.snd.click)for(let q=0;q<4;q++)click(B+q*spb,q===0,false,mx.click);}}
@@ -814,7 +830,7 @@ function renderPractice(){if(document.activeElement!==$('#pText'))$('#pText').va
   $('#pBpm').value=S.ptempo;$('#pBpmV').textContent=S.ptempo+' BPM';
   $('#pLad').value=String(S.ladder);
   $('#pSwing').checked=!!S.swing;$('#pLoop').checked=!!S.loop;$('#pFollow').checked=!!S.follow;
-  $('#pSnd').innerHTML=[['lick','Lick (guitar)'],['piano','Piano'],['bass','Bass'],['click','Click']].map(([k,l])=>'<div class="row"><span>'+l+'</span><label class="tg"><input type="checkbox" role="switch" data-k="'+k+'" aria-label="'+l+'"'+(S.snd[k]?' checked':'')+'><i></i></label></div>').join('');
+  $('#pSnd').innerHTML=[['lick','Lick (guitar)'],['piano','Chords'],['bass','Bass'],['click','Click']].map(([k,l])=>'<div class="row"><span>'+l+'</span><label class="tg"><input type="checkbox" role="switch" data-k="'+k+'" aria-label="'+l+'"'+(S.snd[k]?' checked':'')+'><i></i></label></div>').join('');
   syncTransport();}
 const PRESETS=[
   ['ii–V–I in C','Dm7 G7 Cmaj7 Cmaj7'],

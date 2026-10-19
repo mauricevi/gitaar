@@ -137,9 +137,12 @@ function bandGraph(){
   /* afstelling: de opnames zijn per groep genormaliseerd (scale); 0.5/scale zet ze terug op soundfont-niveau,
      de dB-waarden komen uit de vergelijking met de iReal-opname */
   const sc=SND?SND.scale:{piano:1,bass:1,drum:1},db=x=>Math.pow(10,x/20);
-  const base={piano:SND?.5*db(4.5)/sc.piano:.5,bass:SND?.5*db(2.7)/sc.bass:.35,drums:SND?.5*db(1)/sc.drum:1};
+  const gt=gtrOn();                                                 /* comping op gitaar (GTR), anders piano */
+  const base={piano:gt?GTR_LVL:SND?.5*db(4.5)/sc.piano:.5,bass:SND?.5*db(2.7)/sc.bass:.35,drums:SND?.5*db(1)/sc.drum:1};
   const bus={};
-  [['piano',.22],['bass',.04],['drums',.12]].forEach(([k,send])=>{const g=actx.createGain();g.gain.value=base[k]*MIX[k]*volOf(k);
+  [['piano',.22],['bass',.04],['drums',.12]].forEach(([k,send])=>{
+    if(k==='piano'&&gt){bus.piano=GTR.bus(actx,comp,{verb,wetScale:1/MIX.reverb,gain:base.piano*MIX.piano*volOf('piano')}).vol;return;}   /* galm via deze mix */
+    const g=actx.createGain();g.gain.value=base[k]*MIX[k]*volOf(k);
     if(k==='drums'){const hs=actx.createBiquadFilter();hs.type='highshelf';hs.frequency.value=6000;hs.gain.value=5;g.connect(hs).connect(comp);}  /* meer glans op de bekkens */
     else if(k==='piano'){const pk=actx.createBiquadFilter();pk.type='peaking';pk.frequency.value=1600;pk.Q.value=.8;pk.gain.value=4;g.connect(pk).connect(comp);}  /* iets helderdere piano */
     else g.connect(comp);const s=actx.createGain();s.gain.value=send;g.connect(s).connect(verb);bus[k]=g;});
@@ -154,7 +157,10 @@ function playSample(s,t,gain,out,rate,len,rel){
 const nearestS=(list,m)=>list.reduce((a,b)=>Math.abs(b.key-m)<Math.abs(a.key-m)?b:a);
 const velG=(v,ref)=>Math.pow(v/ref,2);           /* velocity → volume (zoals GM-synths dat doen) */
 
+const gtrBus=b=>typeof GTR!=='undefined'&&!!GTR.busOf(b);
+/* akkoordnoot: gitaar als de bus een gitaarbus is (losse noten van het loopje), anders piano */
 function pianoNote(m,t,len,v,out){
+  if(gtrBus(out)){GTR.note(actx,out,m,t,{len,vel:v});return;}
   if(!SND){pluck(midiF(m),t,Math.max(.25,len),out);return;}
   const s=nearestS(SND.piano,m);playSample(s,t,velG(v,VEL.piano),out,Math.pow(2,(m-s.key)/12),len,.07);}
 function bassPlay(m,t,len,v,out){
@@ -336,7 +342,8 @@ function playEnding(t,q,G,R){
   if(b.piano){let v=voicing(c,P.vo2||P.vo);const top=v[v.length-1],nine=mod(ROOTS[c.root].pc+2,12);
     if(bandScale(c).notes.some(x=>x.pc===nine)&&!v.some(m=>mod(m,12)===nine)){let m=top+1;while(mod(m,12)!==nine)m++;if(m-top<=7&&m<=79)v=[...v,m];}
     const vel=(st.pianoVel[1]+2)*(st.trim&&st.trim.piano?Math.pow(10,st.trim.piano/40):1);
-    v.forEach((m,i)=>pianoNote(m,t+i*.045,hold,vel+(i===v.length-1?4:-2),B.piano));}   /* van laag naar hoog gebroken */
+    if(gtrBus(B.piano))GTR.chord(actx,B.piano,v,t,{strum:.045,len:hold,vel});
+    else v.forEach((m,i)=>pianoNote(m,t+i*.045,hold,vel+(i===v.length-1?4:-2),B.piano));}   /* van laag naar hoog gebroken */
   at(t,()=>{if(P.on)showBeat(0,false);});
   at(t+hold+.9,progStop);}
 /* één drumfill inplannen (alle slagen ineens, ze vallen binnen de komende 1–2 tellen) */
@@ -413,7 +420,8 @@ function scheduleBeat(t){
   if(band.piano)P.comp.forEach(h=>{if(!now(h.b))return;
     const v0=(rnd(st.pianoVel[0],st.pianoVel[1])+lv.pianoV-(h.soft?14:0))*trimV('piano'),notes=h.push&&P.pushV?P.pushV:P.vo2&&h.b>=4?P.vo2:P.vo,te=tB(h.b);
     if(h.push){P.pushed=true;}
-    notes.forEach((m,i)=>pianoNote(m,te+i*rnd(0,.006),h.len*spb,v0+rnd(-4,4)+(i===notes.length-1?5:0),B.piano));
+    if(gtrBus(B.piano))GTR.chord(actx,B.piano,notes,te,{len:h.len*spb,vel:v0+rnd(-4,4)});         /* gitaar: licht aangeslagen */
+    else notes.forEach((m,i)=>pianoNote(m,te+i*rnd(0,.006),h.len*spb,v0+rnd(-4,4)+(i===notes.length-1?5:0),B.piano));
     if(h.fill){const top=notes[notes.length-1],pcs=bandScale(c).notes.map(x=>x.pc),lo=[1,2,3].map(d=>top-d).find(m=>pcs.includes(mod(m,12)))??top-2;
       pianoNote(lo,tB(h.b+1.33),.33*spb,v0-8,B.piano);pianoNote(top,tB(h.b+1.67),.3*spb,v0-6,B.piano);}});   /* loopje in de bovenstem */
   const bar=Math.floor(P.pos/4);at(t,()=>{showBeat(beat,false);showBar(bar);});
