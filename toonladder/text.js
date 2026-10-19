@@ -54,7 +54,7 @@ const TEXT={
         loopBars:'Loop bars',loopHint:'Drag across the bars to loop part of the progression',barsRange:(a,b)=>a===b?`bar ${a}`:`bars ${a}–${b}`,loopClear:'Loop the whole progression',
         trans:'Key',transDown:'Transpose down a half step',transUp:'Transpose up a half step',
         bandItems:{style:'Style',swing:'Swing',bossa:'Bossa',ballad:'Ballad',feel:'Swing feel',straight:'Straight',light:'Light',medium:'Medium',heavy:'Heavy',
-                   volume:'Instruments',piano:'Chords',bass:'Bass',drums:'Drums',count:'Count-in (1 bar)',
+                   volume:'Instruments',piano:'Piano',bass:'Bass',drums:'Drums',count:'Count-in (1 bar)',
                    start:'Start',countIn:'Count-in',intro:'4-bar intro',none:'Straight in',arrange:'Arrangement',
                    build:'Build up over choruses',buildSub:'Chorus 1 laid back (swing in two), then walking bass, then busier drums. Off: same feel throughout.',
                    fills:'Drum fills',fillsSub:'At the end of each section and chorus, smaller ones every 4 bars, with a crash on the next one.',

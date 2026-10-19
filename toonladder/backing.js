@@ -137,7 +137,7 @@ function bandGraph(){
   /* afstelling: de opnames zijn per groep genormaliseerd (scale); 0.5/scale zet ze terug op soundfont-niveau,
      de dB-waarden komen uit de vergelijking met de iReal-opname */
   const sc=SND?SND.scale:{piano:1,bass:1,drum:1},db=x=>Math.pow(10,x/20);
-  const gt=gtrOn();                                                 /* comping op gitaar (GTR), anders piano */
+  const gt=false;                                                   /* comping op piano (zoals vroeger); gitaar alleen nog voor Play A/B en de toonladder */
   const base={piano:gt?GTR_LVL:SND?.5*db(4.5)/sc.piano:.5,bass:SND?.5*db(2.7)/sc.bass:.35,drums:SND?.5*db(1)/sc.drum:1};
   const bus={};
   [['piano',.22],['bass',.04],['drums',.12]].forEach(([k,send])=>{
