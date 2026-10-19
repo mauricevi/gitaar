@@ -57,7 +57,8 @@ const ROOM={
      Bij hover alvast de pagina en zijn beeld ophalen. */
   leave(nav){const pre=new Set();
     nav.addEventListener('mouseover',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||pre.has(a.href))return;pre.add(a.href);   /* eigen pagina niet opnieuw ophalen */
-      const l=document.createElement('link');l.rel='prefetch';l.href=a.href;document.head.appendChild(l);
+      /* gewone fetch (vult de cache), geen <link rel=prefetch> in <head>: daarmee viel de opmaak in Firefox op GitHub Pages om */
+      if(location.protocol!=='file:')fetch(a.href,{credentials:'same-origin'}).catch(()=>{});
       const id=(ROOM.apps.find(x=>x&&a.getAttribute('href')===ROOM.base+x[1])||[])[0];
       if(id==='room')new Image().src=ROOM.base+'home/room.jpg';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
     nav.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
