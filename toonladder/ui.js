@@ -1,21 +1,13 @@
 'use strict';
 /* ═══════════ 7. UI ═══════════ */
-const ICON={
-  auto:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
-  light:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  dark:'<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor"/></svg>'
-};
-let hostTheme;
+/* daglicht uit de schil (shared/room.css): geen thema-knop meer ('theme' blijft in de opslag staan maar wordt genegeerd),
+   hals = palissander/kaartstijl uit menu S (houtsoort uit 'practiceRoom.board' wordt niet meer gelezen) */
 function applyLook(){
-  const root=document.documentElement,t=state.theme;
-  if(hostTheme===undefined) hostTheme=root.getAttribute('data-theme');
-  if(t==='auto'){ if(hostTheme) root.setAttribute('data-theme',hostTheme); else root.removeAttribute('data-theme'); }
-  else root.setAttribute('data-theme',t);
-  applyWood();
+  const root=document.documentElement;
   root.style.setProperty('--bw',clamp(state.set.boardWidth,700,3000)+'px');
-  root.style.setProperty('--mainw',+state.set.pageWidth>=2600?'none':clamp(state.set.pageWidth,1000,2600)+'px');   /* paginabreedte; 2600 = volle breedte */
-  const b=$('#btnTheme'),l=T.theme.label(T.theme[t]); b.innerHTML=ICON[t]; b.title=l; b.setAttribute('aria-label',l);
-  ['A','B'].forEach(k=>{const sw=$('#sw'+k);sw.style.setProperty('--c',state[k].color);sw.style.setProperty('--ct',textOn(state[k].color));});
+  root.style.setProperty('--colw',+state.set.pageWidth>=2600?'100vw':clamp(state.set.pageWidth,1000,2600)+'px');   /* breedte middenkolom; 2600 = volle breedte */
+  ['A','B'].forEach(k=>{[$('#sw'+k),$('#bdg'+k)].forEach(sw=>{if(!sw)return;sw.style.setProperty('--c',state[k].color);sw.style.setProperty('--ct',textOn(state[k].color));});});
+  renderCol();
 }
 
 /* Kaarten A en B */
@@ -26,24 +18,27 @@ function buildRows(){
     +'<optgroup label="'+esc(R.own)+'"><option value="custom">'+esc(R.custom)+'</option></optgroup>';
   let h='';
   ['A','B'].forEach(k=>{
-    h+='<section class="card srow" data-k="'+k+'" id="row'+k+'" aria-label="'+esc(R.scale(k))+'">'
+    h+='<section class="paper panel srow" data-k="'+k+'" id="row'+k+'" aria-label="'+esc(R.scale(k))+'">'
      +'<div class="sch">'
-     +'<label class="sw" id="sw'+k+'" title="'+esc(R.colour(k))+'"><input type="color" id="col'+k+'" aria-label="'+esc(R.colour(k))+'"><span>'+k+'</span></label>'
+     +'<span class="bdg2" id="bdg'+k+'">'+k+'</span>'
      +'<div class="scn"><div class="cap">'+esc(R.scale(k))+'</div><b id="name'+k+'"></b></div>'
-     +'<button type="button" class="ib play" id="play'+k+'" aria-pressed="false"></button>'
      +'<label class="tg" title="'+esc(R.show(k))+'"><input type="checkbox" role="switch" id="on'+k+'" aria-label="'+esc(R.show(k))+'"><i></i></label>'
      +'</div>'
      +'<div class="fields">'
      +'<label class="fld"><span>'+esc(R.root)+'</span><select id="root'+k+'">'+rootOpts+'</select></label>'
      +'<label class="fld"><span>'+esc(R.type)+'</span><select id="type'+k+'">'+typeOpts+'</select></label>'
-     +'<label class="fld"><span>'+esc(R.labels)+'</span><select id="lbl'+k+'"><option value="note">'+esc(R.notes)+'</option><option value="deg">'+esc(R.degrees)+'</option><option value="none">'+esc(R.none)+'</option></select></label>'
-     +'<label class="fld"><span>'+esc(R.cmode)+'</span><select id="cm'+k+'"><option value="fixed">'+esc(R.one)+'</option><option value="degree">'+esc(R.perDeg)+'</option></select></label>'
      +'</div>'
      +'<input type="text" class="fml" id="fml'+k+'" placeholder="'+esc(R.formula)+'" aria-label="'+esc(R.formulaLabel(k))+'" hidden autocomplete="off" spellcheck="false">'
      +'<p class="err" id="err'+k+'" role="alert" hidden></p>'
      +'<div class="notes" id="notes'+k+'"></div></section>';
   });
   $('#rows').innerHTML=h;
+  /* kolom rechts (vaste HTML): labels, kleuren, afspelen */
+  ['A','B'].forEach(k=>{
+    $('#lbl'+k).innerHTML='<option value="note">'+esc(R.notes)+'</option><option value="deg">'+esc(R.degrees)+'</option><option value="none">'+esc(R.none)+'</option>';
+    $('#cm'+k).innerHTML='<option value="fixed">'+esc(R.one)+'</option><option value="degree">'+esc(R.perDeg)+'</option>';
+    $('#col'+k).setAttribute('aria-label',R.colour(k));$('#sw'+k).title=R.colour(k);
+  });
   ['A','B'].forEach(k=>{
     const on=(id,ev,fn)=>$('#'+id).addEventListener(ev,fn);
     on('col'+k,'input',e=>{state[k].color=e.target.value;update();});
@@ -58,10 +53,22 @@ function buildRows(){
   $('#onB').addEventListener('change',e=>{state.B.on=e.target.checked;if(!state.B.on&&state.pos.ref==='B') state.pos.ref='A';update();});
 }
 
+/* ── kolom rechts (shared/rail.js: ROOM.column): open/dicht = view.col, tabblad = view.tab (main | set).
+   Tabblad "main": in Compare A / B labels, kleuren, afspelen en akkoorden van A → B; in een progressie het gekozen akkoord (#insp). ── */
+function renderCol(){const pm=!!(D&&D.prog),t=state.view.tab;
+  $('#colCmp').hidden=pm;$('#insp').hidden=!pm;
+  $('#tabMainB').textContent=pm?T.prog.chord:T.ui.abTab;
+  $('#tabMain').hidden=t!=='main';$('#tabSet').hidden=t!=='set';
+  $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));}
+function bindCol(){
+  if(typeof ROOM!=='undefined')ROOM.column($('#col'),state.view.col,o=>{state.view.col=o;save();});
+  $('#colTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;state.view.tab=b.dataset.tab;renderCol();save();});}
+
 function syncRows(){
   ['A','B'].forEach(k=>{
     const st=state[k],set=(id,v)=>{const e=$('#'+id);if(e.value!==v)e.value=v;};
     set('col'+k,st.color);set('root'+k,st.root);set('type'+k,st.type);set('lbl'+k,st.label);set('cm'+k,st.cmode);
+    ['lbl','cm','col'].forEach(x=>{$('#'+x+k).disabled=k==='A'?st.on===false:!st.on;});
     const f=$('#fml'+k);f.hidden=st.type!=='custom';set('fml'+k,st.formula);
     const er=$('#err'+k);er.hidden=!D.errs[k];er.textContent=D.errs[k]?D.errs[k]+T.row.keepLast:'';
   });
@@ -142,12 +149,21 @@ function stepPos(d){
   update();
 }
 
+/* transportplank in Compare A / B: gekozen positie(s) en wat er op de hals staat */
+function renderCmpTray(){
+  const pos=D.sel.length?D.sel.map(i=>{const p=D.positions[i];return p.title||p.label||PT.formN(p.n);}).join(' + '):T.pos.whole;
+  $('#tPos').textContent=pos;
+  const off=D.sys==='custom'||!D.positions.length;$('#tPrev').disabled=off;$('#tNext').disabled=off;
+  $('#hSub').textContent=[D.showA&&D.A?'A: '+scaleTitle(D.A):'',D.B?'B: '+scaleTitle(D.B):''].filter(Boolean).join(' · ');}
+
 function bindBoardUI(){
   $('#sysSel').addEventListener('change',e=>{state.pos.system=e.target.value;state.pos.selected=[];update();});
   $('#refSel').addEventListener('change',e=>{state.pos.ref=e.target.value;update();});
   $('#outSel').addEventListener('change',e=>{state.set.outside=e.target.value;update();});
   $('#cLo').addEventListener('input',e=>{state.set.customLo=clamp(e.target.value,0,MAXF);update();});
   $('#cHi').addEventListener('input',e=>{state.set.customHi=clamp(e.target.value,0,MAXF);update();});
+  $('#tPrev').addEventListener('click',()=>stepPos(-1));$('#tNext').addEventListener('click',()=>stepPos(1));
+  $('#tPrev').setAttribute('aria-label',T.pos.prev);$('#tPrev').title=T.pos.prev;$('#tNext').setAttribute('aria-label',T.pos.next);$('#tNext').title=T.pos.next;
   $('#posChips').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     const p=b.dataset.p;
@@ -201,11 +217,10 @@ function bindBoardUI(){
 }
 
 /* Instellingen: alles wordt uit dit schema opgebouwd. Nieuwe optie = één regel hier + default in DEFAULTS.set.
-   type 'wood' = de houtsoortkiezer (gedeeld met de andere tools). */
+   host = groep staat in de kolom rechts, tabblad Compare A / B (zonder kopje); anders tabblad Settings. */
 const Z=T.set;
 const SETTINGS=[
- {title:Z.board,items:[{key:'wood',type:'wood',label:Z.wood}]},
- {title:Z.colours,items:[
+ {title:Z.colours,host:'#cmpColours',items:[
    {key:'colShared',type:'color',label:Z.colShared},
    {key:'sharedStyle',type:'select',label:Z.sharedStyle,options:[['own',Z.own],['split',Z.split]]},
    {key:'shapeB',type:'check',label:Z.shapeB}]},
@@ -221,7 +236,7 @@ const SETTINGS=[
  {title:Z.comparison,items:[
    {key:'cmpFocus',type:'select',label:Z.cmpFocus,options:[['all',Z.allEq],['diff',Z.diffOnly],['same',Z.sameOnly]]},
    {key:'sharedLabel',type:'select',label:Z.sharedLabel,options:[['A',Z.fromA],['B',Z.fromB],['both',Z.bothSmall]]}]},
- {title:Z.sound,items:[
+ {title:Z.sound,host:'#cmpSound',items:[
    {key:'tempo',type:'range',label:Z.tempo,min:50,max:200,step:5},
    {key:'playMode',type:'select',label:Z.playMode,options:[['up',Z.up],['updown',Z.updown]]}]},
  {title:Z.scalePref,note:Z.scalePrefNote,wide:true,items:[{key:'scalePref',type:'scalePref'}]},
@@ -231,22 +246,11 @@ const SETTINGS=[
    {key:'tuning',type:'select',label:Z.tuning,options:Object.keys(TUNINGS).map(id=>[id,TUNINGS[id].name])}]}
 ];
 
-function woodSel(){const box=$('#woodPick');if(!box)return;box.innerHTML='';const S=state.set;
-  Object.keys(WOODS).forEach(w=>{const b=document.createElement('button');b.type='button';b.className='wood';b.setAttribute('aria-pressed',S.wood===w);
-    b.innerHTML='<i style="background:linear-gradient('+WOODS[w][0]+','+WOODS[w][1]+')"></i>'+esc(T.woods[w]);
-    b.onclick=()=>{S.wood=w;writeSharedWood();update();woodSel();};box.append(b);});
-  const lb=document.createElement('label');lb.className='wood';lb.setAttribute('aria-pressed',S.wood==='custom');
-  lb.innerHTML='<i style="background:linear-gradient('+S.woodCustom+','+shade(S.woodCustom,.68)+')"></i>'+esc(T.woods.custom)+'<input type="color" aria-label="'+esc(T.woods.custom)+'">';
-  const inp=lb.querySelector('input');inp.value=S.woodCustom;
-  inp.oninput=()=>{S.wood='custom';S.woodCustom=inp.value;applyWood();lb.querySelector('i').style.background='linear-gradient('+inp.value+','+shade(inp.value,.68)+')';};
-  inp.onchange=()=>{writeSharedWood();update();woodSel();};
-  box.append(lb);}
-
 function buildSettings(){
-  const host=$('#setHost');host.innerHTML='';
+  ['#setHost','#cmpColours','#cmpSound'].forEach(x=>{$(x).innerHTML='';});
   SETTINGS.forEach(g=>{
     const sec=document.createElement('section');sec.className='sg'+(g.wide?' wide':'');
-    sec.innerHTML='<h3>'+esc(g.title)+'</h3>'+(g.note?'<p class="cap">'+esc(g.note)+'</p>':'');
+    sec.innerHTML=(g.host?'':'<h3>'+esc(g.title)+'</h3>')+(g.note?'<p class="cap">'+esc(g.note)+'</p>':'');
     g.items.forEach(it=>{
       if(it.type==='scalePref'){sec.insertAdjacentHTML('beforeend',scalePrefHtml());return;}
       if(it.type==='wood'){const w=document.createElement('div');w.className='woods';w.id='woodPick';w.setAttribute('role','group');w.setAttribute('aria-label',it.label);sec.appendChild(w);return;}
@@ -264,22 +268,21 @@ function buildSettings(){
       const id='set-'+it.key;
       let ctl='';
       if(it.type==='select') ctl='<select id="'+id+'">'+it.options.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('')+'</select>';
-      else if(it.type==='check') ctl='<input type="checkbox" id="'+id+'">';
+      else if(it.type==='check') ctl='<span class="tg"><input type="checkbox" role="switch" id="'+id+'"><i></i></span>';
       else if(it.type==='range') ctl='<input type="range" id="'+id+'" min="'+it.min+'" max="'+it.max+'" step="'+it.step+'"><output class="rv" id="'+id+'-v" for="'+id+'"></output>';
       else if(it.type==='color') ctl='<input type="color" id="'+id+'">';
       row.innerHTML='<label for="'+id+'">'+esc(it.label)+'</label><span class="v">'+ctl+'</span>';
       sec.appendChild(row);
     });
-    host.appendChild(sec);
+    $(g.host||'#setHost').appendChild(sec);
   });
-  host.querySelectorAll('[data-sp]').forEach(e=>e.addEventListener('change',()=>setScalePref(e.dataset.sp,e.value)));
+  $('#setHost').querySelectorAll('[data-sp]').forEach(e=>e.addEventListener('change',()=>setScalePref(e.dataset.sp,e.value)));
   SETTINGS.forEach(g=>g.items.forEach(it=>{
     if(it.type==='palette'||it.type==='wood'||it.type==='scalePref') return;
     const e=$('#set-'+it.key);
     const read=()=>it.type==='check'?e.checked:(it.type==='range'?+e.value:e.value);
     e.addEventListener(it.type==='select'||it.type==='check'?'change':'input',()=>{state.set[it.key]=read();update();});
   }));
-  woodSel();
   syncSettings();
 }
 /* ── voorkeurstoonladder per akkoordsoort ── */
@@ -317,7 +320,7 @@ function syncSettings(){
 const ICON_PLAY='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const ICON_STOP='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
 let actx=null,playTimers=[],playing=null,playBus=null;
-function syncPlayBtns(){['A','B'].forEach(k=>{const b=$('#play'+k),l=playing===k?T.row.stop(k):T.row.play(k);b.innerHTML=playing===k?ICON_STOP:ICON_PLAY;b.setAttribute('aria-pressed',playing===k);b.setAttribute('aria-label',l);b.title=l;b.disabled=(k==='A'?state.A.on===false:!state.B.on);});}
+function syncPlayBtns(){['A','B'].forEach(k=>{const b=$('#play'+k),l=playing===k?T.row.stop(k):T.row.play(k);b.innerHTML=(playing===k?ICON_STOP:ICON_PLAY)+'<span>'+esc(l)+'</span>';b.setAttribute('aria-pressed',playing===k);b.title=l;b.disabled=(k==='A'?state.A.on===false:!state.B.on);});}
 function stopPlay(){
   playTimers.forEach(clearTimeout);playTimers=[];
   if(playBus){const b=playBus;playBus=null;

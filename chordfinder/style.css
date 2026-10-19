@@ -182,6 +182,7 @@ body[data-mode="prog"] .top{margin-bottom:12px}
 .pgh{justify-self:stretch;display:flex;align-items:center;gap:6px;min-height:calc(24px * var(--fit,1));padding:0 2px 0 4px}
 .pgh b{margin-right:auto;font-weight:700;font-size:max(12.5px,calc(17px * var(--dg) * var(--fit,1)));letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pgh .cap{font-size:12px;color:var(--cmut);white-space:nowrap}
+.pgfv{flex:none;font-size:max(12px,calc(15px * var(--fit,1)));line-height:1;color:var(--glow2);text-shadow:0 0 5px rgba(240,167,67,.45)}   /* gekozen vorm is een favoriet */
 .pglk{display:grid;place-items:center;width:max(16px,calc(22px * var(--fit,1)));height:max(16px,calc(22px * var(--fit,1)));padding:0;border:0;border-radius:6px;background:none;color:var(--glow2);flex:none}
 .pglk svg{width:14px;height:14px}
 .pglk.free{color:var(--mut2);opacity:0;transition:opacity .15s}
@@ -254,12 +255,15 @@ h2.sym{font-weight:700;letter-spacing:-.01em}
 .pgmo .pgst{margin-left:auto;font-size:13px;max-width:430px}
 .pgmb{flex:1 1 auto;min-height:0;overflow:auto;display:grid;align-content:start;gap:8px;padding:10px 4px 4px;scrollbar-width:thin;--mf:1;--dgm:calc(var(--dg) * var(--mf))}
 .pgmr{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;align-items:center;padding-top:8px;border-top:1px solid var(--line)}
-.pgmr:first-child{border-top:0;padding-top:0}
+.pgmr:first-of-type{border-top:0;padding-top:0}
 .pgmb.two{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:30px}
-.pgmb.two .pgmr:nth-child(2){border-top:0;padding-top:0}
+.pgmb.two .pgmr:nth-of-type(2){border-top:0;padding-top:0}
 .pgmr h3{margin:0;display:flex;flex-direction:column;gap:5px;font:400 calc(12.5px * var(--dfs))/1.35 var(--df),sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--onx)}
 .pgmr h3 small,.pgmo .seg small{font:600 11px "JetBrains Mono",monospace;color:var(--mut2);letter-spacing:0}
 .pgmd{display:flex;flex-wrap:wrap;gap:12px;padding-top:10px}
+/* favorieten (★) in het venster: eigen rij bovenaan; geen favorieten bij soort ★ = melding */
+.pgmr.gfav h3 .gst{font-size:18px}
+.pgnfm{grid-column:1/-1;margin:0;padding:6px 10px;border-radius:10px;background:rgba(240,167,67,.14);border:1px solid var(--line)}
 /* vormen als kaartjes, in de kaartstijl van de schil (menu S → Card style) */
 .dg.mc{position:relative;width:calc(150px * var(--dgm) + 20px);padding:10px 8px 8px;background:var(--card);border:1px solid var(--cline);color:var(--ctx);box-shadow:0 6px 16px rgba(60,30,10,.18)}
 .dg.mc:hover{background:var(--card);border-color:var(--line2);box-shadow:0 8px 22px rgba(60,30,10,.25)}

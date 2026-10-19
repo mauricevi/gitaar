@@ -55,7 +55,9 @@ function sanitize(s){
 }
 function load(){
   const s=clone(DEFAULTS);
-  try{const raw=localStorage.getItem(KEY); if(raw) merge(s,JSON.parse(raw));}catch(e){}
+  let raw=null;
+  try{raw=localStorage.getItem(KEY); if(raw) merge(s,JSON.parse(raw));}
+  catch(e){try{if(raw)localStorage.setItem(KEY+'.bad',raw);}catch(x){}}   /* onleesbaar: kopie bewaren vóórdat save() hem overschrijft */
   return sanitize(s);
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}homeSum();}
@@ -66,20 +68,11 @@ function homeSum(){try{const p=state.progs&&(state.progs.find(x=>x.id===state.vi
   localStorage.setItem('practiceRoom.scaleSum',JSON.stringify(sum));
   const a=document.getElementById('lnkHome');if(a)a.href=T.links.home+'#pr='+encodeURIComponent(JSON.stringify({scale:sum}));}catch(e){}}
 
-/* ── Houtsoort, gedeeld met de andere tools via 'practiceRoom.board' = {wood, custom} ── */
+/* ── Houtsoort: alleen nog voor de opslag (wood/woodCustom blijven bewaard); in de schil is de hals altijd palissander/kaartstijl
+   en wordt 'practiceRoom.board' niet meer gelezen of geschreven. ── */
 const WOODS={rosewood:['#3e2518','#24150d'],ebony:['#25201d','#131110'],pauferro:['#6e432a','#4b2c1a'],maple:['#ecd6aa','#d6b47c']};
-const SHARED='practiceRoom.board';
-const hexRgb=h=>{h=String(h||'').replace('#','');const n=parseInt(h,16);return isNaN(n)||h.length!==6?[122,74,42]:[n>>16&255,n>>8&255,n&255];};
-const shade=(h,k)=>'#'+hexRgb(h).map(v=>Math.max(0,Math.min(255,Math.round(v*k))).toString(16).padStart(2,'0')).join('');
-function readSharedWood(){try{const s=JSON.parse(localStorage.getItem(SHARED)||'null');if(!s)return false;
-  if(WOODS[s.wood]||s.wood==='custom')state.set.wood=s.wood;if(isHex(s.custom))state.set.woodCustom=s.custom;return true;}catch(e){return false;}}
-function writeSharedWood(){try{localStorage.setItem(SHARED,JSON.stringify({wood:state.set.wood,custom:state.set.woodCustom}));}catch(e){}}
-const woodLight=()=>lum(woodColors()[0])>.3;
-function woodColors(){const S=state.set;return WOODS[S.wood]||[S.woodCustom,shade(S.woodCustom,.68)];}
-function applyWood(){const c1=woodColors()[0],light=lum(c1)>.3,r=document.documentElement.style;
-  const v=light?{'--wfret':'rgba(110,92,64,.38)','--wnut':'#7d7a73','--wstr':'#6f675b','--winl':'rgba(110,92,64,.45)','--guide':'#0a63d6'}
-               :{'--wfret':'rgba(205,198,186,.32)','--wnut':'#d9d3c7','--wstr':'#d6cfc1','--winl':'rgba(232,225,210,.32)','--guide':'#64d2ff'};
-  v['--wd1']=c1;Object.entries(v).forEach(([k,x])=>r.setProperty(k,x));}
+/* hals licht of donker: volgt de kaartstijl uit menu S (paper/staff = licht), niet meer de houtsoort */
+const woodLight=()=>/^(paper|staff)$/.test(document.body.dataset.card||'');
 
 /* ═══════════ 5. DERIVE: state → D ═══════════ */
 let D=null;

@@ -144,6 +144,7 @@ function sanitizeProgs(s){
   if(!s.progs.some(p=>p.id===v.prog))v.prog=s.progs[0]?s.progs[0].id:null;
   if(v.mode==='prog'&&!v.prog)v.mode='compare';
   v.sel=Math.max(0,parseInt(v.sel,10)||0);v.cmp=null;
+  v.col=v.col!==false;v.tab=oneOf(v.tab,['main','set'],'main');
   const pv=s.pv,DP=DEFAULTS.pv;
   ['win','forms','fstay','fzoom','tones','scale','guide','loop'].forEach(k=>{if(typeof pv[k]!=='boolean')pv[k]=DP[k];});
   pv.fc=Number.isFinite(+pv.fc)?Math.min(MAXF,Math.max(0,+pv.fc)):5;
@@ -305,19 +306,19 @@ function bandPop(){const b=state.pv.band,I=PT.bandItems;
     +'<div class="lrow"><span>'+esc(I.fscale)+'<small class="sub">'+esc(I.fscaleSub)+'</small></span>'+sw('fscale',I.fscale)+'</div></div>';}
 const fmtBars=b=>b%1?(Math.floor(b)||'')+'½':String(b);
 function modeUI(pm){
-  $('#rows').hidden=pm;$('#diat').hidden=pm;$('#progCard').hidden=!pm;$('#insp').hidden=!pm;
-  $('#posBar').hidden=pm;$('#posChips').hidden=pm;$('#hintCmp').hidden=pm;}
+  $('#rows').hidden=pm;$('#progCard').hidden=!pm;
+  $('#posBar').hidden=pm;$('#posChips').hidden=pm;$('#hintCmp').hidden=pm;$('#pvBar').hidden=!pm;
+  $('#progBar').hidden=!pm;$('#cmpBar').hidden=pm;document.body.dataset.mode=pm?'prog':'compare';}
 function renderSide(){
-  $('#navCmp').classList.toggle('on',!D.prog);
-  $('#navCmp').setAttribute('aria-current',D.prog?'false':'page');
-  $('#progList').innerHTML=state.progs.map(p=>{const on=D.prog&&D.p.id===p.id,n=flat(p).length;
-    return '<button type="button" class="nb'+(on?' on':'')+'" data-prog="'+esc(p.id)+'" aria-current="'+(on?'page':'false')+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>'+esc(p.name)+'</span><small>'+n+'</small></button>';}).join('');}
+  $('#navCmp').setAttribute('aria-pressed',!D.prog);
+  $('#progBtns').innerHTML=state.progs.map(p=>{const on=!!(D.prog&&D.p.id===p.id),n=flat(p).length;
+    return '<button type="button" data-prog="'+esc(p.id)+'" aria-pressed="'+on+'" title="'+esc(p.name+' · '+PT.meta(n,fmtBars(flat(p).reduce((a,x)=>a+x.c.bars,0)),''))+'">'+esc(p.name)+'</button>';}).join('');}
 function renderHead(){
   const pb=$('#progBar');
-  if(!D.prog){$('#hTitle').textContent=T.title;$('#hSub').textContent=T.sub;pb.innerHTML='';headHtml='';$('#hBoard').textContent=T.ui.fretboard;return;}
+  if(!D.prog){pb.innerHTML='';headHtml='';$('#hBoard').textContent=T.ui.fretboard;renderCmpTray();return;}
   const p=D.p,bars=D.list.reduce((a,x)=>a+x.c.bars,0),keys=[...new Set(D.keys.filter(Boolean).map(keyName))].join(' · ');
-  $('#hTitle').textContent=p.name;$('#hSub').textContent=PT.meta(D.list.length,fmtBars(bars),keys);
-  const h='<button type="button" class="act pri" data-a="play">'+(progPlayer.loading?esc(PT.loading):progPlayer.on?'■ '+esc(PT.stop):'▶ '+esc(PT.play))+'</button>'
+  $('#hSub').textContent=p.name+' · '+PT.meta(D.list.length,fmtBars(bars),keys);
+  const h='<button type="button" class="play" data-a="play">'+(progPlayer.loading?esc(PT.loading):progPlayer.on?'■ '+esc(PT.stop):'▶ '+esc(PT.play))+'</button>'
     +'<span class="beats" id="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>'
     +'<span class="bandw"><button type="button" class="act" data-a="band" aria-expanded="'+bandOpen+'">'+esc(PT.band)+' ▾</button>'+(bandOpen?bandPop():'')+'</span>'
     +'<button type="button" class="act" data-a="loop" aria-pressed="'+state.pv.loop+'">↻ '+esc(PT.loop)+'</button>'
@@ -433,7 +434,7 @@ function renderInspCmp(){
    +'<div class="lrow st"><span>'+esc(C.sharedText)+'</span>'+seg('shLab',S.sharedLabel,[['A','A'],['B','B'],['both',C.both]])+'</div>'
    +'</section><p class="cap" style="margin:6px 14px 0">'+esc(C.note)+'</p></div>';
   h+='<div><div class="grpt">'+esc(PT.show)+'</div><section class="card list"><div class="lrow"><span>'+esc(PT.labels)+'</span>'+seg('lab',pv.labels,[['deg',PT.deg],['note',PT.notes]])+'</div></section></div>';
-  box.innerHTML=h+posGroup();}
+  box.innerHTML=h;}
 function posGroup(){const pv=state.pv,c=D.ch;let lo='';for(let f=0;f<=MAXF-pv.span+1;f++)lo+='<option value="'+f+'"'+(f===pv.lo?' selected':'')+'>'+f+'</option>';
   const b=(v,l,on)=>'<button type="button" data-a="win" data-v="'+v+'" aria-pressed="'+on+'">'+esc(l)+'</button>';
   let h='<div><div class="grpt">'+esc(PT.position)+'</div><section class="card list"><div class="lrow"><span class="seg">'+b(0,PT.whole,!pv.win&&!pv.forms)+b(1,PT.window,pv.win&&!pv.forms)+b(2,PT.forms,!!pv.forms)+'</span></div>';
@@ -446,8 +447,10 @@ function posGroup(){const pv=state.pv,c=D.ch;let lo='';for(let f=0;f<=MAXF-pv.sp
   h+=(pv.win?'<div class="lrow"><label for="iLo">'+esc(PT.fromFret)+'</label><select id="iLo">'+lo+'</select></div><div class="lrow"><label for="iSpan">'+esc(PT.width)+'</label><select id="iSpan">'+[4,5,6].map(n=>'<option value="'+n+'"'+(n===pv.span?' selected':'')+'>'+esc(PT.frets(n))+'</option>').join('')+'</select></div>':'')
    +'</section><p class="cap" style="margin:6px 14px 0">'+esc(PT.stays)+'</p></div>';
   return h;}
+/* positie in een progressie (hele hals · venster · Martino-vormen): als balk boven het bord */
+function renderPvBar(){$('#pvBar').innerHTML=D.ch?posGroup():'';}
 function renderInsp(){
-  const box=$('#insp');if(!D.ch){box.innerHTML='';return;}
+  const box=$('#insp');renderPvBar();if(!D.ch){box.innerHTML='';return;}
   if(D.pcmp){renderInspCmp();return;}
   const c=D.ch,k=D.key,so=c.soff||0,sug=sugFrom(c,k,so),pv=state.pv,list=sug.slice();if(!list.includes(c.scale))list.push(c.scale);
   /* "Start on": de akkoordtonen als snelle keuze, plus elke andere noot via het keuzemenu */
@@ -479,7 +482,6 @@ function renderInsp(){
      +(so?'<button type="button" data-a="lab" data-v="sdeg" aria-pressed="'+(pv.labels==='sdeg')+'" title="'+esc(PT.sdegHint(nm(so)))+'">'+esc(nm(so))+' = 1</button>':'')
      +(pv.forms&&mOff(c)?'<button type="button" data-a="lab" data-v="mdeg" aria-pressed="'+(pv.labels==='mdeg')+'" title="'+esc(PT.mdegHint(mName(c)))+'">'+esc(mName(c))+' = 1</button>':'')
      +'<button type="button" data-a="lab" data-v="note" aria-pressed="'+(pv.labels==='note')+'">'+esc(PT.notes)+'</button></span></div></section></div>';
-  h+=posGroup();
   if(editing)h+='<div><div class="grpt">'+esc(PT.editH)+'</div><section class="card list"><div class="lrow" style="justify-content:flex-start;gap:8px"><button type="button" class="act" data-a="mv" data-v="-1">← '+esc(PT.moveL)+'</button><button type="button" class="act" data-a="mv" data-v="1">'+esc(PT.moveR)+' →</button></div>'
    +'<div class="lrow"><button type="button" class="act danger" data-a="del" data-i="'+D.idx+'">'+esc(PT.delChord)+'</button></div></section></div>';
   box.innerHTML=h;}
@@ -592,11 +594,11 @@ function bindProgUI(){
   $('#progList').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b)openProg(b.dataset.prog);});
   $('#btnNew').addEventListener('click',()=>openSheet('new'));
   document.addEventListener('click',e=>{if(bandOpen&&!e.target.closest('.bandw')){bandOpen=false;if(D&&D.prog)renderHead();}});
-  document.querySelector('main').addEventListener('dblclick',e=>{if(!editing&&D&&D.prog&&e.target.closest('.tw .tile')){editing=true;update();}});   /* dubbelklik op een akkoord = bewerkmodus */
-  document.querySelector('main').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&(b.closest('#progBar,#progCard,#insp')||(b.closest('#formMap'))))act(b.dataset.a,b,e);});
+  $('.shell').addEventListener('dblclick',e=>{if(!editing&&D&&D.prog&&e.target.closest('.tw .tile')){editing=true;update();}});   /* dubbelklik op een akkoord = bewerkmodus */
+  $('.shell').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&(b.closest('#progBar,#progCard,#insp,#pvBar')||(b.closest('#formMap'))))act(b.dataset.a,b,e);});
   /* tijdens het slepen meteen het nieuwe tempo laten horen (de band leest het tempo per tel) */
-  document.querySelector('main').addEventListener('input',e=>{const t=e.target,p=curProg();if(p&&t.id==='pTempo'&&t.value!=='')p.tempo=clamp(t.value,40,240);});
-  document.querySelector('main').addEventListener('change',e=>{const t=e.target,p=curProg();if(!p)return;
+  $('.shell').addEventListener('input',e=>{const t=e.target,p=curProg();if(p&&t.id==='pTempo'&&t.value!=='')p.tempo=clamp(t.value,40,240);});
+  $('.shell').addEventListener('change',e=>{const t=e.target,p=curProg();if(!p)return;
     if(t.id==='pTempo'){p.tempo=clamp(t.value,40,240);update();}
     else if(t.id==='pName'){p.name=t.value.trim().slice(0,80)||PT.untitled;update();}
     else if(t.id==='iAll'&&t.value&&D.ch){D.ch.scale=t.value;update();}
@@ -611,11 +613,11 @@ function bindProgUI(){
     else if((t.id==='sA'||t.id==='sB')&&D.pcmp){(t.id==='sA'?D.ch:D.ch2).scale=t.value;update();}
     else if(t.id==='cA'||t.id==='cB'||t.id==='cS'){update();}});
   /* kleuren live bijwerken tijdens het kiezen */
-  document.querySelector('main').addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.vol){state.pv.band.vol[t.dataset.vol]=+t.value;setVol(t.dataset.vol);save();}});
-  document.querySelector('main').addEventListener('input',e=>{const t=e.target;if(!D||!D.pcmp)return;
+  $('.shell').addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.vol){state.pv.band.vol[t.dataset.vol]=+t.value;setVol(t.dataset.vol);save();}});
+  $('.shell').addEventListener('input',e=>{const t=e.target;if(!D||!D.pcmp)return;
     if(t.id==='cA')state.A.color=t.value;else if(t.id==='cB')state.B.color=t.value;else if(t.id==='cS')state.set.colShared=t.value;else return;
     renderBoard();renderLegend();renderCompare();});
-  document.querySelector('main').addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter')return;
+  $('.shell').addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter')return;
     if(t.id==='iSym'){e.preventDefault();const r=parseChord(t.value);
       if(r.bad){const er=$('#iErr');er.hidden=false;er.textContent=PT.badSym(t.value)+(suggestFix(t.value)?' → '+suggestFix(t.value):'');return;}
       const c=D.ch,k=D.key;Object.assign(c,{sym:r.sym,root:r.root,type:r.type,bass:r.bass||''});if(t.value.match(/\(|[:*]/))c.bars=r.bars;

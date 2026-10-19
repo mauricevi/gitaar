@@ -27,7 +27,7 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
   s.allTones=!!s.allTones;s.bass=s.bass!==false;
   s.mode=['find','id','prog'].includes(s.mode)?s.mode:'find';s.idSel=Math.max(0,Math.round(+s.idSel)||0);
   s.idf=Array.isArray(s.idf)&&s.idf.length===6?s.idf.map(x=>Number.isInteger(x)&&x>=0&&x<=MAXF?x:-1):DEF.idf.slice();
-  s.pText=typeof s.pText==='string'?s.pText.slice(0,800):DEF.pText;s.pType=VTYPES.includes(s.pType)?s.pType:DEF.pType;
+  s.pText=typeof s.pText==='string'?s.pText.slice(0,800):DEF.pText;s.pType=VTYPES.includes(s.pType)||s.pType==='fav'?s.pType:DEF.pType;   /* 'fav' = alleen favorieten (★) */
   s.pMode=['smooth','pos','strings','top'].includes(s.pMode)?s.pMode:'smooth';s.pPos=Math.min(12,Math.max(1,Math.round(+s.pPos)||5));
   s.pStr=typeof s.pStr==='string'&&/^(auto|[1-6]{2,6})$/.test(s.pStr)?s.pStr:'auto';s.pMel=typeof s.pMel==='string'?s.pMel.slice(0,300):'';
   s.pTempo=Math.min(260,Math.max(40,Math.round(+s.pTempo)||120));s.pLoop=s.pLoop!==false;
@@ -36,7 +36,7 @@ function load(){const o=readSafe(KEY),s=Object.assign({},DEF,o&&typeof o==='obje
     if(VTYPES.includes(x.t))o.t=x.t;if(x.h)o.h=1;s.pLock[i]=o;}});
   /* eigen voicingsoort per akkoord (volgnummer → {s: symbool, t: soort}) en wat er gebeurt bij een gekozen vorm */
   const ty=s.pTypes&&typeof s.pTypes==='object'&&!Array.isArray(s.pTypes)?s.pTypes:{};s.pTypes={};
-  Object.keys(ty).forEach(i=>{const x=ty[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&VTYPES.includes(x.t))s.pTypes[i]={s:x.s.slice(0,40),t:x.t};});
+  Object.keys(ty).forEach(i=>{const x=ty[i];if(/^\d{1,2}$/.test(i)&&x&&typeof x.s==='string'&&(VTYPES.includes(x.t)||x.t==='fav'))s.pTypes[i]={s:x.s.slice(0,40),t:x.t};});
   s.pFit=s.pFit==='keep'?'keep':'refit';
   s.pLine=['roots','r5','approach','walk','step'].includes(s.pLine)?s.pLine:DEF.pLine;
   s.pStyle=['swing','bossa','straight'].includes(s.pStyle)?s.pStyle:DEF.pStyle;s.pDrums=s.pDrums!==false;s.pBNeck=!!s.pBNeck;

@@ -11,10 +11,7 @@ function importFromLink(){
   if(['swing','bossa','ballad'].includes(d.style))state.pv.band.style=d.style;
   state.view.prog=p.id;state.view.sel=0;state.view.mode='prog';}
 
-/* thema gedeeld met alle Practice Room-apps ('practiceRoom.theme': auto, light of dark) */
-const THEMEKEY='practiceRoom.theme';
-function readTheme(){try{const t=JSON.parse(localStorage.getItem(THEMEKEY)||'null');return['auto','light','dark'].includes(t)?t:null;}catch(e){return null;}}
-function writeTheme(){try{localStorage.setItem(THEMEKEY,JSON.stringify(state.theme));}catch(e){}}
+/* geen thema meer: de schil is altijd daglicht. 'theme' blijft in de opslag staan; 'practiceRoom.theme' wordt niet meer gelezen. */
 
 /* Getalvelden met data-drag (BPM): slepen omhoog = sneller, omlaag = langzamer (1 BPM per 4 pixels, met Shift 5 per stap);
    scrollen erboven werkt ook. Klikken zonder te slepen opent het veld om te typen. */
@@ -34,30 +31,26 @@ function bindDragNumbers(){let D=null;
 function init(){
   state=load();
   bindDragNumbers();
-  {const t=readTheme();if(t)state.theme=t;else writeTheme();}
   importFromLink();
-  if(!readSharedWood()&&state.set.wood==='custom') writeSharedWood();   /* oude eigen houtkleur doorgeven aan de andere tools */
   applyText();
   buildRows();
   buildSettings();
   bindBoardUI();
   bindProgUI();
-  $('#btnTheme').addEventListener('click',()=>{state.theme=state.theme==='auto'?'light':(state.theme==='light'?'dark':'auto');writeTheme();update();});
-  $('#btnSet').addEventListener('click',()=>{const p=$('#panelSet');p.open=true;p.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});
+  bindCol();
   let armed=false,timer=null;
   $('#btnReset').addEventListener('click',()=>{
     const msg=$('#resetMsg');
     if(!armed){armed=true;msg.textContent=T.reset.sure;timer=setTimeout(()=>{armed=false;msg.textContent='';},4000);return;}
     clearTimeout(timer);armed=false;msg.textContent=T.reset.done;
-    const w=[state.set.wood,state.set.woodCustom],keep={progs:state.progs,view:state.view,pv:state.pv};   /* houtsoort en progressies blijven staan */
+    const w=[state.set.wood,state.set.woodCustom],keep={progs:state.progs,view:state.view,pv:state.pv};   /* houtsoort (bewaard, niet meer gebruikt) en progressies blijven staan */
     SPREF={};try{localStorage.removeItem('toonladderTrainer:scalePref');}catch(e){}
     state=clone(DEFAULTS);state.set.wood=w[0];state.set.woodCustom=w[1];Object.assign(state,keep);lastOk.A=lastOk.B=null;buildSettings();update();
     setTimeout(()=>{msg.textContent='';},2500);
   });
-  /* houtkleur gewijzigd in een andere tool of tabblad */
-  addEventListener('storage',e=>{if(e.key===SHARED){readSharedWood();applyWood();woodSel();}
-    if(e.key===THEMEKEY){const t=readTheme();if(t&&t!==state.theme){state.theme=t;update();}}});
-  /* in een ingesloten weergave (zoals een artifact) leidt de zijbalk nergens heen */
+  /* menu S (shared/look.js): kaartstijl verandert de hals → opnieuw tekenen (ringkleur volgt licht/donker) */
+  if(typeof LOOK!=='undefined')LOOK.on(()=>{if(D){renderBoard();renderLegend();}});
+  /* in een ingesloten weergave (zoals een artifact) leidt de icoonbalk nergens heen */
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
   update();
 }

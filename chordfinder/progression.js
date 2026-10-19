@@ -21,6 +21,13 @@ const PG_SIMPLER=[[/m6\/9/,'m6'],[/m\(?maj9\)?/i,'m(maj7)'],[/m9[♭b]5/,'m7b5']
 let PG=null,PGSEL=0,PGP=null,PGSET=new Set([0]),PGANC=0;   /* PGSEL = akkoord in het zijpaneel, PGSET = alle geselecteerde, PGANC = begin van Shift-selectie */
 const pgCache=new Map();
 function pgVoicings(c,type){const k=c.sym+'|'+type;if(!pgCache.has(k))pgCache.set(k,voicingsOf(c,type));return pgCache.get(k);}
+/* favorieten (★, S.favs, zie render.js) van dit akkoord op zijn grondtoon, van elke voicingsoort (dezelfde frets één keer); niet in pgCache: de lijst verandert.
+   Voicingsoort 'fav' (S.pType of S.pTypes[i].t) = de voice leading kiest alleen uit deze vormen; heeft de akkoordsoort er geen, dan de gewone soort (x.nofav) */
+function pgFavs(c){const ts=new Set(S.favs.filter(f=>f.q===c.q).map(f=>f.t)),seen=new Set();
+  return VTYPES.filter(t=>ts.has(t)).flatMap(t=>pgVoicings(c,t).filter(v=>isFav(c,v))).filter(v=>!seen.has(v.key)&&seen.add(v.key));}
+const pgTName=t=>t==='fav'?T.favType:T.types[t];
+const pgTypes=()=>VTYPES.map(t=>[t,T.types[t]]).concat([['fav',T.favType]]);
+const pgQ=c=>QUAL[c.q].sym||T.major;
 const pgTop=v=>v.notes[v.notes.length-1];
 const pgBassPc=c=>c.bassPc!=null?c.bassPc:c.rootPc;
 const pgLab=(c,x)=>ivName(mod(x.pc-c.rootPc,12),c.q);
@@ -93,12 +100,13 @@ const PG_LINE='walk';   /* de band speelt altijd een walking bass (S.pLine/S.pBN
 /* ── afleiden: S → PG = {list (alle akkoorden), ok (met vorm), bad, approx, melBad, sets, set, costs, stats}
    per akkoord: all = alle vormen van zijn soort, vs = na de filters (de kandidaten) ── */
 function pgDerive(){const P=pgParse(S.pText),M=pgMelody(S.pMel),fon=pgFOn();
-  const list=P.list.map((x,i)=>{const o=S.pTypes[i],own=!!(o&&o.s===x.c.sym&&VTYPES.includes(o.t)),tp=own?o.t:S.pType;
-    let all=pgVoicings(x.c,tp),fb=null;
-    if(!all.length)for(const t of PG_FB){if(t===tp)continue;const w=pgVoicings(x.c,t);if(w.length){all=w;fb=t;break;}}
+  const list=P.list.map((x,i)=>{const o=S.pTypes[i],own=!!(o&&o.s===x.c.sym&&(VTYPES.includes(o.t)||o.t==='fav')),tp=own?o.t:S.pType;
+    let all=tp==='fav'?pgFavs(x.c):pgVoicings(x.c,tp),fb=null,nofav=false;
+    if(tp==='fav'&&!all.length){nofav=true;fb=own&&S.pType!=='fav'?S.pType:PG_FB[0];all=pgVoicings(x.c,fb);}   /* geen favorieten: de gewone soort */
+    if(!all.length)for(const t of PG_FB){if(t===tp||t===fb)continue;const w=pgVoicings(x.c,t);if(w.length){all=w;fb=t;break;}}
     const fv=fon?all.filter(pgPass):all,nofit=fon&&!!all.length&&!fv.length,vs=nofit?all:fv;
     const L=S.pLock[i],lock=L&&L.s===x.c.sym?pgFindLock(x.c,tp,L):null;
-    return Object.assign({},x,{i,tp,own,all,vs,fb,nofit,lock,held:!!(lock&&L.h),mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null,bsPc:null,bl:null});});
+    return Object.assign({},x,{i,tp,own,all,vs,fb,nofav,nofit,lock,held:!!(lock&&L.h),mel:S.pMode==='top'&&M.list[i]!=null?M.list[i]:null,v:null,mv:null,bsPc:null,bl:null});});
   const ok=list.filter(x=>x.vs.length||x.lock);
   /* snarensets: hoeveel akkoorden er een vorm op hebben, vóór de filters (voor de knoppen en voor "Same strings") */
   const cnt=new Map();
@@ -125,13 +133,13 @@ function pgFindLock(c,tp,L){for(const t of[L.t,tp,...VTYPES]){if(!VTYPES.include
 const pgCls=x=>(v,n)=>{const j=v.notes.indexOf(n),l=pgLab(x.c,n);return(PG_GUIDE.includes(l)?' gt':'')+(x.mv&&x.mv[j]===0?' hd':'');};
 function pgArrow(d){return d==null?'':d===0?'<small class="mvh" aria-label="held">•</small>':'<small class="mv">'+(d>0?'↑':'↓')+Math.abs(d)+'</small>';}
 function pgCard(x){const c=x.c,v=x.v,on=x.i===PGSEL,sel=PGSET.has(x.i),head='<div class="pgh"><b>'+esc(c.sym)+'</b>'+
-    (x.bars!==1?'<span class="cap">'+esc(T.pg.bars(x.bars))+'</span>':'')+(v?pgLkBtn(x):'')+'</div>';
+    (x.bars!==1?'<span class="cap">'+esc(T.pg.bars(x.bars))+'</span>':'')+(v&&isFav(c,v)?'<span class="pgfv" title="'+esc(T.pg.isFav)+'" aria-label="'+esc(T.pg.isFav)+'">★</span>':'')+(v?pgLkBtn(x):'')+'</div>';
   const cl=(on?' on':'')+(sel?' sel':'');
   if(!v)return'<div class="pgc none'+cl+'" data-i="'+x.i+'">'+head+'<p class="note">'+esc(T.pg.noShape)+'</p></div>';
-  const cls=pgCls(x),vo=v.notes.map((n,j)=>({n,d:x.mv[j]})).reverse(),tp=v.type!==S.pType?T.types[v.type]:'';
+  const cls=pgCls(x),vo=v.notes.map((n,j)=>({n,d:x.mv[j]})).reverse(),tp=v.type!==S.pType||x.tp==='fav'?T.types[v.type]:'';
   return'<div class="pgc'+cl+(x.lock?x.held?' hl':' lk':'')+'" data-i="'+x.i+'">'+head+
     '<button type="button" class="pgdg" data-i="'+x.i+'" aria-pressed="'+sel+'" aria-label="'+esc(T.pg.cardL(c.sym,fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+diagram(c,v,null,n=>cls(v,n))+'</button>'+
-    '<p class="cap pgi">'+(x.nofit&&!x.lock?'<b class="pgnf" title="'+esc(T.pg.noFit)+'">≠</b> ':'')+(tp?'<b class="pgt">'+esc(tp)+'</b> · ':'')+esc(invTxt(v,true))+' · '+esc([...v.strs].join(''))+'</p>'+
+    '<p class="cap pgi">'+(x.nofav&&!x.lock?'<b class="pgnf" title="'+esc(T.pg.noFav(pgQ(c),T.types[x.fb]))+'">'+esc(T.pg.noFavS)+'</b> ':'')+(x.nofit&&!x.lock?'<b class="pgnf" title="'+esc(T.pg.noFit)+'">≠</b> ':'')+(tp?'<b class="pgt">'+esc(tp)+'</b> · ':'')+esc(invTxt(v,true))+' · '+esc([...v.strs].join(''))+'</p>'+
     '<ol class="pgv">'+vo.map(o=>{const l=pgLab(c,o.n);return'<li><b class="'+(PG_GUIDE.includes(l)?'gt':'')+'" title="'+esc(toneName(c,o.n.pc))+'">'+esc(l)+'</b>'+pgArrow(o.d)+'</li>';}).join('')+'</ol>'+
     pgBassRow(x)+'</div>';}
 /* slotje op de kaart: vrij (verschijnt bij hover), vastgehouden (punaise) of gelockt */
@@ -148,7 +156,7 @@ function pgRender(){pgDerive();const P=PG,inp=$('#pgIn'),mel=$('#pgMel');
   $('#pgMelErr').textContent=P.melBad.length?T.pg.badMel(P.melBad):'';
   const st=pgStProgs(),sel=$('#pgSt');sel.hidden=!st.length;
   if(st.length)sel.innerHTML='<option value="">'+esc(T.pg.st)+'</option>'+st.map((p,i)=>'<option value="'+i+'">'+esc(p.name)+'</option>').join('');
-  seg($('#pgType'),VTYPES.map(t=>[t,T.types[t]]),S.pType,'pgtype');
+  seg($('#pgType'),pgTypes(),S.pType,'pgtype');
   seg($('#pgMode'),PG_MODES.map(m=>[m,T.pg.mode[m]]),S.pMode,'pgmode');
   $('#pgModeHelp').textContent=T.pg.modeHelp[S.pMode];
   $('#pgPosRow').hidden=S.pMode!=='pos';$('#pgMelRow').hidden=S.pMode!=='top';
@@ -203,7 +211,7 @@ function pgRenderSel(){const xs=pgSel().map(i=>PG.list[i]),multi=xs.length>1,wv=
   /* eigen soort: gekozen als de hele selectie dezelfde heeft */
   const own=xs.every(y=>!y.own)?'def':xs.every(y=>y.own&&y.tp===xs[0].tp)?xs[0].tp:'';
   $('#pgSType').innerHTML='<option value="" disabled'+(own?'':' selected')+'>'+esc(T.pg.typeAll)+'…</option>'+
-    [['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])].map(([v,l])=>'<option value="'+v+'"'+(v===own?' selected':'')+'>'+esc(l)+'</option>').join('');}
+    [['def',T.pg.typeDef(pgTName(S.pType))],...pgTypes()].map(([v,l])=>'<option value="'+v+'"'+(v===own?' selected':'')+'>'+esc(l)+'</option>').join('');}
 
 /* ── venster "choose a shape": alle vormen van één akkoord (alle vormen van zijn soort, ook buiten de filters),
    per omkering een rij, tabjes per snarenset. PGM = {i: volgnummer, str: tabje ('all' of snarenset), order: keys op het scherm} of null.
@@ -229,20 +237,26 @@ function pgRenderModal(){const box=$('#pgModal');if(!PGM){box.hidden=true;return
   const lb=$('#pgMLock');lb.disabled=!x.v;lb.setAttribute('aria-pressed',st==='lock');lb.innerHTML=ICON.lock+'<span>'+esc(st==='lock'?T.pg.unlock:T.pg.lock)+'</span>';
   $('#pgMRefit').disabled=!x.v;$('#pgMRefit').innerHTML=ICON.refit+'<span>'+esc(T.pg.refit)+'</span>';$('#pgMRefit').title=T.pg.refitL;
   const nh=PG.list.filter(y=>y.held).length,rb=$('#pgMRel');rb.hidden=!nh;rb.innerHTML=ICON.pin+'<span>'+esc(T.pg.release(nh))+'</span>';rb.title=T.pg.releaseL;
-  seg($('#pgMType'),[['def',T.pg.typeDef(T.types[S.pType])],...VTYPES.map(t=>[t,T.types[t]])],x.own?x.tp:'def','pgmtype');
-  /* alle vormen van de soort; een vastgezette vorm uit een andere soort hoort er ook bij */
-  const all=x.v&&!x.all.includes(x.v)?[x.v].concat(x.all):x.all,cnt=new Map();all.forEach(v=>cnt.set(v.strs,(cnt.get(v.strs)||0)+1));
+  seg($('#pgMType'),[['def',T.pg.typeDef(pgTName(S.pType))],...pgTypes()],x.own?x.tp:'def','pgmtype');
+  /* alle vormen van de soort; een vastgezette vorm uit een andere soort hoort er ook bij. Bovenaan een rij ★ = de favorieten van dit akkoord
+     (elke voicingsoort), behalve als het akkoord al uit de favorieten kiest (dan zijn de rijen eronder dat al) */
+  const base=x.v&&!x.all.includes(x.v)?[x.v].concat(x.all):x.all,fl=x.tp!=='fav'||x.nofav?pgFavs(x.c):[];
+  const sk=new Set(),all=fl.concat(base).filter(v=>{const k=v.type+'|'+v.key;return!sk.has(k)&&sk.add(k);}),cnt=new Map();all.forEach(v=>cnt.set(v.strs,(cnt.get(v.strs)||0)+1));
   if(PGM.str!=='all'&&!cnt.has(PGM.str))PGM.str='all';
   seg($('#pgMStr'),[['all',T.all+' · '+all.length],...[...cnt.keys()].sort(sortSets).map(s=>[s,s+' · '+cnt.get(s)])],PGM.str,'mstr');
-  const vs=all.filter(v=>PGM.str==='all'||v.strs===PGM.str),fon=pgFOn();
-  const rows=[0,1,2,3,null].map(r=>({r,vs:vs.filter(v=>v.inv===r)})).filter(o=>o.vs.length);
-  PGM.order=rows.flatMap(o=>o.vs.map(v=>v.key));
+  const inS=v=>PGM.str==='all'||v.strs===PGM.str,vs=base.filter(inS),fon=pgFOn();
+  const rows=[{r:'fav',vs:fl.filter(inS)}].concat([0,1,2,3,null].map(r=>({r,vs:vs.filter(v=>v.inv===r)}))).filter(o=>o.vs.length);
+  PGM.tl=[];PGM.order=[...new Set(rows.flatMap(o=>o.vs.map(v=>v.key)))];
   const tile=v=>{const on=v===x.v,hd=a&&a.v?pgMotion(a.v,v):null,mv=(a&&a.v?pgDist(a.v,v):0)+(b&&b.v?pgDist(v,b.v):0);
     const cls=nn=>{const j=v.notes.indexOf(nn);return(PG_GUIDE.includes(pgLab(x.c,nn))?' gt':'')+(hd&&hd[j]===0?' hd':'');};
-    return'<button type="button" class="dg mc'+(on?' on':'')+(fon&&!pgPass(v)?' nf':'')+'" data-k="'+v.key+'" aria-pressed="'+on+'" aria-label="'+esc(T.shapeBtn(x.c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
+    const fv=isFav(x.c,v),fz=fv?T.favOn:T.favOff;PGM.tl.push(v);
+    return'<div class="dgw"><button type="button" class="dg mc'+(on?' on':'')+(fon&&!pgPass(v)?' nf':'')+'" data-k="'+v.key+'" aria-pressed="'+on+'" aria-label="'+esc(T.shapeBtn(x.c.sym+', '+invTxt(v),fretTxt(v)))+'" title="'+esc(fretTxt(v))+'">'+
       (on?'<span class="cur">'+(st==='lock'?ICON.lock:st==='held'?ICON.pin:'')+esc(T.pg.cur)+'</span>':'')+diagram(x.c,v,null,cls)+
-      '<span class="cp">'+esc(v.strs)+' · '+esc(T.topIs(v.top))+((a&&a.v)||(b&&b.v)?' · <span title="'+esc(T.pg.movesL(mv))+'">'+esc(T.pg.moves(mv))+'</span>':'')+'</span></button>';};
-  $('#pgMBody').innerHTML=!vs.length?'<p class="note">'+esc(T.pg.noShape)+'</p>':rows.map(o=>'<div class="pgmr"><h3 class="px">'+esc(o.r!=null?T.inv[o.r]:T.other)+' <small>'+o.vs.length+'</small></h3><div class="pgmd">'+o.vs.map(tile).join('')+'</div></div>').join('');
+      '<span class="cp">'+esc(v.strs)+' · '+esc(T.topIs(v.top))+((a&&a.v)||(b&&b.v)?' · <span title="'+esc(T.pg.movesL(mv))+'">'+esc(T.pg.moves(mv))+'</span>':'')+'</span></button>'+
+      '<button type="button" class="fav'+(fv?' on':'')+'" data-fx="'+(PGM.tl.length-1)+'" aria-pressed="'+fv+'" aria-label="'+esc(fz)+'" title="'+esc(fz)+'">★</button></div>';};
+  const rt=r=>r==='fav'?'<span><span class="gst" aria-hidden="true">★</span> '+esc(T.favT)+'</span>':esc(r!=null?T.inv[r]:T.other);
+  $('#pgMBody').innerHTML=(x.nofav?'<p class="note pgnfm">'+esc(T.pg.noFavM(pgQ(x.c),T.types[x.fb]))+'</p>':'')+
+    (!rows.length?'<p class="note">'+esc(T.pg.noShape)+'</p>':rows.map(o=>'<div class="pgmr'+(o.r==='fav'?' gfav':'')+'"><h3 class="px">'+rt(o.r)+' <small>'+o.vs.length+'</small></h3><div class="pgmd">'+o.vs.map(tile).join('')+'</div></div>').join(''));
   pgMFit();}
 /* zo groot als past: schaal --mf (0,7–1,45 × Diagram size) zolang alle rijen in het venster passen; anders scrolt het venster zelf.
    Rijen onder elkaar of in twee kolommen naast elkaar (.two): wat de grootste diagrammen geeft */
@@ -253,7 +267,7 @@ function pgMFit(){const g=$('#pgMBody');g.style.overflow='hidden';
   if(r<1.45&&g.querySelectorAll('.pgmr').length>1){g.classList.add('two');const r2=best();if(r2>r+.02)r=r2;else g.classList.remove('two');}
   g.style.setProperty('--mf',r);g.style.overflow='';}
 /* een vorm uit het venster kiezen (klik of ← →): horen, en vastzetten als hij nog niet vast staat */
-function pgMPick(key){const x=PGM&&PG.list[PGM.i];if(!x)return;const v=x.all.find(w=>w.key===key)||(x.v&&x.v.key===key?x.v:null);if(!v)return;
+function pgMPick(key){const x=PGM&&PG.list[PGM.i];if(!x)return;const v=x.v&&x.v.key===key?x.v:(PGM.tl||[]).find(w=>w.key===key);if(!v)return;
   playShape(x.c,v);logChord(x.c.sym);if(v===x.v&&pgState(x)==='lock')return;pgDo('pick',v,[x.i]);}
 /* selecteren: how = 'one' (gewone klik), 'toggle' (Ctrl/Cmd), 'range' (Shift) */
 function pgSelect(i,play,how){if(!PG.list[i])return;
@@ -405,7 +419,9 @@ function pgBind(){
   $('#pgMRel').addEventListener('click',()=>pgDo('refitAll'));
   $('#pgMType').addEventListener('click',e=>{const b=e.target.closest('[data-pgmtype]');if(b&&PGM)pgDo('type',b.dataset.pgmtype,[PGM.i]);});
   $('#pgMStr').addEventListener('click',e=>{const b=e.target.closest('[data-mstr]');if(b&&PGM){PGM.str=b.dataset.mstr;pgRenderModal();}});
-  $('#pgMBody').addEventListener('click',e=>{const b=e.target.closest('.dg');if(b)pgMPick(b.dataset.k);});
+  $('#pgMBody').addEventListener('click',e=>{const f=e.target.closest('[data-fx]'),b=e.target.closest('.dg');
+    if(f){const x=PG.list[PGM.i],v=PGM.tl[+f.dataset.fx];if(x&&v){favToggle(x.c,v);pgRender();}return;}   /* ster = favoriet aan/uit (dezelfde lijst als Find voicings) */
+    if(b)pgMPick(b.dataset.k);});
   let mt=0;addEventListener('resize',()=>{clearTimeout(mt);mt=setTimeout(()=>{if(PGM)pgMFit();},150);});
   document.addEventListener('keydown',e=>{if(S.mode!=='prog'||e.altKey)return;const tag=e.target&&e.target.tagName;
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;

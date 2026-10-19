@@ -178,7 +178,7 @@ const pathGet=p=>p.split('.').reduce((o,k)=>o&&o[k],TEXT);
 function applyText(){
   document.querySelectorAll('[data-t]').forEach(el=>{const v=pathGet(el.dataset.t);if(typeof v==='string')el.textContent=v;});
   document.querySelectorAll('[data-ta]').forEach(el=>{const v=pathGet(el.dataset.ta);if(typeof v==='string'){el.setAttribute('aria-label',v);el.title=v;}});
-  $('#lnkHome').href=T.links.home;$('#lnkFret').href=T.links.fret;homeSum();$('#btnReset').textContent=T.reset.btn;
+  {const h=$('#lnkHome');if(h)h.href=T.links.home;}homeSum();$('#howTxt').innerHTML=T.ui.how;$('#btnReset').textContent=T.reset.btn;
   document.title=T.nav.scales;
 }
 

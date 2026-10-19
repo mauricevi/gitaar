@@ -136,7 +136,7 @@ const DEFAULTS={
  B:{root:'C',type:'natMinor',formula:'',label:'note',color:'#ff9f43',cmode:'fixed',on:true},
  pos:{system:'auto',ref:'A',selected:[],mf:{A:null,B:null}},
  progs:null,                                   /* null = nog nooit opgeslagen → er komt één voorbeeldprogressie */
- view:{mode:'compare',prog:null,sel:0,cmp:null},      /* cmp = index van het vergeleken akkoord (Shift-klik) */        /* mode: compare | prog · sel = index van het gekozen akkoord */
+ view:{mode:'compare',prog:null,sel:0,cmp:null,col:true,tab:'main'},      /* cmp = index van het vergeleken akkoord (Shift-klik) · col = kolom rechts open, tab = tabblad daarin (main | set) */        /* mode: compare | prog · sel = index van het gekozen akkoord */
  pv:{win:true,forms:false,fstay:true,fzoom:false,fc:5,lo:5,span:5,tones:true,scale:true,guide:true,labels:'deg',loop:true,cmpKind:'scales',
      band:{style:'swing',fscale:true,piano:true,bass:true,drums:true,count:true,intro:'count',build:true,fills:true,ending:true,swing:.67,vol:{piano:100,bass:100,drums:100}}},   /* backing track */   /* weergave in progressies */
  set:{

@@ -86,10 +86,14 @@ const T={
     keys:'Click a chord to choose its shape (its diagram also plays it) · Ctrl/Shift-click selects more, Ctrl+A all · ← → move (Shift extends) · Enter opens the shapes · L lock · R re-fit · Esc one chord · Space starts or stops',
     /* venster "choose a shape" */
     mH:'choose a shape',mTypeL:'Voicing',mStrL:'Strings',prevC:'Previous chord',nextC:'Next chord',close:'Close',
-    mHelp:'Click a shape to use it for this chord: it is locked and the other chords adapt (or stay, with “Keep the others” in Settings → Editing). The current shape has an amber frame. ↕ = semitones of movement to the chords around it; dashed ring = note held from the previous chord. Keys: ← → previous / next shape · Shift+← → previous / next chord · Space hear · L lock · R re-fit · Esc close.',
+    mHelp:'Click a shape to use it for this chord: it is locked and the other chords adapt (or stay, with “Keep the others” in Settings → Editing). The current shape has an amber frame. ↕ = semitones of movement to the chords around it; dashed ring = note held from the previous chord. ★ on a shape = favourite (for every root); your favourites for this chord type are the ★ row at the top, and the voicing “★ Favourites” lets the voice leading pick only from them. Keys: ← → previous / next shape · Shift+← → previous / next chord · Space hear · L lock · R re-fit · Esc close.',
     selBar:n=>`${n} selected`,typeSel:'Voicing…',
     heldL:'held note',heldHelp:'A dashed ring on a note means it is held from the previous chord: the same note on the same string, a common tone your finger can keep. Colours: cream = root (amber ring), amber = 3rd, tan = 5th, green = 7th, red = colour tones.',heldT:'Held from the previous chord',
     noFit:'No shape fits the filters: free choice',
+    /* favorieten (★) in Progression */
+    isFav:'One of your favourite shapes (★)',noFavS:'no ★',
+    noFav:(q,t)=>`No favourites for ${q} chords yet: ${t} instead. Star a shape (★) in this window or in Find voicings.`,
+    noFavM:(q,t)=>`No favourites for ${q} chords yet, so this chord uses ${t}. Star a shape (★) below to make it a favourite: it counts for every ${q} chord, in every key.`,
     styleL:'Style',style:{swing:'Swing',bossa:'Bossa',straight:'Straight'},drums:'Drums',
     vol:{piano:'Chords',bass:'Bass',drums:'Drums'},volL:k=>`${k} volume`,
     bassL:l=>`Bass: ${l}`,apTo:(k,n)=>`${k==='chr'?'Chromatic':'Scale-step'} approach to ${n}`,

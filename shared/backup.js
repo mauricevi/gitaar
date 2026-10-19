@@ -7,10 +7,10 @@
    weer overschrijft met wat hij nog in zijn geheugen had. Daarom laden met <script src="shared/backup.js"> vóór de app-scripts.
    Lokaal (file://, localhost) en op GitHub Pages is de opslag gescheiden: exporteer op het adres waar je oefent. Knoppen verschijnen in het element met id="prBackup"
    (data-app = naam van de pagina, data-btn = knopstijl; in de schil "act sm", opmaak .prb-row/.prb-msg in room.css).
-   Nog losse kopieën (zelfde code): toonladder/backup.js (Scale Trainer, tot die in de schil zit) en chord-moves.html.
+   Nog één losse kopie (zelfde code): chord-moves.html.
    Bestandsformaat {type:'practice-room-backup',v:1,created,from,data:{sleutel:tekst}} niet wijzigen:
    oude back-ups moeten blijven werken en de oude kopieën moeten nieuwe back-ups kunnen lezen.
-   Nieuwe app-sleutel? Voorvoegsel in RX (en een naam in APPS) zetten — hier, én in de twee losse kopieën.
+   Nieuwe app-sleutel? Voorvoegsel in RX (en een naam in APPS) zetten — hier, én in de losse kopie (chord-moves.html).
    Lick Lab (practiceRoom.lickLab) en Tuner (practiceRoom.tuner) vallen onder practiceRoom; APPS geeft ze alleen een eigen naam. */
 var PRB=(function(){
   'use strict';

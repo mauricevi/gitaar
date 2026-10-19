@@ -1,64 +1,32 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   SCALE TRAINER · v2 (Practice Room)
-   Indeling: zijbalk · werkbalk · kaarten A en B · akkoorden van A → B · bord · vergelijking · instellingen.
-   Zelfde Apple-stijl en effen houten bord als de Fretboard Trainer.
-   Opslag: localStorage 'toonladderTrainer:v1' (ongewijzigd, dus je instellingen blijven bewaard).
-   Houtkleur: gedeeld met de andere tools via 'practiceRoom.board'.
+   SCALE TRAINER · eigen CSS bovenop shared/room.css (schil, daglicht, materialen, knoppen, schakelaars, "?"-uitleg, kolom, transportplank).
+   Indeling: kop met Compare A / B + progressies · kaarten A en B (grondtoon + toonladder) of de progressie · bord met positiekeuze ·
+   vergelijking; kolom rechts = labels, kleuren, afspelen, akkoorden A → B (of het gekozen akkoord) en Settings; transportplank onderaan.
+   Geen thema meer (daglicht); de hals is palissander of de kaartstijl uit menu S (geen eigen houtsoort meer).
+   Opslag: localStorage 'toonladderTrainer:v1' (ongewijzigd, plus view.col/view.tab).
    ════════════════════════════════════════════════════════════════════════════ */
-:root{
-  --bg:#f2f2f7;--card:#ffffff;--side:rgba(255,255,255,.6);--tx:#1c1c1e;--mut:#6c6c70;--mut2:#8e8e93;
-  --sep:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12);--seg-on:#ffffff;
-  --ac:#0a63d6;--link:#0a63d6;--onac:#ffffff;--err:#c4302b;--sh:0 1px 2px rgba(0,0,0,.04);--chip:rgba(118,118,128,.12);
-  --wd1:#3e2518;--wfret:rgba(205,198,186,.32);--wnut:#d9d3c7;--wstr:#d6cfc1;--winl:rgba(232,225,210,.32);
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;--chip:rgba(118,118,128,.24);
-  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--sh:none;color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#000000;--card:#1c1c1e;--side:rgba(28,28,30,.75);--tx:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
-  --sep:rgba(84,84,88,.55);--fill:rgba(118,118,128,.24);--seg-on:#636366;--chip:rgba(118,118,128,.24);
-  --ac:#1f6fe5;--link:#5aa2ff;--err:#ff6961;--sh:none;color-scheme:dark}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--link)}
-button,select,input{font:inherit;color:var(--tx)}
-button{cursor:pointer}
-button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible,.sw:focus-within,.tg:focus-within{outline:3px solid var(--ac);outline-offset:2px}
-p{margin:0}
-/* ── app-indeling ── */
-.app{display:flex;min-height:100vh}
-.side{flex:0 0 220px;position:sticky;top:0;height:100vh;padding:22px 12px;border-right:1px solid var(--sep);background:var(--side);display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.brand,.sh2{font-size:13px;font-weight:600;color:var(--mut);padding:0 10px 10px}
-.sh2{padding:18px 10px 4px;font-size:12px}
-.side nav{display:grid;gap:2px}
-.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:9px;text-decoration:none;color:var(--tx);font-size:15px}
-.side a:hover{background:var(--fill)}
-.side a.on{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
-.side a.cur{font-weight:600}
-main{flex:1;min-width:0;max-width:var(--mainw,1320px);padding:20px 28px 56px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start}
-.tb{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.15}
-.sub{color:var(--mut);font-size:14px;margin-top:2px}
-.tr{display:flex;gap:8px}
-.card{background:var(--card);border-radius:18px;padding:20px;box-shadow:var(--sh);min-width:0}
-.cap{font-size:13px;color:var(--mut)}
+/* oude namen → tokens van de schil */
+:root{--sep:var(--line);--chip:var(--fill);--ac:var(--glow);--link:var(--onx);--onac:#fff6e6;--seg-on:var(--field);--guide:#64d2ff}
+body[data-card="paper"],body[data-card="staff"]{--guide:#0a63d6}
+.panel{padding:18px 20px;min-width:0}
+.wrap{display:grid;gap:16px;align-content:start}
+.top{margin-bottom:2px;flex-wrap:wrap}
 h2{font-size:17px;font-weight:700;margin:0}
 h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);font-weight:600;margin:0 0 8px}
-.ib{width:36px;height:36px;padding:0;border-radius:9px;border:0;background:var(--fill);display:grid;place-items:center}
-.ib:disabled{opacity:.4;cursor:default}
-.act{min-height:34px;padding:0 14px;border-radius:9px;border:0;background:var(--fill);font-size:14px;font-weight:600}
-.act.pri{background:var(--ac);color:var(--onac)}
-.chip{border:0;background:var(--chip);border-radius:999px;padding:6px 13px;font-size:14px}
-.chip[aria-pressed="true"]{background:var(--ac);color:var(--onac);font-weight:600}
-select,input[type=text],input[type=number]{background:var(--card);border:1px solid var(--sep);border-radius:9px;padding:7px 9px;min-width:0;max-width:100%;font-size:14px}
-input[type=range]{accent-color:var(--ac);width:100%;max-width:200px}
-input[type=color]{padding:0;border:1px solid var(--sep);border-radius:8px;width:40px;height:30px;background:var(--card)}
-.seg{display:inline-flex;padding:2px;border-radius:9px;background:var(--fill)}
-.seg button{border:0;background:none;border-radius:7px;min-height:30px;padding:0 13px;font-size:13px;color:var(--tx)}
-.seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600}
+.tr{display:flex;gap:8px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--fill);border-radius:12px;padding:6px 13px;font-size:14px;color:var(--mut)}
+input[type=text],input[type=number],input[type=search]{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:7px 9px;min-width:0;max-width:100%;font-size:14px}
+input[type=color]{padding:0;border:1px solid var(--line);border-radius:8px;width:40px;height:30px;background:var(--field)}
+input[type=range]{width:100%;max-width:200px}
+.act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+
+/* ── kop: Compare A / B en de progressies (glazen knoppenrij) ── */
+.plist{max-width:100%}
+.plist #progBtns{display:contents}
+.plist button{max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.plist #navCmp{font-weight:600}
+.plist #btnNew{font-size:17px;line-height:1;padding:6px 13px}
+
 /* ── kaarten A en B ── */
 #rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:16px}
 .srow{display:grid;gap:14px;align-content:start}
@@ -67,11 +35,6 @@ input[type=color]{padding:0;border:1px solid var(--sep);border-radius:8px;width:
 .sw input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .scn{flex:1;min-width:0}
 .scn b{display:block;font-size:22px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tg{position:relative;flex:none;display:inline-flex;cursor:pointer}
-.tg input{position:absolute;opacity:0;width:1px;height:1px}
-.tg i{width:46px;height:28px;border-radius:14px;background:var(--fill);position:relative;transition:background .15s}
-.tg i::after{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .15s}
-.tg input:checked+i{background:#34c759}.tg input:checked+i::after{transform:translateX(18px)}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .fld{display:grid;gap:4px;font-size:12px;color:var(--mut);min-width:0}
 .fld select{width:100%}
@@ -123,12 +86,12 @@ input[type=color]{padding:0;border:1px solid var(--sep);border-radius:8px;width:
 #board{min-width:min(var(--bw,1150px),max(100%,720px))}   /* past in de kaart; op smalle schermen scrollt het bord */
 #board svg{display:block;width:100%;height:auto}
 #board.zoom{min-width:0}
-.bwood{fill:var(--wd1)}
-.wire{stroke:var(--wfret)}
-.nutr{fill:var(--wnut)}
-.strl{stroke:var(--wstr)}
+.bwood{fill:var(--nbgh)}   /* palissander (#rwh uit shared/rail.js) of kaartstijl uit menu S */
+.wire{stroke:var(--nline)}
+.nutr{fill:var(--nnut)}
+.strl{stroke:var(--nstr)}
 .stro{stroke:var(--mut2);opacity:.45}
-.inl{fill:var(--winl)}
+.inl{fill:var(--ninl)}
 .fnum{fill:var(--mut2);font-size:11px;text-anchor:middle}
 .fnum.k{font-weight:700;fill:var(--tx)}
 .snm{fill:var(--mut2);font-size:12px;font-weight:600;text-anchor:middle}
@@ -177,13 +140,6 @@ input[type=color]{padding:0;border:1px solid var(--sep);border-radius:8px;width:
 .tag{padding:2px 9px;border-radius:999px;font-size:13px;background:var(--c);color:var(--ct);font-weight:600}
 .tag.plain{background:var(--chip);color:var(--tx)}
 /* ── instellingen ── */
-details.panel{padding:0}
-details.panel>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:58px;padding:0 22px;font-size:17px;font-weight:600;cursor:pointer}
-details.panel>summary::-webkit-details-marker{display:none}
-details.panel>summary .cap{font-weight:400;font-size:14px;margin-left:auto}
-details.panel>summary::after{content:"›";color:var(--mut2);font-size:22px;transition:transform .15s}
-details.panel[open]>summary::after{transform:rotate(90deg)}
-.pbody{padding:0 22px 22px;border-top:1px solid var(--sep)}
 .setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:26px;margin-top:18px}
 .sg{display:grid;gap:10px;align-content:start;min-width:0}
 .sr{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;min-width:0}
@@ -199,23 +155,7 @@ details.panel[open]>summary::after{transform:rotate(90deg)}
 .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(3.6rem,1fr));gap:8px}
 .pal label{display:grid;gap:3px;justify-items:center;font-size:12px;color:var(--mut)}
 .pal input{width:100%}
-.woods{display:flex;flex-wrap:wrap;gap:10px}
-.wood{position:relative;display:grid;justify-items:center;gap:4px;border:0;background:none;cursor:pointer;font-size:12px;color:var(--mut);padding:2px}
-.wood i{width:38px;height:38px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
-.wood[aria-pressed="true"] i{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ac)}
-.wood[aria-pressed="true"]{color:var(--tx);font-weight:600}
-.wood input{position:absolute;opacity:0;width:1px;height:1px}
-.foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px;padding-top:14px;border-top:1px solid var(--sep);font-size:13px;color:var(--mut)}
 /* ── progressies ── */
-.side{overflow-y:auto}
-.side .nb{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:9px;border:0;background:none;width:100%;text-align:left;font-size:14px;color:var(--tx)}
-.side .nb:hover{background:var(--fill)}
-.side .nb.on{background:rgba(10,99,214,.13);color:var(--link);font-weight:600}
-.side .nb span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.side .nb small{color:var(--mut2);font-size:12px;font-weight:400}
-.side .nb.add{color:var(--link)}
-.plist{display:grid;gap:2px}
-.tr .act{min-height:36px}
 .tempo{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);background:var(--fill);border-radius:9px;padding:0 4px 0 10px}
 .tempo input{width:4.2rem;border:0;background:transparent;text-align:right;font-weight:600}
 /* BPM-velden: slepen omhoog/omlaag verandert het tempo; klikken zonder slepen = typen */
@@ -272,9 +212,6 @@ body.dragnum,body.dragnum *{cursor:ns-resize!important;user-select:none;-webkit-
 .trn b{color:var(--ac);font-weight:700}
 .act[aria-pressed="true"]{background:var(--ac);color:var(--onac)}
 .act.danger{color:var(--err)}
-.work{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
-.work>#cardBoard{flex:999 1 620px}
-.insp{flex:1 1 270px;display:grid;gap:16px;align-content:start;min-width:0}
 .grpt{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px 14px}
 .list{padding:2px 16px}
 .lrow{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;border-bottom:1px solid var(--sep);font-size:14px}
@@ -345,7 +282,7 @@ body.dragnum,body.dragnum *{cursor:ns-resize!important;user-select:none;-webkit-
 .gdt{fill:var(--guide);font-weight:700}
 .lg i.gdl{background:none;border:2px dashed var(--guide)}
 /* venster: nieuwe progressie */
-dialog.sheet{border:0;padding:0;border-radius:16px;width:min(760px,calc(100% - 32px));max-height:calc(100vh - 48px);background:var(--bg);color:var(--tx);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog.sheet{border:0;padding:0;border-radius:16px;width:min(760px,calc(100% - 32px));max-height:calc(100vh - 48px);background:#f6ead5;color:var(--tx);box-shadow:0 30px 80px rgba(0,0,0,.35)}
 dialog.sheet::backdrop{background:rgba(0,0,0,.35)}
 .shh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 16px;background:var(--card);border-bottom:1px solid var(--sep);position:sticky;top:0;z-index:2}
 .lnk{justify-self:start;border:0;background:none;font-size:16px;color:var(--link);min-height:44px;padding:0 4px}
@@ -374,11 +311,63 @@ dialog.sheet::backdrop{background:rgba(0,0,0,.35)}
 #shChords:focus,#shName:focus{outline:none}
 .grp:focus-within{box-shadow:0 0 0 3px rgba(10,99,214,.35)}
 /* smalle schermen: zijbalk wordt een rij bovenaan */
-@media (max-width:860px){
-  .app{flex-direction:column}
-  .side{position:static;height:auto;flex:none;flex-direction:row;align-items:center;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--sep);padding:10px 12px}
-  .brand,.sh2{padding:0 10px}.side nav{display:flex;flex-wrap:wrap}
-  main{padding:16px 14px 40px}.card{padding:16px}.li>b{min-width:100%}
-}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-.prb-row{display:flex;flex-wrap:wrap;gap:8px}.prb-msg{margin:8px 0 0;font-size:13px;line-height:1.45;opacity:.8}
+
+/* ── kaarten A en B: alleen grondtoon en toonladder ── */
+.bdg2{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:var(--ct);font-weight:750;font-size:18px;box-shadow:0 0 0 2px var(--field),0 0 0 3.5px var(--line2)}
+.srow.off .bdg2{opacity:.4}
+.nc{background:rgba(255,250,240,.7)}
+
+/* ── bord: positiebalk in een progressie (hele hals · venster · vormen), horizontaal ── */
+.pvbar{margin:12px 0 10px}
+.pvbar>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.pvbar .grpt{margin:0;color:var(--onx)}
+.pvbar .list{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:0}
+.pvbar .lrow{min-height:0;border:0;gap:8px}
+.pvbar>div>.cap{flex-basis:100%;margin:0!important}
+
+/* ── kolom rechts ── */
+.col .colhd .seg button{padding:5px 12px;font-size:13.5px}
+.col .row select{max-width:170px}
+.col .abl{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--fill);font-weight:700;color:var(--tx)}
+.col .sw{width:32px;height:32px;font-size:13px}
+.col .playrow{justify-content:flex-start;flex-wrap:wrap}
+.col .playrow .act{gap:6px}
+.col .playrow .act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.col .sg{display:grid;gap:8px;margin:0 0 6px}
+.col .sg h3{margin:22px 0 4px}
+.col .sr{flex-wrap:wrap;gap:6px 12px;color:var(--mut)}
+.col .v select{min-width:0;max-width:170px}
+.col .v input[type=range]{width:110px;min-width:0}
+.col .spgrid{grid-template-columns:1fr;gap:4px}
+.col .pal{grid-template-columns:repeat(4,1fr)}
+#diat .seg{margin:0 0 10px}
+.col .dgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.col .dc{padding:7px 8px;min-height:52px;background:var(--field);border-color:var(--line)}
+.col .dc b{font-size:14px}.col .dc small{font-size:11px}
+.col .xpick{flex-direction:column;align-items:stretch}
+.col .xq select{min-width:0;width:100%}
+/* het gekozen akkoord (progressie): groepen zonder eigen kaart */
+.col .insp{display:grid;gap:4px}
+.col .grpt{margin:18px 0 4px;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif}
+.col .insp .card.list{background:none;padding:0;border-radius:0}
+.col .lrow{min-height:40px;border-bottom-color:var(--line)}
+.col .lrow input[type=text]{width:8.5rem}
+.col .lrow select.sc{max-width:9.5rem}
+.col .opt{border-bottom-color:var(--line);color:var(--tx)}
+
+/* ── transportplank ── */
+.tray{flex-wrap:wrap;gap:12px 18px}
+.tray .tr{gap:10px;flex-wrap:wrap}
+.tray .ib{background:rgba(255,243,225,.12);border-color:var(--glass-line);color:var(--gtx)}
+.tray .ib:hover{color:#fff}
+.tray .tpos{color:#fff6e6;font-size:15px}
+.tray .act{background:rgba(255,243,225,.12);border-color:var(--glass-line);color:var(--gtx)}
+.tray .act[aria-pressed="true"]{background:#f0a24a;border-color:#f0a24a;color:#3a1d08}
+.tray .tempo{background:rgba(255,243,225,.12);color:var(--gmut);border-radius:10px;min-height:34px}
+.tray .tempo input{color:#fff6e6}
+.tray .trn button{color:var(--gtx)}
+.tray .trn button:hover{background:rgba(255,243,225,.18)}
+.tray .trn b{color:#f0a24a}
+.tray .beats i{background:rgba(255,243,225,.22)}
+.tray .bpop{top:auto;bottom:calc(100% + 12px);color:var(--tx);background:#f9efdc}   /* band-menu opent naar boven */
+.bpop .lrow{border-bottom-color:var(--line)}
