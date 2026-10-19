@@ -1,9 +1,21 @@
-/* ══ BACK-UP · gelijk in alle Practice Room-pagina's (Home, Fretboard Trainer, Scale Trainer, Note Prompter, Chord Moves, Chord Finder) ══
-   Zie de uitleg bij PRB in chord-moves.html. Knoppen verschijnen in elk element met id="prBackup". */
+/* ══ BACK-UP (PRB) · één gedeelde kopie voor Home en alle trainers in de schil ══
+   Exporteren: alle Practice Room-gegevens die deze pagina kan zien → één .json-bestand in je Downloads.
+   Importeren: één of meer van die bestanden → samenvoegen met wat er al is → pagina herladen.
+     · Instellingen, voortgang en progressies: de geïmporteerde versie vervangt de huidige.
+     · Oefenlogboeken en zelf ingevulde minuten (kalender): per dag samengevoegd, de hoogste waarde blijft.
+   Het wegschrijven gebeurt ná het herladen en vóórdat de app zijn gegevens leest, zodat de app ze niet meteen
+   weer overschrijft met wat hij nog in zijn geheugen had. Daarom laden met <script src="shared/backup.js"> vóór de app-scripts.
+   Lokaal (file://, localhost) en op GitHub Pages is de opslag gescheiden: exporteer op het adres waar je oefent. Knoppen verschijnen in het element met id="prBackup"
+   (data-app = naam van de pagina, data-btn = knopstijl; in de schil "act sm", opmaak .prb-row/.prb-msg in room.css).
+   Nog losse kopieën (zelfde code): toonladder/backup.js (Scale Trainer, tot die in de schil zit) en chord-moves.html.
+   Bestandsformaat {type:'practice-room-backup',v:1,created,from,data:{sleutel:tekst}} niet wijzigen:
+   oude back-ups moeten blijven werken en de oude kopieën moeten nieuwe back-ups kunnen lezen.
+   Nieuwe app-sleutel? Voorvoegsel in RX (en een naam in APPS) zetten — hier, én in de twee losse kopieën.
+   Lick Lab (practiceRoom.lickLab) en Tuner (practiceRoom.tuner) vallen onder practiceRoom; APPS geeft ze alleen een eigen naam. */
 var PRB=(function(){
   'use strict';
   var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves|chordFinder)/;
-  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['chordFinder','Chord Finder'],['practiceRoom','Home and shared settings']];
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['chordFinder','Chord Finder'],['practiceRoom.lickLab','Lick Lab'],['practiceRoom.tuner','Tuner'],['practiceRoom','Home and shared settings']];
   var LOGS=/(\.log|:log|^practiceRoom\.manual)$/;
   var TXT={exp:'Export backup',imp:'Import backup…',
     saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},
@@ -60,7 +72,7 @@ var PRB=(function(){
     el.querySelector('[data-prb="imp"]').onclick=function(){inp.value='';inp.click();};
     inp.onchange=function(){if(inp.files&&inp.files.length)doImport(inp.files,msg);};
     try{var dn=sessionStorage.getItem('prImportDone');if(dn){sessionStorage.removeItem('prImportDone');var D=JSON.parse(dn);
-      msg(TXT.done(D.apps.join(', '),D.n)+(D.bad?' '+TXT.bad(D.bad):''));var dt=el.closest('details');if(dt)dt.open=true;var hs=el.closest('[hidden]');if(hs)hs.hidden=false;if(el.scrollIntoView)setTimeout(function(){el.scrollIntoView({block:'center'});},300);}}catch(e){}}
+      msg(TXT.done(D.apps.join(', '),D.n)+(D.bad?' '+TXT.bad(D.bad):''));var dt=el.closest('details');if(dt)dt.open=true;if(typeof ROOM!=='undefined'&&ROOM.open&&el.closest('.col'))ROOM.open(true,true);var hs=el.closest('[hidden]');if(hs)hs.hidden=false;if(el.scrollIntoView)setTimeout(function(){el.scrollIntoView({block:'center'});},300);}}catch(e){}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else setTimeout(mount,0);
   return{mount:mount,mergeLog:mergeLog};
 })();

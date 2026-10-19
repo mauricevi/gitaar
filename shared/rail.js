@@ -75,9 +75,17 @@ const ROOM={
     d.innerHTML='<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>'+g('rw',1,0)+g('rwh',0,1)+'</defs></svg>';
     document.body.prepend(d.firstChild);},
 
-  /* inklapbare kolom: el = <aside class="col">, knoppen [data-col="shut"] en [data-col="open"]; onChange(open) bewaart de stand */
-  column(el,open,onChange){const set=o=>{el.classList.toggle('shut',!o);el.setAttribute('aria-expanded',o);};set(open);
+  /* inklapbare kolom: el = <aside class="col">, knoppen [data-col="shut"] en [data-col="open"]; onChange(open) bewaart de stand.
+     Vanuit code: ROOM.open() / ROOM.open(false) / ROOM.toggle() (bewaart via onChange), ROOM.isOpen().
+     ROOM.open(o,true) = alleen tonen, niet bewaren (bv. de stand opnieuw zetten na een import). */
+  col:null,colSet:null,
+  column(el,open,onChange){
+    const set=o=>{o=!!o;el.classList.toggle('shut',!o);el.setAttribute('aria-expanded',o);};set(open);
+    ROOM.col=el;ROOM.colSet=(o,quiet)=>{const was=ROOM.isOpen();set(o);if(!quiet&&!!o!==was&&onChange)onChange(!!o);};
     el.addEventListener('click',e=>{const b=e.target.closest('[data-col]');if(!b)return;const o=b.dataset.col==='open';set(o);if(onChange)onChange(o);});},
+  open(o=true,quiet){if(ROOM.colSet)ROOM.colSet(o,quiet);},
+  toggle(){ROOM.open(!ROOM.isOpen());},
+  isOpen(){return !!ROOM.col&&!ROOM.col.classList.contains('shut');},
 
   init(){const nav=document.querySelector('nav.rail');
     if(nav){ROOM.app=nav.dataset.app||'';ROOM.base=nav.dataset.base||'';ROOM.rail(nav);ROOM.leave(nav);}

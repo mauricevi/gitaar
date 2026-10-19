@@ -23,11 +23,6 @@
    menu S → Stage kan het kader ook perkament maken, de strobe zelf blijft donker. */
 :root{--st:rgba(52,27,12,.86);--stx:#fff3df;--smut:rgba(255,240,220,.62);--amber:#f0a24a;--green:#9bd77e}
 body[data-stage="paper"]{--st:var(--panel);--stx:var(--tx);--smut:var(--mut);--amber:var(--glow2);--green:#4f8f3a}
-.cap{font-size:13px;color:var(--mut)}
-select{min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px;font-size:14px;color:var(--tx);max-width:100%}
-.act.sm{min-height:30px;padding:0 12px;font-size:13px}
-.top .help{border-color:rgba(255,240,220,.5);color:rgba(255,240,220,.85)}
-.top .help:hover{color:#fff}
 .help i p+p{margin-top:8px}
 .help i ul{margin:6px 0 0;padding-left:16px}
 
@@ -69,7 +64,6 @@ body[data-stage="paper"] .strings button[aria-pressed="true"]{background:var(--g
 .meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:#6fa85a}
 .meter i.hot{background:#e0902a}.meter i.clip{background:var(--err)}
 .meter u{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);opacity:.55}
-.krow{display:flex;gap:6px;align-items:center}
 .val{min-width:52px;text-align:right;font:12.5px "JetBrains Mono",monospace;color:var(--mut)}
 .stat{font-size:13px;color:var(--mut);line-height:1.45}.stat.err{color:var(--err)}
 .col .sub{margin:-4px 0 6px;text-align:right}
@@ -138,11 +132,15 @@ body[data-stage="paper"] .strings button[aria-pressed="true"]{background:var(--g
     <h3>Tuning</h3>
     <select id="tTuning" class="full" aria-label="Tuning"></select>
     <div class="row"><label for="gA4">A4</label><span class="krow"><input type="range" id="gA4" min="430" max="450" step="1"><span class="val" id="gA4V"></span></span></div>
+    <h3>Backup</h3>
+    <p class="cap" style="margin:0 0 10px;line-height:1.5">All Practice Room apps.</p>
+    <div id="prBackup" data-app="Tuner" data-btn="act sm"></div>
   </aside>
 </div>
 
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
+<script src="shared/backup.js"></script>         <!-- back-up (PRB), vóór de app -->
 <script>
 (function(){
 'use strict';

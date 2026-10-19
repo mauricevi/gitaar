@@ -1,11 +1,8 @@
 /* Chord Finder · eigen CSS bovenop shared/room.css (schil, kleuren, materialen, knoppen, schakelaars, "?"-uitleg).
    Hier: panelen in de middenkolom, akkoorddiagrammen (palissander, intervalkleuren), de drie modi. */
 :root{--dg:1}   /* grootte van de akkoorddiagrammen (schuifje "Diagram size" in de kolom, zet JS) */
-.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .view{display:grid;gap:18px}
 .panel{padding:16px 18px;min-width:0}
-.cap{font-size:13px;color:var(--mut)}
-.note{font-size:13px;color:var(--mut);line-height:1.5}
 .err{color:var(--err);font-size:13px}
 .err:empty{display:none}
 h2{font-size:22px;font-weight:400;margin:0;line-height:1.2}
@@ -13,19 +10,9 @@ h2.px{font-size:calc(22px * var(--dfs))}
 .panel h3{margin:0 0 8px;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif;font-weight:400;display:flex;align-items:center;gap:8px}
 .lb{font-size:calc(13.5px * var(--dfs));color:var(--mut2);text-transform:uppercase}
 .tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.krow{display:flex;gap:6px;align-items:center}
-select{min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px;font-size:14px;color:var(--tx)}
-.top .help{border-color:rgba(255,240,220,.5);color:rgba(255,240,220,.85)}
-.top .help:hover{color:#fff}
-.act.sm{min-height:30px;padding:0 12px;font-size:13px}
-.prb-row{display:flex;flex-wrap:wrap;gap:8px}
-.prb-msg{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
 
 /* ── keuzechips (filters, snarenset) ── */
-.chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--line);border-radius:10px;min-height:30px;padding:0 11px;background:var(--fill);font-size:13px;font-weight:600;color:var(--mut)}
-.chip:hover{color:var(--tx)}
-.chip[aria-pressed="true"]{background:var(--field);color:var(--onx);border-color:rgba(196,106,28,.45);box-shadow:0 1px 3px rgba(90,55,25,.15)}
 .chip small,.gh small{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:rgba(90,55,25,.1);font:600 11px "JetBrains Mono",monospace;color:var(--mut);letter-spacing:0}
 
 /* ── diagrammen: palissander (#rw/#rwh uit shared/rail.js), lichte fretten, intervalkleuren ── */

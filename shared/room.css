@@ -186,3 +186,19 @@ body[data-card="paper"],body[data-card="staff"]{
 .lookbox .lk-f{margin-top:14px}
 .lookbox .lk-reset{border:1px solid rgba(255,231,200,.22);background:rgba(255,240,220,.06);color:#f3eadb;border-radius:9px;padding:6px 12px}
 .lookbox .lk-reset:hover{border-color:#ff3b30}
+
+/* ── gedeelde kleine onderdelen (stonden gelijk in meerdere apps) ── */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* alleen voor schermlezers */
+.cap{font-size:13px;color:var(--mut)}
+.note{font-size:13px;color:var(--mut);line-height:1.5}
+.krow{display:flex;gap:6px;align-items:center}
+select{min-height:32px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px;font-size:14px;color:var(--tx);max-width:100%}
+.top .help{border-color:rgba(255,240,220,.5);color:rgba(255,240,220,.85)}
+.top .help:hover{color:#fff}
+.act.sm{min-height:30px;padding:0 12px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip:hover{color:var(--tx)}   /* .chip zelf verschilt per app */
+.chip[aria-pressed="true"]{background:var(--field);color:var(--onx);border-color:rgba(196,106,28,.45);box-shadow:0 1px 3px rgba(90,55,25,.15)}
+/* back-up (shared/backup.js) in de kolom rechts */
+.prb-row{display:flex;flex-wrap:wrap;gap:8px}
+.prb-msg{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
