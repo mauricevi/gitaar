@@ -1,0 +1,21 @@
+!!Claude, verwijder de items van de to do list die verwerkt zijn, maar deze comment niet verwijderen!!
+
+## Testen (Maurice, in Firefox via GitHub Pages)
+-Chord Finder: klinkt de nieuwe gitaar als een zachte jazzgitaar? (S-menu "Guitar sound": helderheid, galm, strum)
+-Chord Finder: vormvenster bij Progressions, "Strings & filters", ★-favorieten, Shift-klik op groepen (wel verwerkt, sinds 61f222e; niet te zien = Ctrl+Shift+R)
+-Tuner: microfoon (klik op de strobe als Firefox om toestemming vraagt)
+-Lick Lab: echte opname + afspelen. Note Prompter: pedaal en spatie. Fretboard: "due today"-voortgang
+-Home: labels slepen (E), titelpaneel en label-vervagen (S), overgang heen en terug
+
+-Chord Finder (nieuw): tabblad "Chord" weg (gekozen vorm staat nu op een plank onder de vormen), Progressions past op één scherm, ★-groep was leeg (opgelost), keuze "★ Favourites" bij de voicings, grotere sterren
+-Chord Finder (nieuw): ★ in Progressions: rij "★ Favourites" bovenaan in "choose a shape", ster op elke vorm, voicing "★ Favourites" (per akkoord of alles; geen favoriet → Drop 2 met rood "no ★"), ★ op de kaart
+-Scale Trainer (nieuw, getest in Chromium, nog niet in Firefox): in de gedeelde schil; progressies als knoppen in de kop, A/B + posities in het midden, labels/kleuren/Play A·B/akkoorden A→B in de kolom, band op de plank, back-up gedeeld
+
+-Fretboard (nieuw): balk met vragen bovenaan, hals over de hele breedte, geen vervagen bij pauze, Progress als eigen weergave (knop Practice · Progress rechtsboven)
+
+-Alle apps (nieuw, getest in Chromium): rec-lampje + oefentijd vandaag rechtsboven, uitgelijnd met het middenpaneel. Menu S, groep "Rec lamp": tonen, tellervenster/tekst, knipperen, tijd van deze trainer of alles. Lick Lab en Tuner hebben geen eigen log en tonen de tijd van alle trainers samen.
+
+-Lick Lab + Scale Trainer (nieuw): jazzgitaar voor lick, comping en Play A/B (bas/drums gelijk; schuif "Piano" heet nu "Chords"). Luisteren: is de verhouding gitaar/bas goed? (niveaus zijn gemeten, niet op gehoor)
+
+## Later
+-Chord Moves is overal verborgen (bestand en data blijven). Ooit opnieuw bekijken.
