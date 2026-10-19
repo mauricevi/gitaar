@@ -730,7 +730,7 @@ function setPaused(p){if(p===paused)return;if(!p&&view==='prog')setView('play');
   $('#btnPause').innerHTML=T.pauseBtn(p);
   if(p){activeMs+=performance.now()-runStart;if(q)q.t0=null;clearTimeout(idleT);}
   else{runStart=performance.now();if(q&&!q.done)q.t0=performance.now();armIdle();}
-  tick();}
+  noteCard();tick();}
 ['mousemove','mousedown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{if(!paused)armIdle();},{passive:true}));
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&cfg().tabPause)setPaused(true);});
 setInterval(tick,1000);
@@ -748,8 +748,8 @@ function scoreboard(){let n=0,ok=0;Object.values(store.stats).forEach(t=>{n+=t.n
 /* Kaartje "This note": historie van de huidige vraag */
 function noteCard(){const box=$('#nc');if(!q){box.innerHTML='<p class="cap">'+T.noNote+'</p>';return;}
   const t=st(q.s,q.pc),h=hist(t,q.dir),fl=cfg().fluentSec*1000,sc=score(t,q.dir);
-  /* bij "benoem de noot" pas na het antwoord de naam tonen, anders verklapt deze kaart het antwoord */
-  const hide=q.dir==='name'&&!q.done;
+  /* bij "benoem de noot" pas na het antwoord de naam tonen, anders verklapt deze kaart het antwoord; tijdens pauze is de vraag verborgen, dus de naam ook */
+  const hide=(q.dir==='name'||paused)&&!q.done;
   let html='<div class="ncn">'+T.noteName(hide?'?':full(q.pc),SLONG[q.s])+'</div>';
   if(h.length)html+='<div class="dots">'+h.map(([ok,ms])=>`<i class="dt ${!ok?'bad':ms!=null&&ms>fl?'slow':''}"></i>`).join('')+'</div>';
   html+='<p class="cap" style="margin:8px 0 0">'+(sc!=null&&h.length?T.noteScore(Math.round(100*sc),LN[sc<weakLimit()?1:h.length>=cfg().minN&&sc>=.9?3:2]):T.firstTime)+'</p>';
