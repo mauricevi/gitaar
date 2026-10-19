@@ -295,7 +295,7 @@ const SCENE={
   ],
   fx:{
     beam:[[380,40],[800,40],[1150,880],[420,900]],   /* zonnestraal met stofjes: hoeken boven-links, boven-rechts, onder-rechts, onder-links */
-    steam:[661,437],                                   /* mok */
+    steam:[732,437],                                   /* mok (rand, midden) */
     zzz:[590,768],                                     /* kat: hier beginnen de z'tjes */
     panes:[[371,30,515,131],[371,150,515,420],[535,35,721,136],[535,155,721,420],[741,44,803,142],[741,159,803,420]]   /* ruiten: vogels vliegen alleen daarachter */
   }
@@ -543,9 +543,9 @@ function startFx(){
         ctx.fillStyle='rgba(255,226,170,'+a.toFixed(3)+')';ctx.beginPath();ctx.arc(x,y,p.s,0,6.283);ctx.fill();}
       ctx.globalCompositeOperation='source-over';}
     /* damp uit de mok */
-    if(S.steam&&now>nextSteam){steam.push({x:F.steam[0]+(Math.random()-.5)*6,y:F.steam[1],age:0,life:2.6+Math.random(),ph:Math.random()*6});nextSteam=now+260;}
+    if(S.steam&&now>nextSteam){steam.push({x:F.steam[0]+(Math.random()-.5)*12,y:F.steam[1],age:0,life:3+Math.random()*1.2,ph:Math.random()*6});nextSteam=now+180;}
     for(let i=steam.length-1;i>=0;i--){const s=steam[i];s.age+=dt;if(s.age>s.life){steam.splice(i,1);continue;}
-      const k=s.age/s.life,x=s.x+Math.sin(s.age*2+s.ph)*3*k,y=s.y-s.age*13,r=2+k*8,a=.13*Math.sin(Math.PI*k);
+      const k=s.age/s.life,x=s.x+Math.sin(s.age*2+s.ph)*5*k,y=s.y-s.age*14,r=3+k*10,a=.26*Math.sin(Math.PI*k);   /* iets dichter dan eerst: was .13 */
       const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,248,235,'+a.toFixed(3)+')');g.addColorStop(1,'rgba(255,248,235,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,6.283);ctx.fill();}
     /* zzz bij de kat: om de paar seconden een z die zacht opstijgt, groeit en vervaagt */
     if(S.zzz&&now>nextZ){zz.push({age:0,life:4.2+Math.random()*.8,tilt:(Math.random()-.5)*.25});nextZ=now+S.zzzEvery*1000*(.85+Math.random()*.3);}
