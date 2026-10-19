@@ -191,13 +191,14 @@ body.dragnum,body.dragnum *{cursor:ns-resize!important;user-select:none;-webkit-
 .lhd>span:first-child{font-weight:600;color:var(--tx)}
 .lhd b{color:#c26a00}
 .lcells{display:flex;flex-wrap:wrap;gap:2px;user-select:none;-webkit-user-select:none}
-.lc{flex:1 0 54px;max-width:120px;display:flex;flex-direction:column;gap:1px;padding:4px 6px 5px;background:var(--fill);border-top:3px solid transparent;cursor:pointer;min-width:0}
-.lc small{font-size:10px;color:var(--mut)}
-.lc b{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lc.in{background:rgba(255,159,10,.2);border-top-color:#ff9f0a}
-.lc.a{border-top-left-radius:6px}.lc.b{border-top-right-radius:6px}
-.lc.now{box-shadow:inset 0 -3px 0 var(--ac)}
-.lc:hover{filter:brightness(.97)}
+/* .lcells .lc, niet los .lc: body.lc = kleine letters (menu S) */
+.lcells .lc{flex:1 0 54px;max-width:120px;display:flex;flex-direction:column;gap:1px;padding:4px 6px 5px;background:var(--fill);border-top:3px solid transparent;cursor:pointer;min-width:0}
+.lcells .lc small{font-size:10px;color:var(--mut)}
+.lcells .lc b{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcells .lc.in{background:rgba(255,159,10,.2);border-top-color:#ff9f0a}
+.lcells .lc.a{border-top-left-radius:6px}.lcells .lc.b{border-top-right-radius:6px}
+.lcells .lc.now{box-shadow:inset 0 -3px 0 var(--ac)}
+.lcells .lc:hover{filter:brightness(.97)}
 .tw.out{opacity:.4}
 .seg.so button{display:inline-flex;flex-direction:column;align-items:center;line-height:1.1;padding:4px 9px;min-width:42px}
 .seg.so button small{font-size:10px;color:var(--mut);font-weight:500}
