@@ -53,7 +53,7 @@ const ROOM={
   /* weggaan via de balk: afdekking terug (dezelfde warme kleur waarmee Home en de trainers beginnen), dan navigeren.
      Bij hover alvast de pagina en zijn beeld ophalen. */
   leave(nav){const pre=new Set();
-    nav.addEventListener('mouseover',e=>{const a=e.target.closest('a[href]');if(!a||pre.has(a.href))return;pre.add(a.href);
+    nav.addEventListener('mouseover',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||pre.has(a.href))return;pre.add(a.href);   /* eigen pagina niet opnieuw ophalen */
       const l=document.createElement('link');l.rel='prefetch';l.href=a.href;document.head.appendChild(l);
       const id=(ROOM.apps.find(x=>x&&a.getAttribute('href')===ROOM.base+x[1])||[])[0];
       if(id==='room')new Image().src=ROOM.base+'home/room.png';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
