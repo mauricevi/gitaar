@@ -99,7 +99,10 @@ const ROOM={
      Wat te zien is (aan/uit, venster, lampje, welke tijd) kiest het menu S (shared/look.js, groep "Rec lamp"). */
   st:null,deck:null,roomT:null,
   LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log'],
+  /* pagina open en actief: laatste invoer < 60 s geleden in een zichtbaar tabblad (start bij het openen), net als in de Scale Trainer */
+  lastIn:Date.now(),
   status(o){if(!ROOM.st){ROOM.st={};setInterval(ROOM.deckTick,1000);
+      ['pointerdown','keydown','input','wheel'].forEach(ev=>addEventListener(ev,()=>{ROOM.lastIn=Date.now();},{passive:true,capture:true}));
       if(typeof LOOK!=='undefined')LOOK.on(()=>ROOM.deckTick());}
     Object.assign(ROOM.st,o||{});ROOM.deckTick();},
   /* oefentijd vandaag over alle trainers: alle logboeken + wat je zelf invulde (zelfde bronnen als de kalender op Home) */
@@ -116,7 +119,7 @@ const ROOM={
     const d=ROOM.deck;if(d.parentNode!==top)top.appendChild(d);
     d.hidden=L.deck==='off';if(d.hidden)return;
     d.dataset.lamp=L.deckLamp||'pulse';d.dataset.win=L.deckWin||'window';
-    const rec=!!ROOM.val('rec');d.classList.toggle('on',rec);d.querySelector('.dk-rec').title=rec?'Practice time is counting':'Not counting: start practising';
+    const rec=!!ROOM.val('rec')||(document.visibilityState==='visible'&&Date.now()-ROOM.lastIn<=60000);d.classList.toggle('on',rec);d.querySelector('.dk-rec').title=rec?'Practice time is counting':'Not counting: start practising';
     /* tijd: "app" = dit logboek (heeft de app er geen, dan alle trainers), "room" = alle logboeken samen */
     const tm=L.deckTime||'app',own=ROOM.val('time'),room=tm==='room'||(tm==='app'&&own==null),el=d.querySelector('.dk');
     el.hidden=tm==='off';if(el.hidden)return;
