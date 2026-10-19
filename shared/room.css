@@ -170,8 +170,8 @@ input[type=range]{accent-color:var(--glow)}
    → de afdekking vloeit weg. Zonder JS gaat hij na 1,2 s vanzelf weg (animatie). Weg via de icoonbalk: html.pr-leave
    → afdekking terug, dan navigeert rail.js. Alleen doorzichtigheid, dus ook bij "minder beweging". */
 body::after{content:"";position:fixed;inset:0;z-index:900;pointer-events:none;background:var(--bg);animation:prCover .45s ease 1.2s both}
-html.pr-ready body::after{animation:none;opacity:0;transition:opacity .45s ease}
-html.pr-leave body::after{animation:none;opacity:1;transition:opacity .25s ease}
+html.pr-ready body::after{animation:none;opacity:0;transition:opacity .3s ease-out}
+html.pr-leave body::after{animation:none;opacity:1;transition:opacity .14s ease-in}
 @keyframes prCover{from{opacity:1}to{opacity:0}}
 /* geen @view-transition: beide kanten zijn al dezelfde warme kleur, en Chromium meldt dan "Transition was skipped" als fout */
 

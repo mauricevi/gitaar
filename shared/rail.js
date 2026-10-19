@@ -35,10 +35,13 @@ const ROOM={
      Geen toDataURL nodig (via file:// zou het canvas "besmet" zijn). Decor: eigen hoek (standaard), een andere hoek of de hele kamer. */
   app:'',base:'',img:null,cv:null,
   bgSrc(){const d=typeof LOOK!=='undefined'?LOOK.decorOf(ROOM.app):'own',c=d==='own'?ROOM.app:d;
-    return d==='room'?ROOM.base+'home/room.png':ROOM.corners.includes(c)?ROOM.base+'home/corners/corner-'+c+'.jpg':null;},
+    return d==='room'?ROOM.base+'home/room.jpg':ROOM.corners.includes(c)?ROOM.base+'home/corners/corner-'+c+'.jpg':null;},
   bgDraw(){const ph=document.querySelector('.bgfx.photo'),img=ROOM.img,cv=ROOM.cv;if(!ph||!img||!img.naturalWidth||!cv)return;
     const x=cv.getContext('2d'),W=ph.clientWidth||innerWidth+160,H=ph.clientHeight||innerHeight+160,s=Math.max(W/img.naturalWidth,H/img.naturalHeight),w=img.naturalWidth*s,h=img.naturalHeight*s;
-    const b=typeof LOOK!=='undefined'?LOOK.S.blur:6;cv.width=W;cv.height=H;x.filter='blur('+b+'px) saturate(1.05)';x.drawImage(img,(W-w)/2,(H-h)/2,w,h);},
+    /* onscherp is onscherp: op een kleiner canvas tekenen (k keer kleiner, blur ook k keer kleiner) en door CSS laten oprekken.
+       Ziet er hetzelfde uit, maar Firefox rekent de canvas-blur op de CPU: een kwart van de breedte = 1/16 van het werk. */
+    const b=typeof LOOK!=='undefined'?LOOK.S.blur:6,k=b>=2?Math.min(4,b/1.5):1;
+    cv.width=Math.round(W/k);cv.height=Math.round(H/k);x.filter='blur('+(b/k)+'px) saturate(1.05)';x.drawImage(img,(W-w)/2/k,(H-h)/2/k,w/k,h/k);},
   bg(){const ph=document.querySelector('.bgfx.photo');if(!ph)return;const src=ROOM.bgSrc();
     if(!src){ph.innerHTML='';ph.style.backgroundImage='';return;}
     if(!ROOM.cv){const cv=document.createElement('canvas'),x=cv.getContext('2d');
@@ -56,10 +59,10 @@ const ROOM={
     nav.addEventListener('mouseover',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||pre.has(a.href))return;pre.add(a.href);   /* eigen pagina niet opnieuw ophalen */
       const l=document.createElement('link');l.rel='prefetch';l.href=a.href;document.head.appendChild(l);
       const id=(ROOM.apps.find(x=>x&&a.getAttribute('href')===ROOM.base+x[1])||[])[0];
-      if(id==='room')new Image().src=ROOM.base+'home/room.png';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
+      if(id==='room')new Image().src=ROOM.base+'home/room.jpg';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
     nav.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
       e.preventDefault();const R=document.documentElement;if(R.classList.contains('pr-leave'))return;R.classList.add('pr-leave');
-      let done=false;const go=()=>{if(done)return;done=true;location.href=a.href;};setTimeout(go,280);});
+      let done=false;const go=()=>{if(done)return;done=true;location.href=a.href;};setTimeout(go,140);});   /* = de .14s van pr-leave in room.css */
     addEventListener('pageshow',()=>document.documentElement.classList.remove('pr-leave'));},   /* terug met Vorige (bfcache) */
 
   /* korrel: 180×180 tegeltje, licht en donker door elkaar (zelfde niveau als de schets) */

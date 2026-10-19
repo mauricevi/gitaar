@@ -10,6 +10,7 @@
      Schil (icoonbalk, achtergrond, kolom rechts, transportplank): shared/room.css + shared/rail.js; toets S = geheim menu (shared/look.js).
      Code in chordfinder/ (gewone scripts, één gedeelde scope, volgorde telt). Opslag: 'chordFinder.v1' en 'chordFinder.log'. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=DotGothic16&family=Pixelify+Sans:wght@400..700&family=VT323&family=Space+Mono:wght@400;700&family=Handjet:wght@300..700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared/room.css">
 <link rel="stylesheet" href="chordfinder/style.css">
@@ -188,7 +189,7 @@
 <!-- volgorde telt: alle scripts delen één scope -->
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>           <!-- icoonbalk, achtergrond, korrel -->
-<script src="backing-sounds.js"></script>  <!-- piano-, bas- en drumopnames (mag ontbreken) -->
+<script src="backing-sounds.js" defer></script>  <!-- piano-, bas- en drumopnames (mag ontbreken) -->
 <script src="shared/backup.js"></script>         <!-- back-up (PRB), vóór de app -->
 <script src="chordfinder/text.js"></script>
 <script src="chordfinder/theory.js"></script>
