@@ -1014,6 +1014,8 @@ applyNeck();renderAll();
 /* schil: kolom rechts (open/dicht bewaard), en de eigen regel in het menu S */
 if(hasROOM)ROOM.column($('#col'),S.colOpen,o=>{S.colOpen=o;save();});
 if(hasLOOK)LOOK.add([{k:'neckW',t:'range',l:'Neck size (Lick Lab, %)',min:60,max:100,step:5,def:100,get:()=>S.neckW,set:v=>{S.neckW=clamp(Math.round(v),60,100);save();applyNeck();}}]);
+/* rec-lampje (cassettedeck, shared/rail.js): geen eigen logboek → tijd = alle trainers vandaag; rec = opnemen of afspelen */
+if(hasROOM&&ROOM.status)ROOM.status({rec:()=>!!REC||!!(PL&&!PL.loading)});
 /* testhaakje */
 window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,
   get rec(){return REC;},get play(){return PL;},audio};

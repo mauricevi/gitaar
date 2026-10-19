@@ -37,7 +37,13 @@ const LOOK={
     {k:'cardA',t:'range',l:'Card opacity',min:.6,max:1,step:.01,v:'--card-a',d:.95},
     {k:'colW',t:'range',l:'Side column width',min:260,max:440,step:10,v:'--colpw',u:'px',d:320},
     {h:'Cards'},
-    {k:'card',t:'select',l:'Card style',o:[['rosewood','Rosewood neck'],['paper','Paper'],['staff','Paper + staff lines']],d:'rosewood'}],
+    {k:'card',t:'select',l:'Card style',o:[['rosewood','Rosewood neck'],['paper','Paper'],['staff','Paper + staff lines']],d:'rosewood'},
+    /* rec-lampje (cassettedeck) rechtsboven in de kop: ROOM.status in shared/rail.js leest deze waarden */
+    {h:'Rec lamp'},
+    {k:'deck',t:'select',l:'Rec lamp & time',o:[['on','Show'],['off','Hide']],d:'on'},
+    {k:'deckWin',t:'select',l:'Counter style',o:[['window','Tape-counter window'],['plain','Plain on the scene']],d:'window'},
+    {k:'deckLamp',t:'select',l:'Lamp',o:[['pulse','Pulses while practising'],['steady','Steady while practising'],['off','Hide']],d:'pulse'},
+    {k:'deckTime',t:'select',l:'Time today',o:[['app','This trainer'],['room','All trainers'],['off','Hide']],d:'app'}],
   S:null,extra:[],fns:[],box:null,obs:null,
 
   init(){LOOK.ROWS.find(r=>r.k==='font').o=Object.entries(LOOK.FONTS).map(([k,f])=>[k,f[0]]);

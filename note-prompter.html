@@ -503,7 +503,9 @@ function init(){
   $('#stage').addEventListener('click',()=>act('next'));
   $('#btnFs').addEventListener('click',toggleFs);
   if(S.midiOn&&navigator.requestMIDIAccess)midiInit(false);else if(!navigator.requestMIDIAccess)midiErr='nosupport';
-  renderPedal();$('#stage').focus();}
+  renderPedal();$('#stage').focus();
+  /* rec-lampje (cassettedeck, shared/rail.js): rec = laatste druk korter dan IDLE_SECS geleden (dan telt de tijd), tijd = logboek van vandaag */
+  ROOM.status({log:LOGKEY,rec:()=>!!lastPress&&Date.now()-lastPress<=IDLE_SECS*1000,time:()=>{const e=LOG[dayKey()];return e&&e.s||0;}});}
 init();
 })();
 </script>

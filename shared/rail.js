@@ -87,6 +87,39 @@ const ROOM={
   toggle(){ROOM.open(!ROOM.isOpen());},
   isOpen(){return !!ROOM.col&&!ROOM.col.classList.contains('shut');},
 
+  /* rec-lampje als op een cassettedeck, rechtsboven in de kop van de middenkolom (.top, rechts uitgelijnd met de middenkolom):
+     brandt zolang de oefentijd telt, met de oefentijd van vandaag ernaast.
+     ROOM.status({rec,time,log}) — waarde of functie (elke seconde gelezen). rec = true/false (oefentijd loopt),
+     time = seconden vandaag in deze app (uit het eigen logboek, alleen lezen; null/weglaten = de app heeft geen logboek),
+     log = eigen logboeksleutel (dan telt "alle trainers" de live waarde van deze app i.p.v. de opgeslagen).
+     Wat te zien is (aan/uit, venster, lampje, welke tijd) kiest het menu S (shared/look.js, groep "Rec lamp"). */
+  st:null,deck:null,roomT:null,
+  LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log'],
+  status(o){if(!ROOM.st){ROOM.st={};setInterval(ROOM.deckTick,1000);
+      if(typeof LOOK!=='undefined')LOOK.on(()=>ROOM.deckTick());}
+    Object.assign(ROOM.st,o||{});ROOM.deckTick();},
+  /* oefentijd vandaag over alle trainers: alle logboeken + wat je zelf invulde (zelfde bronnen als de kalender op Home) */
+  roomToday(){const now=Date.now(),own=ROOM.st.log,d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(!ROOM.roomT||now-ROOM.roomT.at>10000||ROOM.roomT.k!==k){const r=key=>{try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}};
+      const per={};ROOM.LOGS.forEach(key=>{const l=r(key),e=l&&l[k];per[key]=e&&typeof e==='object'&&isFinite(e.s)?+e.s:0;});
+      const m=r('practiceRoom.manual');per.manual=m&&isFinite(m[k])?m[k]*60:0;ROOM.roomT={at:now,k,per};}
+    let s=0;Object.entries(ROOM.roomT.per).forEach(([key,v])=>{s+=key===own?0:v;});
+    const t=ROOM.val('time');return s+(own&&t!=null?t:own?ROOM.roomT.per[own]||0:0);},
+  val(k){const v=ROOM.st[k];try{return typeof v==='function'?v():v;}catch(e){return null;}},
+  deckTick(){if(!ROOM.st)return;const L=typeof LOOK!=='undefined'&&LOOK.S||{},top=document.querySelector('.main .top');if(!top)return;
+    if(!ROOM.deck){const d=document.createElement('span');d.className='deck px';d.setAttribute('role','status');
+      d.innerHTML='<span class="dk-rec"><i></i>REC</span><span class="dk"><b></b><small></small></span>';ROOM.deck=d;}
+    const d=ROOM.deck;if(d.parentNode!==top)top.appendChild(d);
+    d.hidden=L.deck==='off';if(d.hidden)return;
+    d.dataset.lamp=L.deckLamp||'pulse';d.dataset.win=L.deckWin||'window';
+    const rec=!!ROOM.val('rec');d.classList.toggle('on',rec);d.querySelector('.dk-rec').title=rec?'Practice time is counting':'Not counting: start practising';
+    /* tijd: "app" = dit logboek (heeft de app er geen, dan alle trainers), "room" = alle logboeken samen */
+    const tm=L.deckTime||'app',own=ROOM.val('time'),room=tm==='room'||(tm==='app'&&own==null),el=d.querySelector('.dk');
+    el.hidden=tm==='off';if(el.hidden)return;
+    const sec=room?ROOM.roomToday():own,m=Math.floor(sec/60),v=Math.floor(m/60)+':'+String(m%60).padStart(2,'0'),lab=room?'all today':'today';
+    if(el.firstChild.textContent!==v)el.firstChild.textContent=v;if(el.lastChild.textContent!==lab)el.lastChild.textContent=lab;
+    el.title='Practice time today'+(room?' (all trainers)':' in this trainer')+': '+m+' min';},
+
   init(){const nav=document.querySelector('nav.rail');
     if(nav){ROOM.app=nav.dataset.app||'';ROOM.base=nav.dataset.base||'';ROOM.rail(nav);ROOM.leave(nav);}
     ROOM.bg();ROOM.textures();ROOM.defs();

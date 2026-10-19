@@ -53,6 +53,11 @@ function init(){
   /* in een ingesloten weergave (zoals een artifact) leidt de icoonbalk nergens heen */
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
   update();
+  /* rec-lampje (cassettedeck, shared/rail.js): rec = het logboek telt (band speelt, of actie < 60 s geleden in een zichtbaar
+     tabblad, zie theory.js), tijd = logboek van vandaag */
+  if(typeof ROOM!=='undefined'&&ROOM.status)ROOM.status({log:'toonladderTrainer:log',
+    rec:()=>progPlayer.on||(document.visibilityState==='visible'&&Date.now()-lastAct<=60000),
+    time:()=>{const e=SLOG[dayKey()];return e&&e.s||0;}});
 }
 
 const API={parseFormula,buildScale,makeScale,SCALES,ROOTS,TUNINGS,computePositions,availableSystems,defaultSystem,cagedPositions,npsPositions,windowPositions,DEFAULTS,mod};

@@ -13,7 +13,9 @@ function init(){
   applyDgSize();applyWood();bind();bindId();pgBind();update();renderMode();homeLink();
   /* menu S (shared/look.js): kaartdetails is een keuze van deze app (bewaard in chordFinder.v1); na elke wijziging opnieuw passend maken */
   LOOK.add([{k:'cardDet',t:'select',l:'Card details',o:Object.entries(T.det),def:'compact',get:()=>S.cardDet,set:v=>{S.cardDet=v;save();renderCol();}}]);
-  LOOK.on(()=>refit());}
+  LOOK.on(()=>refit());
+  /* rec-lampje (cassettedeck, shared/rail.js): rec = oefentijd telt (actie < 60 s geleden, zie act()) of de band speelt; tijd = logboek van vandaag */
+  ROOM.status({log:LOGKEY,rec:()=>(!!lastAct&&Date.now()-lastAct<=60000)||!!(PGP&&!PGP.loading),time:()=>{const e=LOG[dayKey()];return e&&e.s||0;}});}
 init();
 /* voor de console: API.parseChord('G7/B'), API.voicingsOf(API.parseChord('Cmaj7'),'drop3') */
 const API={parseChord,voicingsOf,rootlessSet,identify,pgParse,QUAL,get D(){return D;},get S(){return S;},get PG(){return PG;}};

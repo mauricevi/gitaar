@@ -145,6 +145,22 @@ input[type=range]{accent-color:var(--glow)}
 .tray .tg i{background:rgba(255,240,220,.25)}
 .tray .tg input:checked+i{background:#f0a24a}
 .tray .stat{margin-left:auto;font-size:13px;color:rgba(255,240,220,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* rec-lampje als op een cassettedeck (ROOM.status in shared/rail.js): lampje · oefentijd vandaag. Laatste kind van .top,
+   dus rechtsboven, rechts uitgelijnd met de middenkolom, op de hoogte van de titel. Menu S: venster/plat, lampje, tijd. */
+.deck{flex:none;display:inline-flex;align-items:center;gap:12px;margin-left:auto;padding:7px 14px;border-radius:10px;line-height:1;white-space:nowrap;color:#ffd79a}
+.deck[data-win="window"]{background:linear-gradient(180deg,rgba(28,14,6,.62),rgba(44,22,10,.5));box-shadow:inset 0 1px 3px rgba(0,0,0,.55),0 1px 0 rgba(255,235,205,.16)}
+.deck[data-win="plain"]{padding:0;text-shadow:0 1px 10px rgba(60,30,10,.6)}
+.deck .dk{display:inline-flex;align-items:baseline;gap:5px}
+.deck .dk b{font-weight:inherit;font-size:calc(16px * var(--dfs));color:#ffe2b0;text-shadow:0 0 6px rgba(255,190,110,.45);font-variant-numeric:tabular-nums}
+.deck .dk small{font-size:calc(10.5px * var(--dfs));letter-spacing:.08em;color:rgba(255,215,160,.6);text-transform:uppercase}
+.deck .dk-rec{display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;font-size:calc(11px * var(--dfs));letter-spacing:.1em;color:rgba(255,215,160,.45)}
+.deck .dk-rec i{width:9px;height:9px;border-radius:50%;background:#5a2a20;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.deck.on .dk-rec{color:#ffb0a0}
+.deck.on .dk-rec i{background:#ff3b2a;box-shadow:0 0 8px 1px rgba(255,60,40,.75),inset 0 -1px 2px rgba(120,0,0,.4)}
+.deck.on[data-lamp="pulse"] .dk-rec i{animation:dkRec 1.6s ease-in-out infinite}
+.deck[data-lamp="off"] .dk-rec{display:none}
+@keyframes dkRec{50%{opacity:.45;box-shadow:0 0 3px rgba(255,60,40,.4)}}
+@media (prefers-reduced-motion:reduce){.deck.on .dk-rec i{animation:none!important}}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 

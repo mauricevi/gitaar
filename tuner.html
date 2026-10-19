@@ -348,6 +348,8 @@ $('#stage').addEventListener('click',e=>{if(e.target.closest('#tStrings'))return
 syncUI();render(performance.now());
 if(!window.isSecureContext&&location.protocol!=='file:'){status('Audio inputs only work on https or from a file on your computer.',true);render(performance.now());}
 else connect();   /* meteen luisteren */
+/* rec-lampje (cassettedeck, shared/rail.js): geen eigen logboek → tijd = alle trainers vandaag; rec = de stemmer luistert */
+ROOM.status({rec:()=>on&&!!ctx&&ctx.state==='running'});
 /* testhaakje: het laatste meetresultaat */
 window.TUNER={get target(){return target;},cents:()=>{const c=centsNow();return c&&c.c;},get demod(){return demod;}};
 })();

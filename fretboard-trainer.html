@@ -997,6 +997,8 @@ try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
 
 /* ===== START ===== */
 applyText();applySize();colInit();drawSettings();restart();setView('play');
+/* rec-lampje (cassettedeck, shared/rail.js): rec = sessie loopt, tijd = logboek van vandaag + het lopende stuk */
+ROOM.status({log:'fretTrainer.log',rec:()=>!paused,time:()=>{const e=FLOG[dayKey()];return(e&&e.s||0)+(!paused&&logMark?(performance.now()-logMark)/1000:0);}});
 </script>
 <script>
 /* ══ GITAARINGANG (test) ═══════════════════════════════════════════════════════════════════════
