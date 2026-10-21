@@ -845,6 +845,28 @@ const PRESETS=[
   ['One minor lick, four chords (Am)','Am7 D7 Fmaj7 F#m7b5'],
   ['ii–V–I in all keys (down in whole steps)','Dm7 G7 Cmaj7 Cm7 F7 Bbmaj7 Bbm7 Eb7 Abmaj7 Abm7 Db7 Gbmaj7 F#m7 B7 Emaj7 Em7 A7 Dmaj7']];
 
+/* progressies uit de Scale Trainer (toonladderTrainer:v1, alleen lezen, nooit schrijven): {name, text}.
+   Eén akkoord per symbool (de duur in maten telt hier niet: één akkoord = één lick), de bas na de schuine streep valt weg,
+   en een soort die Lick Lab niet kent wordt het dichtstbijzijnde akkoord dat het wel kent. Bestaat de opslag niet, dan is de lijst leeg. */
+const ST_NEAR=[[/^m6\/9$/,'m6'],[/^m\(add9\)$/,'m7'],[/^m\(maj9\)$/,'m(maj7)'],[/^m9b5$/,'m7b5'],[/^m7b9$/,'m7'],[/^maj[79]#5$/,'maj7'],[/^aug$/,'aug7'],[/^sus2$/,'sus4']];
+function stTok(sym){const t=String(sym).replace(/\s+/g,'').replace(/\/[A-Ga-g][#b♯♭]?$/,'');
+  if(parseChord(t))return t;
+  const m=/^([A-Ga-g][#b♯♭]?)(.*)$/.exec(t);if(!m)return t;
+  const q=m[2].replace(/♭/g,'b').replace(/♯/g,'#');
+  for(const[re,to]of ST_NEAR)if(re.test(q)&&parseChord(m[1]+to))return m[1]+to;
+  return t;}
+function stProgs(){const s=read('toonladderTrainer:v1'),ps=s&&Array.isArray(s.progs)?s.progs:[];
+  return ps.filter(p=>p&&typeof p==='object'&&Array.isArray(p.sections)).map(p=>({
+    name:typeof p.name==='string'&&p.name.trim()?p.name.slice(0,60):'Untitled',
+    toks:p.sections.flatMap(sec=>sec&&Array.isArray(sec.chords)?sec.chords:[]).filter(c=>c&&typeof c.sym==='string'&&c.sym).map(c=>stTok(c.sym))}))
+    .filter(p=>p.toks.length);}
+let STP=[];
+/* één keuzelijst: voorbeelden, en (als de Scale Trainer er heeft) zijn progressies; opnieuw opgebouwd bij elke keer openen */
+function fillPre(){STP=stProgs();
+  $('#pPre').innerHTML='<option value="">'+(STP.length?'Examples / Scale Trainer…':'Examples…')+'</option>'
+    +'<optgroup label="Examples">'+PRESETS.map((p,i)=>'<option value="e'+i+'">'+esc(p[0])+'</option>').join('')+'</optgroup>'
+    +(STP.length?'<optgroup label="From Scale Trainer">'+STP.map((p,i)=>'<option value="s'+i+'">'+esc(p.name)+' · '+p.toks.length+'</option>').join('')+'</optgroup>':'');}
+
 /* ── tab met ritmestreepjes en de trappen boven de noten ── */
 function tabSVG(L,c,P){const sub=L.sub,bar=4*sub,ns=L.notes,fam=QUAL[c.q].fam,flat=flatFor(c);
   const t0=Math.min(0,ns.length?Math.floor(ns[0].t/sub)*sub:0),t1=lickBars(L)*bar,cw=sub===4?22:sub===3?27:32,X0=30;
@@ -999,7 +1021,13 @@ $('#btnProg').addEventListener('click',()=>playStart('prog'));
 
 $('#pText').addEventListener('input',e=>{S.prog=e.target.value;save();renderChips();renderView();});
 $('#pText').addEventListener('change',()=>{if(PL&&PL.mode==='prog'){stopPlay();toast('Progression changed: press Play again.');}});
-$('#pPre').addEventListener('change',e=>{const p=PRESETS[+e.target.value];if(!p)return;stopPlay();S.prog=p[1];S.over=[];S.sel=0;sel=null;save();renderAll();e.target.value='';});
+$('#pPre').addEventListener('change',e=>{const v=e.target.value,i=+v.slice(1);e.target.value='';
+  let txt;
+  if(v[0]==='e'&&PRESETS[i]){txt=PRESETS[i][1];}
+  else if(v[0]==='s'&&STP[i]){txt=STP[i].toks.slice(0,48).join(' ');if(STP[i].toks.length>48)toast('Only the first 48 chords fit.');}
+  else return;
+  stopPlay();S.prog=txt;S.over=[];S.sel=0;sel=null;save();renderAll();});
+['pointerdown','focus'].forEach(ev=>$('#pPre').addEventListener(ev,fillPre));
 $('#pBpm').addEventListener('input',e=>{S.ptempo=clamp(Math.round(+e.target.value)||80,30,240);$('#pBpmV').textContent=S.ptempo+' BPM';});
 $('#pBpm').addEventListener('change',()=>save());
 $('#pLad').addEventListener('change',e=>{S.ladder=+e.target.value;save();});
@@ -1026,14 +1054,38 @@ document.addEventListener('keydown',e=>{
 /* keuzelijsten die niet veranderen: één keer opbouwen */
 $('#rRoot').innerHTML=ROOTN.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
 $('#rQual').innerHTML=QORDER.map(q=>'<option value="'+q+'">'+QUAL[q].lbl+'</option>').join('');
-$('#pPre').innerHTML='<option value="">Examples…</option>'+PRESETS.map((p,i)=>'<option value="'+i+'">'+esc(p[0])+'</option>').join('');
+fillPre();
 $('#pLad').innerHTML=[0,1,2,4,5,10].map(v=>'<option value="'+v+'">'+(v?'+'+v+' BPM each round':'Same tempo')+'</option>').join('');
 applyNeck();renderAll();
 /* schil: kolom rechts (open/dicht bewaard), en de eigen regel in het menu S */
 if(hasROOM)ROOM.column($('#col'),S.colOpen,o=>{S.colOpen=o;save();});
 if(hasLOOK)LOOK.add([{k:'neckW',t:'range',l:'Neck size (Lick Lab, %)',min:60,max:100,step:5,def:100,get:()=>S.neckW,set:v=>{S.neckW=clamp(Math.round(v),60,100);save();applyNeck();}}]);
-/* rec-lampje (cassettedeck, shared/rail.js): geen eigen logboek → tijd = alle trainers vandaag; rec = opnemen of afspelen */
-if(hasROOM&&ROOM.status)ROOM.status({rec:()=>!!REC||!!(PL&&!PL.loading)});
+/* oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden}}, zelfde vorm als fretTrainer.log.
+   Tijd telt zolang er opgenomen of afgespeeld wordt, of de laatste invoer (muis, toets) minder dan 60 s geleden is (start bij openen).
+   Onleesbaar → kopie naar LOGKEY+'.bad', niet stil overschrijven. Schrijven leest eerst wat er staat en houdt per dag de grootste s
+   (een tweede tabblad of een back-up-import raakt zo niets kwijt). */
+const LOGKEY=KEY+'.log',IDLE_SECS=60;
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function logRead(){let raw=null;try{raw=localStorage.getItem(LOGKEY);}catch(e){return{};}
+  if(raw==null)return{};
+  try{const o=JSON.parse(raw);if(o&&typeof o==='object'&&!Array.isArray(o))return o;}catch(e){}
+  try{localStorage.setItem(LOGKEY+'.bad',raw);}catch(e){}return{};}
+let LOG=logRead(),lastIn=Date.now(),lastTick=performance.now(),logDirty=false;
+['pointerdown','keydown','input','wheel'].forEach(ev=>addEventListener(ev,()=>{lastIn=Date.now();},{passive:true,capture:true}));
+const logSecs=e=>e&&typeof e==='object'&&isFinite(e.s)&&e.s>0?+e.s:0;
+function logTick(){const now=performance.now(),dt=Math.min((now-lastTick)/1000,5);lastTick=now;
+  const playing=!!REC||!!(PL&&!PL.loading),active=document.visibilityState==='visible'&&Date.now()-lastIn<=IDLE_SECS*1000;
+  if(!playing&&!active)return;
+  const k=dayKey(),e=LOG[k]&&typeof LOG[k]==='object'?LOG[k]:(LOG[k]={s:0});
+  e.s=Math.round((logSecs(e)+dt)*10)/10;logDirty=true;}
+function logSave(){if(!logDirty)return;logDirty=false;
+  const disk=logRead();Object.keys(disk).forEach(k=>{const d=logSecs(disk[k]);if(d>logSecs(LOG[k]))LOG[k]={s:d};});
+  const ks=Object.keys(LOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete LOG[k]);
+  try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}}
+setInterval(logTick,1000);setInterval(logSave,5000);
+addEventListener('pagehide',logSave);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')logSave();});
+/* rec-lampje (cassettedeck, shared/rail.js): tijd uit het eigen logboek; rec = opnemen of afspelen (daarnaast brandt het lampje bij recente invoer) */
+if(hasROOM&&ROOM.status)ROOM.status({log:LOGKEY,rec:()=>!!REC||!!(PL&&!PL.loading),time:()=>logSecs(LOG[dayKey()])});
 /* testhaakje */
 window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,
   get rec(){return REC;},get play(){return PL;},audio};
