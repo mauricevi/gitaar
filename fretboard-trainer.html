@@ -224,11 +224,7 @@ body[data-card="paper"] .cell.off,body[data-card="staff"] .cell.off{background-i
 .gstat:empty{display:none}
 .gstat.err{color:var(--err)}
 #gDev{width:100%}
-/* back-up als tekst + tooltip van de heatmap */
-dialog{border:1px solid var(--line2);border-radius:18px;background:#f9efdc;color:var(--tx);max-width:560px;width:calc(100% - 28px);padding:22px;box-shadow:0 30px 80px rgba(40,20,5,.45)}
-dialog::backdrop{background:rgba(40,20,5,.4)}
-dialog h2{margin:0 0 8px;font-size:calc(20px * var(--dfs))}
-textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:8px}
+/* tooltip van de heatmap */
 #tip{position:fixed;z-index:50;pointer-events:none;display:none;max-width:260px;background:var(--field);color:var(--tx);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(60,30,10,.25)}
 #tip .cap{font-size:12px}
 @media (prefers-reduced-motion:reduce){.tray .pg i{transition:none}}
@@ -303,7 +299,6 @@ textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field)
           <div class="kpis" id="wRec"></div>
           <span class="grow"></span>
           <button type="button" class="act sm" id="btnAll"></button>
-          <button type="button" class="act sm" id="btnBk" data-t="ui.backup">Backup (JSON)</button>
         </div>
         <p class="note" id="wHelp"></p>
         <div id="worst"></div>
@@ -399,11 +394,6 @@ textarea{width:100%;font:12px "JetBrains Mono",monospace;background:var(--field)
   </aside>
 </div>
 
-<dialog id="dlgBk"><h2 class="px" data-t="bk.title">Backup</h2>
-  <p class="note" style="margin:0 0 10px" data-t="bk.help"></p>
-  <textarea id="bk" rows="8" aria-label="Backup data"></textarea>
-  <div class="bar"><button type="button" class="act sm" id="bkCopy" data-t="bk.copy">Copy</button><button type="button" class="act sm" id="bkImp" data-t="bk.import">Import</button><button type="button" class="act sm pri" id="bkX" data-t="bk.close">Close</button><span class="cap" id="bkMsg" role="status"></span></div>
-</dialog>
 <div id="tip"></div>
 
 <script src="shared/look.js"></script>   <!-- geheim menu S (Look), vóór rail.js -->
@@ -457,7 +447,7 @@ const TEXT={
       notes:'Notes',notation:'Notation',frets:'Frets',focus:'Focus',thisNote:'This note',
       progress:'Progress',progressSub:'Learning path · heatmap · notes',path:'Learning path',pathSub:'Smart practice',
       heatmap:'Heatmap',view:'View',notesH:'Notes',howScore:'How is the score calculated?',
-      drill:'Drill weak spots',resetSess:'Reset session',backup:'Backup (JSON)',
+      drill:'Drill weak spots',resetSess:'Reset session',
       gBoard:'Fretboard',wood:'Wood',pageW:'Neck width',rowH:'String spacing',full:'full width',custom:'Custom',gSmart:'Smart practice',newPerDay:'New per day',newItems:'new items',
       dueMark:'Mark due notes',dueMarkSub:'blue ring in the heatmap',gGrading:'Grading',weakLimit:'Weak threshold',
       fluentUnder:'Fluent under',fluentSub:'Faster = full score; at 3× slower, 35% remains.',fluentAfter:'Fluent after',correctTries:'correct attempts',
@@ -492,9 +482,6 @@ const TEXT={
                     `Wrong counts as 0. Correct within the fluent limit (now <b>${f}</b>) counts as 100%; slower counts less, down to 35% at three times the limit.`,
                     `Below the weak threshold (now <b>${w}</b>) a note is a weak spot. One miss makes a strong note weak for a moment; after two correct answers it is known again.`],
   clearAll:'Clear all statistics', clearSure:'Sure? Click again',
-  bk:{title:'Backup',help:'Copy the text and keep it somewhere safe. Paste an earlier backup here and choose Import to restore everything (replaces the current data).',
-      copy:'Copy',import:'Import',close:'Close',copied:'Copied.',copyFail:'Copying failed: select the text and copy it manually (Ctrl+C).',
-      imported:'Imported.',invalid:'Invalid backup: nothing changed.'}
 };
 const T=TEXT;
 
@@ -514,7 +501,14 @@ const short=pc=>accOf()==='flat'?FL[pc]:SH[pc];
 /* ===== 2. STORE (localStorage, veilig met try/catch) ===== */
 const KEY='fretTrainer.v1';
 /* Oefenlogboek per dag (voor de kalender op Home): {"2026-10-08":{s:seconden,n:antwoorden,ok:goed}}. Eigen opslagsleutel. */
-var FLOG=(()=>{try{return JSON.parse(localStorage.getItem('fretTrainer.log'))||{};}catch(e){return{};}})();
+/* logboek veilig lezen: onleesbaar → kopie naar '.bad' (als die er nog niet is), dan leeg verder */
+function logRead(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return{};}if(raw==null)return{};
+  try{const o=JSON.parse(raw);if(o&&typeof o==='object'&&!Array.isArray(o))return o;}catch(e){}
+  try{if(localStorage.getItem(k+'.bad')==null)localStorage.setItem(k+'.bad',raw);}catch(e){}return{};}
+/* vóór het wegschrijven de opgeslagen versie erbij (ander tabblad): per dag blijft de grootste tijd */
+function logMerge(k,L){const o=logRead(k),sz=v=>v&&typeof v==='object'?+v.s||0:0;
+  Object.keys(o).forEach(d=>{if(!(d in L)||sz(o[d])>sz(L[d]))L[d]=o[d];});return L;}
+var FLOG=logRead('fretTrainer.log');
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   /* lokale datum JJJJ-MM-DD */
 const DEF={strings:[1,1,1,1,1,1],notes:'both',acc:'sharp',min:0,max:12,mode:'find',weak:false,weakPct:85,sound:true,idleSec:20,tabPause:true,fluentSec:2.5,minN:3,map:'mast',theme:null,findOnly:false,newPerDay:6,dueMark:true,stageSet:null,tone:'guitar',wtab:'weak',wood:'rosewood',woodCustom:'#7a4a2a',pageW:2600,rowH:2.6,colOpen:true,colTab:'sess',heatH:2.3};
 /* theme en wood blijven bewaard (oude versies), maar de schil is altijd daglicht met een palissander hals.
@@ -721,7 +715,7 @@ function playSound(ok,s,f){if(!cfg().sound)return;
 let logMark=0;
 function logAdd(sec,n,ok){const e=FLOG[dayKey()]||(FLOG[dayKey()]={s:0,n:0,ok:0});e.s+=sec;e.n+=n||0;e.ok+=ok||0;}
 function logFlush(){if(!paused&&logMark){const now=performance.now();logAdd((now-logMark)/1000);logMark=now;}
-  const ks=Object.keys(FLOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete FLOG[k]);
+  logMerge('fretTrainer.log',FLOG);const ks=Object.keys(FLOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete FLOG[k]);
   try{localStorage.setItem('fretTrainer.log',JSON.stringify(FLOG));}catch(e){}}
 setInterval(()=>{if(!paused){logFlush();homeSum();}},15000);
 let paused=true,runStart=0,activeMs=0,idleT=null,q=null;
@@ -974,14 +968,6 @@ $('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.cell');
   tip.style.left=Math.max(6,Math.min(innerWidth-w-6,e.clientX+14))+'px';
   tip.style.top=(e.clientY+h+22>innerHeight?e.clientY-h-12:e.clientY+16)+'px';});
 $('#heat').addEventListener('mouseleave',()=>{tip.style.display='none';});
-/* back-up: JSON tonen/kopiëren/plakken */
-$('#btnBk').onclick=()=>{setPaused(true);$('#bk').value=JSON.stringify(store);$('#bkMsg').textContent='';$('#dlgBk').showModal();};
-$('#bkX').onclick=()=>$('#dlgBk').close();
-$('#bkCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('#bk').value);$('#bkMsg').textContent=T.bk.copied;}catch(e){$('#bk').select();$('#bkMsg').textContent=T.bk.copyFail;}};
-$('#bkImp').onclick=()=>{try{const r=JSON.parse($('#bk').value);if(!r||typeof r.stats!=='object'||r.stats===null)throw 0;
-  store=hydrate(r);migrateSrs();save();
-  drawSettings();applySize();colInit();resetSess();restart();$('#bkMsg').textContent=T.bk.imported;}
-  catch(e){$('#bkMsg').textContent=T.bk.invalid;}};
 /* kolom rechts (shared/rail.js: ROOM.column): open/dicht = colOpen, tabblad = colTab (Session · Settings) */
 function colShow(t){cfg().colTab=t;['sess','set'].forEach(k=>{$('#tab'+{sess:'Sess',set:'Set'}[k]).hidden=k!==t;});
   $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));}

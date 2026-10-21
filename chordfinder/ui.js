@@ -4,7 +4,10 @@
 const KEY='chordFinder.v1',LOGKEY='chordFinder.log',SHARED='practiceRoom.board',THEMEKEY='practiceRoom.theme';
 const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}};
 function readSafe(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return null;}if(raw==null)return null;
-  try{return JSON.parse(raw);}catch(e){try{localStorage.setItem(k+'.bad',raw);}catch(_){}return null;}}
+  try{return JSON.parse(raw);}catch(e){try{if(localStorage.getItem(k+'.bad')==null)localStorage.setItem(k+'.bad',raw);}catch(_){}return null;}}   /* eerste kapotte versie blijft bewaard */
+/* vóór het wegschrijven van het logboek de opgeslagen versie erbij (ander tabblad): per dag blijft de grootste tijd */
+function logMerge(k,L){const o=readSafe(k),sz=v=>v&&typeof v==='object'?+v.s||0:0;if(!o||typeof o!=='object'||Array.isArray(o))return L;
+  Object.keys(o).forEach(d=>{if(!(d in L)||sz(o[d])>sz(L[d]))L[d]=o[d];});return L;}
 const DEF={theme:'auto',chord:'Cmaj7',type:'drop2',str:'all',low:'all',top:'all',from:1,to:MAXF,labels:'int',group:'set',allTones:false,bass:true,sel:null,
   mode:'find',idf:[-1,3,2,0,1,0],idSel:0,   /* mode = Finder, What's this chord? of Progression; idf = frets per snaar daar (−1 = gedempt) */
   /* Progression (zie progression.js): tekst, soort, voice-leadingmodus, positie, snarenset, melodie, tempo, loop, vergrendelde vormen */
@@ -71,7 +74,7 @@ const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart
 const today=()=>{const k=dayKey(),e=LOG[k];if(!e||typeof e!=='object')LOG[k]={s:0,p:[]};if(!Array.isArray(LOG[k].p))LOG[k].p=[];return LOG[k];};
 function act(){const now=Date.now();if(lastAct&&now-lastAct<=60000){const e=today();e.s=Math.round((e.s+(now-lastAct)/1000)*10)/10;logDirty=true;}lastAct=now;}
 function logChord(sym){const e=today();if(!e.p.includes(sym)&&e.p.length<40){e.p.push(sym);logDirty=true;}}
-function logSave(){if(!logDirty)return;logDirty=false;
+function logSave(){if(!logDirty)return;logDirty=false;logMerge(LOGKEY,LOG);
   const ks=Object.keys(LOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete LOG[k]);
   try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}homeLink();}
 /* logboek ook meegeven in de Home-link (#pr=…), voor browsers die de opslag per bestand scheiden */
