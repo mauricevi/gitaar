@@ -98,7 +98,7 @@ const ROOM={
      log = eigen logboeksleutel (dan telt "alle trainers" de live waarde van deze app i.p.v. de opgeslagen).
      Wat te zien is (aan/uit, venster, lampje, welke tijd) kiest het menu S (shared/look.js, groep "Rec lamp"). */
   st:null,deck:null,roomT:null,
-  LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log'],
+  LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log','practiceRoom.lickLab.log'],
   /* pagina open en actief: laatste invoer < 60 s geleden in een zichtbaar tabblad (start bij het openen), net als in de Scale Trainer */
   lastIn:Date.now(),
   status(o){if(!ROOM.st){ROOM.st={};setInterval(ROOM.deckTick,1000);
