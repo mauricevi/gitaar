@@ -20,8 +20,10 @@ const ROOM={
     ['chord-finder','chord-finder.html','Chord Finder','<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 7h14M9.7 3v18M14.3 3v18M5 11h14M5 15h14"/><circle cx="12" cy="9" r="1.4" fill="currentColor"/><circle cx="16.6" cy="13" r="1.4" fill="currentColor"/>'],
     ['lick-lab','lick-lab.html','Lick Lab','<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'],
     ['note-prompter','note-prompter.html','Note Prompter','<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M9 21h6M12 17v4"/><path d="M10 13V8l4 2.5z"/>'],
+    ['ear-trainer','ear-trainer.html','Ear Trainer','<path d="M7 9.5a5 5 0 0 1 10 0c0 2.6-1.8 3.6-2.6 4.9-.7 1.1-.6 2.7-1.6 3.8a2.6 2.6 0 0 1-4.3-.8"/><path d="M10 9.7a2 2 0 1 1 3.4 1.4c-.6.6-1.1 1-1.1 1.9"/>'],
     ['tuner','tuner.html','Tuner','<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l3.5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor"/>']],
-  /* apps met een eigen hoek van de kamer */
+  /* apps met een eigen hoek van de kamer. Een app zonder eigen hoek (nog: ear-trainer) krijgt de hele kamer (home/room.jpg).
+     Komt er een home/corners/corner-<app>.jpg bij: id hier toevoegen (en in LOOK.DECOR en CORNER in index.html). */
   corners:['chord-finder','scale-trainer','fretboard','lick-lab','note-prompter','tuner'],
 
   rail(nav){const app=nav.dataset.app,base=nav.dataset.base||'';
@@ -35,7 +37,7 @@ const ROOM={
      Geen toDataURL nodig (via file:// zou het canvas "besmet" zijn). Decor: eigen hoek (standaard), een andere hoek of de hele kamer. */
   app:'',base:'',img:null,cv:null,
   bgSrc(){const d=typeof LOOK!=='undefined'?LOOK.decorOf(ROOM.app):'own',c=d==='own'?ROOM.app:d;
-    return d==='room'?ROOM.base+'home/room.jpg':ROOM.corners.includes(c)?ROOM.base+'home/corners/corner-'+c+'.jpg':null;},
+    return d==='room'||!ROOM.corners.includes(c)?ROOM.base+'home/room.jpg':ROOM.base+'home/corners/corner-'+c+'.jpg';},
   bgDraw(){const ph=document.querySelector('.bgfx.photo'),img=ROOM.img,cv=ROOM.cv;if(!ph||!img||!img.naturalWidth||!cv)return;
     const x=cv.getContext('2d'),W=ph.clientWidth||innerWidth+160,H=ph.clientHeight||innerHeight+160,s=Math.max(W/img.naturalWidth,H/img.naturalHeight),w=img.naturalWidth*s,h=img.naturalHeight*s;
     /* onscherp is onscherp: op een kleiner canvas tekenen (k keer kleiner, blur ook k keer kleiner) en door CSS laten oprekken.
@@ -60,7 +62,7 @@ const ROOM={
       /* gewone fetch (vult de cache), geen <link rel=prefetch> in <head>: daarmee viel de opmaak in Firefox op GitHub Pages om */
       if(location.protocol!=='file:')fetch(a.href,{credentials:'same-origin'}).catch(()=>{});
       const id=(ROOM.apps.find(x=>x&&a.getAttribute('href')===ROOM.base+x[1])||[])[0];
-      if(id==='room')new Image().src=ROOM.base+'home/room.jpg';else if(ROOM.corners.includes(id))new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
+      if(id==='room'||id&&!ROOM.corners.includes(id))new Image().src=ROOM.base+'home/room.jpg';else if(id)new Image().src=ROOM.base+'home/corners/corner-'+id+'.jpg';});
     nav.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.classList.contains('on')||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
       e.preventDefault();const R=document.documentElement;if(R.classList.contains('pr-leave'))return;R.classList.add('pr-leave');
       let done=false;const go=()=>{if(done)return;done=true;location.href=a.href;};setTimeout(go,140);});   /* = de .14s van pr-leave in room.css */
@@ -98,7 +100,7 @@ const ROOM={
      log = eigen logboeksleutel (dan telt "alle trainers" de live waarde van deze app i.p.v. de opgeslagen).
      Wat te zien is (aan/uit, venster, lampje, welke tijd) kiest het menu S (shared/look.js, groep "Rec lamp"). */
   st:null,deck:null,roomT:null,
-  LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log','practiceRoom.lickLab.log'],
+  LOGS:['fretTrainer.log','toonladderTrainer:log','notePrompter.log','chordMoves.log','chordFinder.log','practiceRoom.lickLab.log','earTrainer.log'],
   /* pagina open en actief: laatste invoer < 60 s geleden in een zichtbaar tabblad (start bij het openen), net als in de Scale Trainer */
   lastIn:Date.now(),
   status(o){if(!ROOM.st){ROOM.st={};setInterval(ROOM.deckTick,1000);

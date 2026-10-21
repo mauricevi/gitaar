@@ -18,8 +18,8 @@
    Lick Lab (practiceRoom.lickLab) en Tuner (practiceRoom.tuner) vallen onder practiceRoom; APPS geeft ze alleen een eigen naam. */
 var PRB=(function(){
   'use strict';
-  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves|chordFinder)/;
-  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['chordFinder','Chord Finder'],['practiceRoom.lickLab','Lick Lab'],['practiceRoom.tuner','Tuner'],['practiceRoom','Home and shared settings']];
+  var RX=/^(fretTrainer|toonladderTrainer|practiceRoom|notePrompter|chordMoves|chordFinder|earTrainer)/;
+  var APPS=[['fretTrainer','Fretboard Trainer'],['toonladderTrainer','Scale Trainer'],['notePrompter','Note Prompter'],['chordMoves','Chord Moves'],['chordFinder','Chord Finder'],['earTrainer','Ear Trainer'],['practiceRoom.lickLab','Lick Lab'],['practiceRoom.tuner','Tuner'],['practiceRoom','Home and shared settings']];
   var LOGS=/(\.log|:log|^practiceRoom\.manual)$/,LAST='practiceRoom.lastBackup';
   var TXT={exp:'Export backup',imp:'Import backup…',
     saved:function(f,list){return 'Saved '+f+' with: '+list+'.';},
