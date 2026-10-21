@@ -61,14 +61,14 @@ function renderBoard(){
       return f>=g.lo&&f<=g.hi;
     });
   };
-  let vb='0 0 '+G.VBW+' '+G.VBH;
+  let vb='0 0 '+G.VBW+' '+G.VBH,zm='';
   const wholeF=!!(D.prog&&D.fA&&!state.pv.fzoom);       /* Martino-vormen over de hele hals (niet inzoomen) */
   if(D.prog&&regs&&!wholeF){                                    /* progressie met venster: inzoomen rond de positie */
     const lo=Math.min(...regs.map(z=>z.lo)),hi=Math.max(...regs.map(z=>z.hi)),left=lo<=0?G.X0-50:fx(lo-1),right=fx(Math.min(hi,MAXF)),
       c=(left+right)/2,vw=Math.min(G.VBW,Math.max(780,right-left+140));   /* breed genoeg voor twee vormen */
-    vb=Math.max(0,Math.min(G.VBW-vw,c-vw/2)).toFixed(1)+' 0 '+vw+' '+G.VBH;}
+    vb=Math.max(0,Math.min(G.VBW-vw,c-vw/2)).toFixed(1)+' 0 '+vw+' '+G.VBH;zm=' data-c="'+c.toFixed(1)+'" data-vw="'+vw.toFixed(1)+'"';}   /* fitBoard mag breder */
   $('#board').classList.toggle('zoom',!!(D.prog&&regs&&!wholeF));
-  let o='<svg viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+esc(T.board.aria)+'">';
+  let o='<svg viewBox="'+vb+'"'+zm+' data-vb="'+vb+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+esc(T.board.aria)+'">';
   /* effen hout vanaf de kam, afgeronde hoeken alleen aan het eind */
   o+='<path class="bwood" d="M'+G.X0+' '+yTop+'H'+(xEnd-R)+'Q'+xEnd+' '+yTop+' '+xEnd+' '+(yTop+R)+'V'+(yBot-R)+'Q'+xEnd+' '+yBot+' '+(xEnd-R)+' '+yBot+'H'+G.X0+'Z"/>';
   if(S.inlays){
@@ -143,6 +143,26 @@ function renderBoard(){
   o+=back.join('')+front.join('')+rings+'</svg>';
   D.stats=st;
   $('#board').innerHTML=o;
+}
+
+/* Bord in de resterende hoogte van het middenvak (#scroll), zodat niets scrolt. Ingezoomd (venster) wordt het beeld breder:
+   meer frets eromheen in plaats van een hoger bord; daarna (of op de hele hals) wordt het bord lager en staat het in het midden.
+   Nooit lager dan BMIN: past het dan nog niet, dan scrolt het middenvak. Geeft {h: hoogte, nat: hoogte zonder passen, fit: past alles}. */
+const BMIN=200;
+function fitBoard(){
+  const svg=$('#board svg'),sc=$('#scroll'),wrap=sc&&sc.firstElementChild,bd=$('#board');
+  if(!svg||!wrap)return{h:0,nat:0,fit:true};
+  svg.setAttribute('viewBox',svg.dataset.vb);svg.style.height='';bd.style.minWidth='';
+  /* gemeten tot onder de bordkaart: de vergelijkingskaart (Compare A / B) eronder mag, net als vroeger, scrollen */
+  const cs=getComputedStyle(sc),room=sc.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom),
+    bx=svg.getBoundingClientRect(),nat=bx.height,
+    avail=Math.floor(room-($('#cardBoard').getBoundingClientRect().bottom-wrap.getBoundingClientRect().top-nat))-2;
+  if(nat<=avail)return{h:nat,nat,fit:true};
+  const t=Math.max(BMIN,avail),zc=+svg.dataset.c,zw=+svg.dataset.vw;let h=nat;
+  if(zw&&bx.width){const vw=Math.min(G.VBW,Math.max(zw,bx.width*G.VBH/t)),x=Math.max(0,Math.min(G.VBW-vw,zc-vw/2));
+    svg.setAttribute('viewBox',x.toFixed(1)+' 0 '+vw.toFixed(1)+' '+G.VBH);h=bx.width*G.VBH/vw;}
+  if(h>t+.5){svg.style.height=t+'px';bd.style.minWidth='0';h=t;}
+  return{h,nat,fit:avail>=BMIN};
 }
 
 /* Smal scherm: na het kiezen van een positie die positie in beeld schuiven (alleen als de keuze verandert). */

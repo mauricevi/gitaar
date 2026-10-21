@@ -316,16 +316,18 @@ function renderSide(){
 function renderHead(){
   const pb=$('#progBar');
   if(!D.prog){pb.innerHTML='';headHtml='';$('#hBoard').textContent=T.ui.fretboard;renderCmpTray();return;}
-  const p=D.p,bars=D.list.reduce((a,x)=>a+x.c.bars,0),keys=[...new Set(D.keys.filter(Boolean).map(keyName))].join(' · ');
+  const p=D.p,LR=loopRange(p),bars=D.list.reduce((a,x)=>a+x.c.bars,0),keys=[...new Set(D.keys.filter(Boolean).map(keyName))].join(' · ');
   $('#hSub').textContent=p.name+' · '+PT.meta(D.list.length,fmtBars(bars),keys);
   const h='<button type="button" class="play" data-a="play">'+(progPlayer.loading?esc(PT.loading):progPlayer.on?'■ '+esc(PT.stop):'▶ '+esc(PT.play))+'</button>'
     +'<span class="beats" id="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></span>'
     +'<span class="bandw"><button type="button" class="act" data-a="band" aria-expanded="'+bandOpen+'">'+esc(PT.band)+' ▾</button>'+(bandOpen?bandPop():'')+'</span>'
     +'<button type="button" class="act" data-a="loop" aria-pressed="'+state.pv.loop+'">↻ '+esc(PT.loop)+'</button>'
+    +(LR?'<span class="lrng">'+esc(PT.barsRange(LR[0]/4+1,Math.ceil(LR[1]/4)))+'<button type="button" class="mini" data-a="loopClear" title="'+esc(PT.loopClear)+'" aria-label="'+esc(PT.loopClear)+'">✕</button></span>':'')
     +'<label class="tempo" title="Drag up or down, or click to type"><input type="number" id="pTempo" min="40" max="240" value="'+p.tempo+'" aria-label="Tempo" data-drag> BPM</label>'
     +'<span class="tempo trn" role="group" aria-label="'+esc(PT.trans)+'"><button type="button" data-a="tr" data-v="-1" title="'+esc(PT.transDown)+'" aria-label="'+esc(PT.transDown)+'">−</button><span>'+esc(PT.trans)
       +(p.trans?' <b>'+(p.trans>0?'+':'−')+Math.abs(p.trans)+'</b>':'')+'</span><button type="button" data-a="tr" data-v="1" title="'+esc(PT.transUp)+'" aria-label="'+esc(PT.transUp)+'">+</button></span>'
-    +'<button type="button" class="act" data-a="edit" aria-pressed="'+editing+'">'+esc(editing?PT.done:PT.edit)+'</button>';
+    +'<button type="button" class="act" data-a="edit" aria-pressed="'+editing+'">'+esc(editing?PT.done:PT.edit)+'</button>'
+    +'<span class="help wide" tabindex="0" aria-label="'+esc(PT.keysT)+'">?<i>'+esc(PT.keysHint)+'<br><br>'+esc(PT.loopHint)+'</i></span>';
   if(h!==headHtml){pb.innerHTML=h;headHtml=h;
     pb.querySelectorAll('[data-vol]').forEach(r=>{r.value=state.pv.band.vol[r.dataset.vol];});
     if(progPlayer.on&&progPlayer.vb>=0)showBeat(progPlayer.vb,progPlayer.vci);}
@@ -335,32 +337,36 @@ function renderHead(){
     +(D.fA?' <span class="cap">· '+esc(PT.formHead(mName(D.ch),D.fA.f))+'</span>':''):esc(PT.boardEmpty);}
 let delArmed=null;
 function renderProgCard(){
-  const p=D.p,eb=$('#editBar');let h='';
+  const p=D.p,eb=$('#editBar'),G=geom(p),R=loopRange(p,G),la=R?R[0]/4:-1,lb=R?Math.ceil(R[1]/4)-1:-1;let h='';
   eb.hidden=!editing;
   if(editing)eb.innerHTML='<input type="text" id="pName" value="'+esc(p.name)+'" aria-label="'+esc(PT.name)+'" autocomplete="off">'
     +'<button type="button" class="act" data-a="asText">'+esc(PT.asText)+'</button><button type="button" class="act" data-a="dup">'+esc(PT.dup)+'</button>'
     +'<button type="button" class="act danger" data-a="delProg">'+esc(delArmed?PT.delSure:PT.delProg)+'</button>';
   p.sections.forEach((sec,si)=>{const k=D.keys[si];
-    h+='<div class="psec" data-s="'+si+'"><div class="psl"><b>'+secLabel(si)+'</b><small>'+esc(keyName(k))+'</small>'
+    h+='<div class="psec" data-s="'+si+'" style="--sb:'+sec.chords.reduce((a,c)=>a+c.bars,0)+';--sw:'+sec.chords.reduce((a,c)=>a+Math.max(1,c.bars)*118+8,-8)+'"><div class="psl"><b>'+secLabel(si)+'</b><small>'+esc(keyName(k))+'</small>'
       +(editing&&!sec.chords.length&&p.sections.length>1?'<button type="button" class="mini" data-a="remSec" data-s="'+si+'" aria-label="'+esc(PT.remSec)+'">✕</button>':'')+'</div><div class="ptiles" data-s="'+si+'">';
     sec.chords.forEach((c,ci)=>{const fi=flatIndex(p,si,ci),on=fi===D.idx;
+      const s0=G.starts[fi],e0=s0+nBeats(c),out=!!R&&(e0<=R[0]||s0>=R[1]);let strip='';
+      if(!editing)for(let b=Math.floor(s0/4);b<=Math.ceil(e0/4)-1;b++)strip+='<span class="lb'+(b>=la&&b<=lb?' in':'')+'" data-bar="'+b+'" title="'+esc(PT.barN(b+1))+'">'+(b+1)+'</span>';
       const isB=D.pcmp&&fi===D.cmpIdx,bdg=D.pcmp&&on?'<i class="bdg" style="background:'+state.A.color+';--bc:'+textOn(state.A.color)+'">A</i>':isB?'<i class="bdg" style="background:'+state.B.color+';--bc:'+textOn(state.B.color)+'">B</i>':'';
-      h+='<div class="tw'+(progPlayer.on&&on&&progPlayer.dur?' playing':'')+(isB?' cmpB':'')+'" data-i="'+fi+'"'+(editing?' draggable="true"':'')+' style="flex:'+c.bars+' 1 '+(c.bars*118)+'px;--cB:'+state.B.color+(progPlayer.on&&on?';--dur:'+progPlayer.dur.toFixed(2)+'s':'')+'">'
-        +'<button type="button" class="tile" data-a="sel" data-i="'+fi+'" aria-current="'+on+'"'+(isB?' aria-description="B"':'')+'>'+bdg+'<span class="rn">'+esc(romanOf(c,k))+'</span><b>'+esc(c.sym)+'</b><span class="sc">'+esc(scaleName(c))+'</span><span class="br">'+esc(PT.bars(c.bars))+'</span></button>'
+      h+='<div class="tw'+(progPlayer.on&&on&&progPlayer.dur?' playing':'')+(isB?' cmpB':'')+(out?' out':'')+'" data-i="'+fi+'"'+(editing?' draggable="true"':'')+' style="flex:'+c.bars+' 1 calc('+(c.bars*118)+'px * var(--tf,1));--cB:'+state.B.color+(progPlayer.on&&on?';--dur:'+progPlayer.dur.toFixed(2)+'s':'')+'">'
+        +(strip?'<div class="lbar" aria-hidden="true">'+strip+'</div>':'')
+        +'<button type="button" class="tile" data-a="sel" data-i="'+fi+'" aria-current="'+on+'"'+(isB?' aria-description="B"':'')+'>'+bdg+'<span class="rn">'+esc(romanOf(c,k))+(c.bars!==1?' <i class="br">· '+esc(PT.bars(c.bars))+'</i>':'')+'</span><b>'+esc(c.sym)+'</b><span class="sc">'+esc(scaleName(c))+'</span></button>'
         +(editing?'<button type="button" class="del" data-a="del" data-i="'+fi+'" aria-label="'+esc(PT.removeChord(c.sym))+'">✕</button>':'')+'</div>';});
     if(editing)h+='<input class="addc" data-s="'+si+'" placeholder="'+esc(PT.addChord)+'" aria-label="'+esc(PT.addChordLabel(secLabel(si)))+'" autocomplete="off" spellcheck="false">';
     h+='</div></div>';});
   if(editing)h+='<button type="button" class="act" data-a="addSec" style="margin-top:8px">'+esc(PT.addSec)+'</button>';
   if(!D.list.length&&!editing)h+='<p class="cap">'+esc(PT.empty)+'</p>';
-  $('#secs').innerHTML=h;
-  renderLoopBar();}
+  $('#secs').innerHTML=h;}
 /* ── vormenkaart: de 5 Martino-vormen van het akkoord als blokjes over de hele hals; klik = die vorm op het bord.
    Bij een Shift-vergelijking een tweede rij voor akkoord B, zodat je ziet welke vorm waar over welke valt. ── */
 function renderFormMap(){
   const box=$('#formMap'),rows=D.fmRows||[];box.hidden=!rows.length;if(!rows.length){box.innerHTML='';return;}
   const pct=f=>(f/(MAXF+1)*100).toFixed(2)+'%',multi=rows.length>1||!D.prog;
-  let h='<div class="fhd"><span>'+esc(PT.fmTitle)+'</span>'+(!D.prog?'<span class="cap">'+esc(PT.fmHint)+'</span>':'')
-    +'<button type="button" class="info" data-a="minfo" aria-label="'+esc(PT.mi.btn)+'" title="'+esc(PT.mi.btn)+'">i</button></div>';
+  /* kop: in een progressie onder de vormen naast de liniaal (scheelt een regel), in Compare A / B erboven met uitleg */
+  const hd='<span>'+esc(PT.fmTitle)+'</span>'+(!D.prog?'<span class="cap">'+esc(PT.fmHint)+'</span>':'')
+    +'<button type="button" class="info" data-a="minfo" aria-label="'+esc(PT.mi.btn)+'" title="'+esc(PT.mi.btn)+'">i</button>';
+  let h=D.prog?'':'<div class="fhd">'+hd+'</div>';
   rows.forEach(r=>{const P=formPlaces(r.pc,D.tuning),lanes=[],cur=r.cur;
     P.forEach(p=>{let l=lanes.findIndex(e=>e<p.lo);if(l<0){l=lanes.length;lanes.push(-1);}lanes[l]=p.hi;p.lane=l;});   /* overlappende vormen onder elkaar */
     const col=multi?state[r.key].color:'var(--ac)',tc=multi?textOn(state[r.key].color):'#fff';
@@ -368,34 +374,38 @@ function renderFormMap(){
       +'<div class="ftrack" style="height:'+(lanes.length*24)+'px">'
       +P.map(p=>'<button type="button" class="fb'+(cur&&p.f===cur.f&&p.o===cur.o?' on':'')+'" data-a="fpick" data-row="'+r.key+'" data-f="'+p.f+'" data-mid="'+p.mid+'" style="left:'+pct(p.lo)+';width:'+pct(p.hi-p.lo+1)+';top:'+(p.lane*24)+'px" title="'+esc(PT.formT(p.f,p.lo,p.hi))+'">'+p.f+'</button>').join('')
       +'</div></div>';});
-  h+='<div class="frow ruler"><span class="fl"></span><div class="ftrack">'+[0,3,5,7,9,12,15,17,19,21].map(n=>'<span style="left:'+pct(n+.5)+'">'+n+'</span>').join('')+'</div></div>';
+  h+='<div class="frow ruler"><span class="fl">'+(D.prog?'<span class="fhd">'+hd+'</span>':'')+'</span><div class="ftrack">'+[0,3,5,7,9,12,15,17,19,21].map(n=>'<span style="left:'+pct(n+.5)+'">'+n+'</span>').join('')+'</div></div>';
   box.innerHTML=h;}
-/* ── maatbalk: sleep over de maten om een stuk te herhalen (zoals de cycle-balk in Logic) ── */
-function renderLoopBar(){
-  const box=$('#loopR'),p=D.p;if(editing||!D.list.length){box.hidden=true;return;}box.hidden=false;
-  const G=geom(p),R=loopRange(p,G),a=R?R[0]/4:-1,b=R?Math.ceil(R[1]/4)-1:-1,L=G.L;
-  let cells='';
-  for(let i=0;i<G.bars;i++){const ch=L.filter((x,j)=>G.starts[j]>=i*4&&G.starts[j]<i*4+4).map(x=>x.c.sym);
-    cells+='<span class="lc'+(i>=a&&i<=b?' in':'')+(i===a?' a':'')+(i===b?' b':'')+'" data-bar="'+i+'"><small>'+(i+1)+'</small><b>'+esc(ch.length?ch.join(' '):'%')+'</b></span>';}
-  box.innerHTML='<div class="lhd"><span>↻ '+esc(PT.loopBars)+'</span>'+(R?'<b>'+esc(PT.barsRange(a+1,b+1))+'</b><button type="button" class="mini" data-a="loopClear" aria-label="'+esc(PT.loopClear)+'">✕</button>':'<span class="cap">'+esc(PT.loopHint)+'</span>')+'</div>'
-    +'<div class="lcells" role="group" aria-label="'+esc(PT.loopBars)+'">'+cells+'</div>';
-  const lo=R?R[0]:-1,hi=R?R[1]:-1;
-  document.querySelectorAll('#secs .tw').forEach(el=>{const j=+el.dataset.i,s0=G.starts[j],e0=s0+nBeats(L[j].c);el.classList.toggle('out',!!R&&(e0<=lo||s0>=hi));});}
+/* ── stuk herhalen (zoals de cycle-balk in Logic): boven elke kaart een strookje met zijn maatnummers. Sleep over de nummers
+   (of van de ene kaart naar de andere) om die maten te herhalen; klik op één nummer = alleen die maat, klik binnen het stuk = weer alles. ── */
 function setLoop(a,b){const p=curProg();if(!p)return;
   p.loopR=a==null?null:[Math.min(a,b),Math.max(a,b)];
   if(progPlayer.on){const R=loopRange(p);if(R&&(progPlayer.pos<R[0]||progPlayer.pos>=R[1]))progPlayer.seek=R[0];}   /* buiten het nieuwe stuk → meteen erheen */
   update();}
 function bindLoopBar(){
-  const box=$('#loopR');let drag=null;
-  const cellAt=e=>{const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest('#loopR .lc');return c?+c.dataset.bar:null;};
-  const paint=()=>{const a=Math.min(drag.a,drag.b),b=Math.max(drag.a,drag.b);
-    box.querySelectorAll('.lc').forEach(e=>{const i=+e.dataset.bar;e.classList.toggle('in',i>=a&&i<=b);e.classList.toggle('a',i===a);e.classList.toggle('b',i===b);});};
-  box.addEventListener('mousedown',e=>{const i=cellAt(e);if(i==null||e.button!==0)return;e.preventDefault();drag={a:i,b:i,moved:false};paint();});
-  document.addEventListener('mousemove',e=>{if(!drag)return;const i=cellAt(e);if(i!=null&&i!==drag.b){drag.b=i;drag.moved=true;paint();}});
-  document.addEventListener('mouseup',()=>{if(!drag)return;const d=drag;drag=null;const p=curProg(),r=p&&p.loopR;
-    if(!d.moved&&r&&d.a>=r[0]&&d.a<=r[1])setLoop(null);     /* klik binnen het gekozen stuk = loop weghalen */
-    else setLoop(d.a,d.b);});
-  box.addEventListener('click',e=>{if(e.target.closest('[data-a="loopClear"]'))setLoop(null);});}
+  const box=$('#secs');let drag=null;
+  /* maten onder de muis: [van, tot] van één maatnummer, of van de hele kaart */
+  const barsAt=e=>{const el=document.elementFromPoint(e.clientX,e.clientY),n=el&&el.closest('#secs .lb');if(n)return{el:n,r:[+n.dataset.bar,+n.dataset.bar]};
+    const w=el&&el.closest('#secs .tw'),bs=w?[...w.querySelectorAll('.lb')].map(x=>+x.dataset.bar):[];return bs.length?{el:w,r:[bs[0],bs[bs.length-1]]}:null;};
+  const range=d=>[Math.min(d.a[0],d.c[0]),Math.max(d.a[1],d.c[1])];
+  const paint=()=>{const[a,b]=range(drag);box.querySelectorAll('.lb').forEach(e=>{const i=+e.dataset.bar;e.classList.toggle('in',i>=a&&i<=b);});};
+  box.addEventListener('mousedown',e=>{if(editing||e.button!==0||e.shiftKey||e.ctrlKey||e.metaKey)return;const h=barsAt(e);if(!h)return;
+    const strip=h.el.classList.contains('lb');if(strip)e.preventDefault();drag={el:h.el,a:h.r,c:h.r,strip,moved:false};if(strip)paint();});
+  document.addEventListener('mousemove',e=>{if(!drag)return;const h=barsAt(e);if(!h||h.el===drag.el&&!drag.moved)return;
+    if(h.r[0]!==drag.c[0]||h.r[1]!==drag.c[1]||!drag.moved){drag.c=h.r;drag.moved=true;paint();}});
+  document.addEventListener('mouseup',()=>{if(!drag)return;const d=drag;drag=null;
+    if(!d.moved){if(!d.strip)return;                       /* gewone klik op een kaart = akkoord kiezen (click-event) */
+      const r=curProg()&&curProg().loopR,i=d.a[0];if(r&&i>=r[0]&&i<=r[1]){setLoop(null);return;}}   /* klik binnen het gekozen stuk = weghalen */
+    const[a,b]=range(d);setLoop(a,b);});}
+/* ── alles op één scherm: de kaarten worden kleiner (--tf) of lopen naast elkaar door (.flow, bij veel korte secties)
+   tot het bord in de resterende hoogte van het middenvak past; het bord vult die hoogte (fitBoard in render.js). ── */
+const FIT_STEPS=[[0,1],[0,.9],[0,.8],[0,.72],[1,1],[1,.86],[1,.72]],BGOOD=270;
+function fitScreen(){
+  const secs=$('#secs'),card=$('#progCard'),set=([fl,f])=>{secs.classList.toggle('flow',!!fl);card.style.setProperty('--tf',f);};
+  if(!D||!D.prog){set([0,1]);fitBoard();return;}
+  let fb=null;
+  for(const st of FIT_STEPS){set(st);const r=fitBoard();if(r.fit&&r.h>=Math.min(BGOOD,r.nat)-1)return;if(!fb&&r.fit)fb=st;}
+  set(fb||FIT_STEPS[FIT_STEPS.length-1]);fitBoard();}
 /* noten die gedeeld zijn, alleen in A of B, en halve-toonverschuivingen (zelfde logica als de vergelijkingskaart) */
 function cmpInfo(A,B){const both=[],oa=[],ob=[];
   for(let pc=0;pc<12;pc++){const a=A.pcMap.get(pc),b=B.pcMap.get(pc);if(a&&b)both.push(a);else if(a)oa.push(a);else if(b)ob.push(b);}
@@ -443,10 +453,12 @@ function posGroup(){const pv=state.pv,c=D.ch;let lo='';for(let f=0;f<=MAXF-pv.sp
       +[...Array(12).keys()].map(o=>'<option value="'+o+'"'+(c.moff===o?' selected':'')+'>'+esc(nm(o)+' ('+offName(c,o)+')')+'</option>').join('')+'</select></div>'
       +'<label class="lrow"><span>'+esc(PT.fzoom)+'</span><span class="tg"><input type="checkbox" role="switch" data-pv="fzoom"'+(pv.fzoom?' checked':'')+'><i></i></span></label>'
       +'<label class="lrow"><span>'+esc(PT.stay)+'</span><span class="tg"><input type="checkbox" role="switch" data-pv="fstay"'+(pv.fstay?' checked':'')+'><i></i></span></label>'
-      +'</section><p class="cap" style="margin:6px 14px 0">'+esc(pv.fstay?PT.formsCapStay:PT.formsCap)+'</p></div>';return h;}
+      +'</section>'+posHelp(pv.fstay?PT.formsCapStay:PT.formsCap)+'</div>';return h;}
   h+=(pv.win?'<div class="lrow"><label for="iLo">'+esc(PT.fromFret)+'</label><select id="iLo">'+lo+'</select></div><div class="lrow"><label for="iSpan">'+esc(PT.width)+'</label><select id="iSpan">'+[4,5,6].map(n=>'<option value="'+n+'"'+(n===pv.span?' selected':'')+'>'+esc(PT.frets(n))+'</option>').join('')+'</select></div>':'')
-   +'</section><p class="cap" style="margin:6px 14px 0">'+esc(PT.stays)+'</p></div>';
+   +'</section>'+posHelp(PT.stays)+'</div>';
   return h;}
+/* uitleg bij de positiebalk achter een ? (scheelt een regel boven het bord) */
+const posHelp=t=>'<span class="help dn l" tabindex="0" aria-label="'+esc(PT.position)+'">?<i>'+esc(t)+'</i></span>';
 /* positie in een progressie (hele hals · venster · Martino-vormen): als balk boven het bord */
 function renderPvBar(){$('#pvBar').innerHTML=D.ch?posGroup():'';}
 function renderInsp(){
@@ -549,6 +561,7 @@ function act(a,el,ev){
     case 'shLab':state.set.sharedLabel=el.dataset.v;update();break;
     case 'play':(progPlayer.on||progPlayer.loading)?progStop():progPlay();break;
     case 'loop':pv.loop=!pv.loop;update();break;
+    case 'loopClear':setLoop(null);break;
     case 'tr':{const p=curProg();if(p){transposeProg(p,+el.dataset.v);update();}}break;
     case 'band':bandOpen=!bandOpen;renderHead();break;
     case 'swing':pv.band.swing=+el.dataset.v;save();renderHead();break;
@@ -616,7 +629,7 @@ function bindProgUI(){
   $('.shell').addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.vol){state.pv.band.vol[t.dataset.vol]=+t.value;setVol(t.dataset.vol);save();}});
   $('.shell').addEventListener('input',e=>{const t=e.target;if(!D||!D.pcmp)return;
     if(t.id==='cA')state.A.color=t.value;else if(t.id==='cB')state.B.color=t.value;else if(t.id==='cS')state.set.colShared=t.value;else return;
-    renderBoard();renderLegend();renderCompare();});
+    renderBoard();renderLegend();renderCompare();fitScreen();});
   $('.shell').addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter')return;
     if(t.id==='iSym'){e.preventDefault();const r=parseChord(t.value);
       if(r.bad){const er=$('#iErr');er.hidden=false;er.textContent=PT.badSym(t.value)+(suggestFix(t.value)?' → '+suggestFix(t.value):'');return;}
@@ -635,4 +648,8 @@ function bindProgUI(){
     if(w){const at=locate(+w.dataset.i);if(at&&at.si===si)ci=at.ci;}
     const from=dragI;dragI=null;if(w&&+w.dataset.i===from)return;moveChord(from,si,ci);});
   secs.addEventListener('dragend',()=>{dragI=null;clear();});
+  /* venster of kolom rechts verandert van maat, of de letters zijn geladen → opnieuw passen */
+  let fr=0;const refit=()=>{cancelAnimationFrame(fr);fr=requestAnimationFrame(()=>{if(D)fitScreen();});};
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(refit).observe($('#scroll'));else addEventListener('resize',refit);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refit);
   bindSheet();bindLoopBar();bindInfo();bindIreal();}

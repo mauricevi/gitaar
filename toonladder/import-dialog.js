@@ -195,6 +195,7 @@ function update(){
   renderCompare();
   syncSettings();
   applyLook();
+  fitScreen();
   save();
 }
 
