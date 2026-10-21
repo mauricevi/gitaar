@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ear Trainer</title>
+<link rel="icon" type="image/svg+xml" href="shared/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&family=DotGothic16&family=Pixelify+Sans:wght@400..700&family=VT323&family=Space+Mono:wght@400;700&family=Handjet:wght@300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/room.css">
+<style>
+/* ════════════════════════════════════════════════════════════════════════════
+   EAR TRAINER · intervallen op gehoor (Practice Room-schil: shared/room.css + look.js + rail.js + guitar.js + backup.js)
+   Opgezet als de Fretboard Trainer: kop met modus (Name the interval · Smart practice) + weergave Practice · Progress,
+   één smalle balk met de vragen, oefenvak, transportplank, kolom rechts (Session · Settings).
+   Opbouw van dit bestand:
+   CSS   1. tokens  2. balk + oefenvak  3. antwoordkaartjes  4. na het antwoord (halsje)  5. plank  6. kolom  7. voortgang
+   HTML  icoonbalk · kop · balk met de vragen · oefenvak (luistervak, kaartjes, uitslag + halsje) of voortgang · plank · kolom
+   JS    0. TEXT  1. DATA  2. STORE  3. ENGINE  3b. SLIM OEFENEN  4. SPELLING + HALSJE  5. AUDIO  6. PAUZE + LOGBOEK
+         7. TRAINER  8. LEERPAD  9. UI
+   Opslag: localStorage 'earTrainer.v1' (settings, stats, conf, srs, day, maxSt, off) en 'earTrainer.log' (oefentijd per dag).
+   Toets S = geheim menu (shared/look.js); het halsje volgt daar "Card style" (rosewood / paper).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ===== 1. TOKENS ===== */
+:root{--colw:1240px}
+/* op body (niet :root): dan volgen ze de kaartstijl uit menu S */
+body{--dok:var(--c7);--dbad:var(--cx);--ok:#3f7a35;--okbg:rgba(111,152,104,.2);--badbg:rgba(179,54,31,.12)}
+
+/* ===== 2. BALK + OEFENVAK ===== */
+.panel{padding:16px 18px;min-width:0}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar .grow{flex:1}
+.wrap{min-height:100%;display:flex;flex-direction:column}
+.qbar{padding:10px 14px;margin-bottom:14px;container-type:inline-size}
+@container (max-width:1150px){.qbar .lb.opt{display:none}}
+.qbar .bar{gap:8px 12px}
+.lb{font-size:calc(12px * var(--dfs));color:var(--mut2);text-transform:uppercase;white-space:nowrap}
+.f{display:inline-flex;align-items:center;gap:7px}
+.qbar .seg button{padding:5px 9px;font-size:13px}
+.qbar .tg{font-size:14px}
+.chip{border:1px solid var(--line);border-radius:10px;min-height:30px;padding:0 7px;min-width:36px;background:var(--fill);font-size:13px;font-weight:600;color:var(--mut)}
+.ints{display:inline-flex;flex-wrap:wrap;gap:4px}
+#smStep{font:600 15px "JetBrains Mono",monospace;color:var(--tx)}
+kbd{font:600 11px "JetBrains Mono",monospace;padding:1px 5px;border-radius:5px;border:1px solid var(--line2);color:var(--mut);background:var(--field)}
+.stage{display:flex;flex-direction:column;padding-bottom:6px}
+.play{position:relative;padding:20px 28px 18px}
+.qhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;min-height:70px}
+#cap{font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx)}
+#prompt{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:4px 0 0;line-height:1.2}
+.sum{font-size:14px;color:var(--mut);margin:4px 0 0}
+.sum:empty{display:none}
+/* luistervak: twee rustige stippen die oplichten als de noot klinkt (stand = richting), Replay altijd in beeld */
+.listen{display:flex;flex-direction:column;align-items:center;gap:16px;padding:6px 0 22px}
+.ear{position:relative;width:200px;height:62px}
+.ear::before{content:"";position:absolute;left:24px;right:24px;top:50%;border-top:1px dashed var(--line2)}
+.ear i{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(90,55,25,.18);box-shadow:inset 0 0 0 1px var(--line2);transition:background .25s,box-shadow .25s}
+.ear i.on{background:var(--glow2);box-shadow:0 0 20px rgba(240,167,67,.75),inset 0 0 0 1px rgba(255,246,230,.6)}
+.ear[data-d="u"] #n1{left:24px;top:76%}.ear[data-d="u"] #n2{left:176px;top:24%}
+.ear[data-d="d"] #n1{left:24px;top:24%}.ear[data-d="d"] #n2{left:176px;top:76%}
+.ear[data-d="t"] #n1{left:100px;top:78%}.ear[data-d="t"] #n2{left:100px;top:22%}
+.ear[data-d="t"]::before{display:none}
+.replay{min-height:46px;padding:0 26px;border-radius:13px;font-size:16px}
+.replay svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* pauze: niets vervaagt; vraag, kaartjes en uitslag zijn weg tot je start. Start staat rechts in de kop */
+#btnStart{display:none;min-height:42px;padding:0 24px;font-size:16px}
+#play.paused #btnStart{display:inline-flex;align-items:center}
+.pz{display:none;margin:4px 0 0;font-size:30px;font-weight:700;line-height:1.2;color:var(--mut)}
+#play.paused .pz{display:block}
+#play.paused #prompt,#play.paused .sum{display:none}
+#play.paused .answers,#play.paused .kh,#play.paused .after{visibility:hidden}
+#play.paused .replay{opacity:.45;pointer-events:none}
+
+/* ===== 3. ANTWOORDKAARTJES: 12 op één rij, toetsen 1–9 0 - = ===== */
+.answers{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+.ans{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:76px;padding:6px 2px;border-radius:13px;border:1px solid var(--line);background:var(--field);color:var(--tx);transition:border-color .15s,background .15s,opacity .2s}
+.ans b{font-size:21px;font-weight:700;line-height:1}
+.ans small{font:600 11px "JetBrains Mono",monospace;color:var(--mut2)}
+.ans:hover{border-color:rgba(196,106,28,.55)}
+.ans.off{opacity:.3;cursor:default}
+.ans.off:hover{border-color:var(--line)}
+.answers.wait .ans:not(.off){opacity:.72}
+.ans.ok{background:var(--dok);border-color:transparent;color:var(--dtx)}
+.ans.bad{background:var(--dbad);border-color:transparent;color:var(--dtx)}
+.ans.ok small,.ans.bad small{color:var(--dtx);opacity:.7}
+.ans:disabled{cursor:default}
+.kh{text-align:center;min-height:1.3em;margin-top:8px;font-size:13px;color:var(--mut)}
+
+/* ===== 4. NA HET ANTWOORD: uitslag links, halsje rechts (vaste hoogte, verborgen tot het antwoord) ===== */
+.after{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;min-height:150px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.after.ghost{visibility:hidden}
+.res{display:flex;flex-direction:column;gap:10px;align-items:flex-start;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 14px;border-radius:999px;font-weight:600;font-size:15px;white-space:nowrap}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.bad{background:var(--badbg);color:var(--err)}
+.nn{font-size:20px;font-weight:600;line-height:1.3}
+.nn .ar{color:var(--mut2);margin:0 6px;font-weight:400}
+.nn .iv{font-size:15px;color:var(--mut);font-weight:500;margin-left:8px}
+#bothTxt{font-size:14px;color:var(--mut)}
+#bothTxt b{color:var(--tx)}
+#bothTxt .on{color:var(--onx)}
+.minibox{display:flex;flex-direction:column;align-items:center;gap:4px}
+svg.mini{display:block;width:340px;height:auto}
+svg.mini .wd{fill:var(--nbgh)}
+svg.mini .mk{fill:var(--ninl)}
+svg.mini .fr{stroke:var(--nline);stroke-width:1.6}
+svg.mini .nut{stroke:var(--nnut);stroke-width:4}
+svg.mini .st{stroke:var(--nstr)}
+svg.mini .sl{fill:var(--mut2);font:600 9px "JetBrains Mono",monospace}
+svg.mini .fn{fill:var(--nnum);font:600 8.5px "JetBrains Mono",monospace}
+svg.mini circle.rt{fill:var(--cR);stroke:var(--glow2);stroke-width:1.8}
+svg.mini circle.up{fill:var(--c3);stroke:rgba(0,0,0,.25);stroke-width:1}
+svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
+
+/* ===== 5. TRANSPORTPLANK: Start/Pauze, Replay, Next, voortgang vandaag (Smart), score als klein getal ===== */
+.tray .play svg{width:14px;height:14px}
+.tray .next{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,240,220,.4);border-radius:12px;padding:8px 18px;background:rgba(255,243,225,.08);color:#fff3df;font-weight:600}
+.tray .next:hover{background:rgba(255,243,225,.16)}
+.tray .next svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tray .pgw{display:flex;align-items:center;gap:10px;color:var(--gmut);font-size:13px;white-space:nowrap}
+.tray .pg{width:170px;height:6px;border-radius:3px;background:rgba(255,240,220,.22);overflow:hidden}
+.tray .pg i{display:block;height:100%;width:0;background:#f0a24a;transition:width .3s}
+.tray .stat{display:flex;align-items:baseline;gap:6px}
+.tray .stat b{font:600 15px "JetBrains Mono",monospace;color:#fff6e6}
+.tray .stat .sep{opacity:.45;margin:0 4px}
+
+/* ===== 6. KOLOM RECHTS ===== */
+.col .colhd .seg{flex-wrap:nowrap}
+.col .colhd .seg button{padding:5px 9px;font-size:13px}
+.colf{display:grid;gap:7px;margin:12px 0;color:var(--mut);font-size:14px}
+.colf>.lh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.colf>.lh b{font:600 13px "JetBrains Mono",monospace;color:var(--tx)}
+.colf input[type=range]{width:100%}
+.colf .seg{justify-self:start}
+.colf .seg button{padding:5px 10px;font-size:13px}
+.reg{display:flex;align-items:center;gap:8px}
+.kv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px 10px;margin-top:4px}
+.kv div{display:flex;flex-direction:column;min-width:0}
+.kv b{font:600 19px/1.2 "JetBrains Mono",monospace;color:var(--tx)}
+.kv span{font-size:12px;color:var(--mut)}
+.ncn{font-size:17px;font-weight:700;margin:2px 0 8px}
+.dots{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}
+.dt{display:inline-block;width:11px;height:11px;border-radius:50%;background:#6f9868;vertical-align:middle}
+.dt.slow{background:#e0a02b}.dt.bad{background:var(--err)}
+
+/* ===== 7. VOORTGANG (fase 1: alleen het leerpad; de rest komt later) ===== */
+.prog{padding:20px 28px 22px}
+.phd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 12px}
+.phd h2{margin:0;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif;font-weight:400;display:flex;align-items:center;gap:8px}
+.pathtop{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.pathtop .act[aria-pressed="true"]{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.path{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.stg{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:var(--fill);border:1px solid var(--line);font-size:13px;color:var(--tx);min-width:0}
+.stg.ac{border-color:rgba(196,106,28,.55);box-shadow:0 0 0 1px rgba(196,106,28,.25)}
+.stg.lk{opacity:.55}
+.stg .t{display:flex;align-items:center;gap:8px}
+.stg .ic{font-weight:700;color:var(--mut)}.stg.dn .ic{color:var(--ok)}.stg.ac .ic{color:var(--onx)}
+.stg .nn2{margin-left:auto;font:600 11px "JetBrains Mono",monospace;color:var(--mut)}
+.stg .d{color:var(--mut);line-height:1.35}
+.stg .act{align-self:flex-start}
+.pb{position:relative;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.pb i{display:block;height:100%;background:var(--glow2)}.stg.dn .pb i{background:#6f9868}
+.pb u{position:absolute;left:80%;top:0;bottom:0;width:2px;background:var(--mut);opacity:.6}
+.soon{margin-top:22px}
+@media (prefers-reduced-motion:reduce){.tray .pg i,.ear i{transition:none}}
+</style>
+</head>
+<body>
+<div class="bgfx photo"></div><div class="bgfx tex"></div><div class="bgfx grain"></div>
+<div class="shell">
+  <!-- icoonbalk: alleen apps (shared/rail.js tekent hem) -->
+  <nav class="rail" id="side" data-app="ear-trainer"></nav>
+
+  <main class="main">
+    <div class="scroll" id="scroll">
+     <div class="wrap">
+      <header class="top">
+        <h1 class="px">Ear Trainer</h1>
+        <span class="seg glass" id="uMode" role="group" aria-label="Practice mode"></span>
+        <span class="help dn r wide" tabindex="0" aria-label="How it works">?<i id="howTxt"></i></span>
+        <div class="grow"></div>
+        <span class="seg glass" id="uView" role="group" aria-label="View"><button type="button" data-v="play">Practice</button><button type="button" data-v="prog">Progress</button></span>
+      </header>
+
+      <!-- balk: welke vragen (intervallen, richting, labels, zwakke plekken); in Smart practice de stap van het leerpad -->
+      <section class="paper panel qbar" id="qbar" aria-label="Questions">
+        <div class="bar" id="setQ">
+          <span id="uInts" class="ints" role="group" aria-label="Intervals"></span>
+          <div class="f"><span class="lb px opt">Direction</span><span id="uDir" class="seg" role="group" aria-label="Direction"></span></div>
+          <div class="f"><span class="lb px opt">Labels</span><span id="uLab" class="seg" role="group" aria-label="Labels"></span></div>
+          <div class="f"><label class="tg" title="Only intervals you often get wrong or answer slowly"><input type="checkbox" role="switch" id="uWeak"><i></i><span>Weak spots</span></label></div>
+        </div>
+        <div class="bar" id="smBar" hidden>
+          <div class="f"><span class="lb px">Step</span><b id="smStep"></b></div>
+          <span class="cap" id="smTxt"></span>
+          <span class="grow"></span>
+          <button type="button" class="lnk" id="smPath">Learning path ›</button>
+        </div>
+      </section>
+
+      <!-- oefenvak: luisteren, antwoorden, uitslag met halsje -->
+      <div class="stage" id="vPlay">
+      <section class="paper play paused" id="play" aria-label="Practice">
+        <div class="qhead">
+          <div><div class="cap px" id="cap"></div><p id="prompt"></p><p class="pz" id="pz"></p><div id="sum" class="sum"></div></div>
+          <button type="button" class="act pri" id="btnStart"></button>
+        </div>
+        <div class="listen">
+          <div class="ear" id="ear" data-d="u" aria-hidden="true"><i id="n1"></i><i id="n2"></i></div>
+          <button type="button" class="act replay" id="btnReplay"></button>
+        </div>
+        <div id="answers" class="answers" role="group" aria-label="Answers"></div>
+        <div id="kh" class="kh"></div>
+        <div class="after ghost" id="after" aria-live="polite">
+          <div class="res">
+            <div id="fb" class="pill"></div>
+            <p id="notes" class="nn"></p>
+            <div class="bar" id="bothBar"><button type="button" class="act sm" id="btnBoth"></button><span id="bothTxt"></span></div>
+          </div>
+          <div class="minibox"><div id="mini"></div><span class="cap" id="miniCap"></span></div>
+        </div>
+      </section>
+      </div>
+
+      <!-- voortgang: in deze fase alleen het leerpad (handmatig te kiezen); scores per interval en verwarringen komen later -->
+      <div class="stage" id="vProg" hidden>
+      <section class="paper prog" aria-label="Progress">
+        <div class="phd">
+          <h2>Learning path <span class="help r" tabindex="0" aria-label="About the learning path">?<i id="pathHelp"></i></span></h2>
+          <div class="pathtop" id="pathTop"></div>
+        </div>
+        <div id="path" class="path"></div>
+        <p class="note soon" id="soon"></p>
+      </section>
+      </div>
+     </div>
+    </div>
+
+    <!-- transportplank: wat je met de gitaar op schoot nodig hebt -->
+    <footer class="tray glass" id="tray">
+      <button type="button" class="play" id="btnPause" title="Esc"></button>
+      <button type="button" class="next" id="btnReplay2" title="R or Space"></button>
+      <button type="button" class="next" id="btnNext" title="Enter"></button>
+      <span id="pgw" class="pgw"><span class="pg"><i id="pgb"></i></span><span id="pgt"></span></span>
+      <span class="stat" id="tStat"><b id="tPct">–</b><span>score</span><span class="sep">·</span><b id="tN">0/0</b><span id="tDueWrap"><span class="sep">·</span><b id="tDue">0</b> <span>due today</span></span></span>
+      <span class="help l" tabindex="0" aria-label="Keys">?<i id="keysTxt"></i></span>
+    </footer>
+  </main>
+
+  <!-- kolom rechts: sessie en instellingen (inklapbaar) -->
+  <aside class="col" id="col" aria-label="Side panel">
+    <button type="button" class="ib reopen" data-col="open" title="Show side panel" aria-label="Show side panel"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="colhd">
+      <span class="seg" id="colTabs" role="tablist" aria-label="Side panel"><button type="button" data-tab="sess">Session</button><button type="button" data-tab="set">Settings</button></span>
+      <button type="button" class="ib" data-col="shut" title="Hide side panel" aria-label="Hide side panel"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+
+    <div id="tabSess">
+      <h3>This session</h3>
+      <div class="kv" aria-live="polite">
+        <div><b id="sPct">–</b><span>Score</span></div>
+        <div><b id="sN">0/0</b><span>Correct</span></div>
+        <div><b id="sStreak">0</b><span>Streak</span></div>
+        <div><b id="sMed">–</b><span>Median</span></div>
+        <div><b id="sAct">0:00</b><span>Active</span></div>
+        <div><b id="sLife">–</b><span>All-time</span></div>
+        <div id="dueWrap"><b id="sDue">0</b><span>due today</span></div>
+      </div>
+      <h3>This interval</h3>
+      <div id="nc"></div>
+      <h3>Session</h3>
+      <div class="bar"><button type="button" class="act sm" id="btnSess">Reset session</button></div>
+    </div>
+
+    <div id="tabSet" hidden>
+      <h3>Smart practice</h3>
+      <div class="colf"><span class="lh"><span>New per day</span></span><span id="uNew" class="seg" role="group" aria-label="New per day"></span></div>
+      <div class="colf"><label class="lh" for="fSec"><span>Fluent time <span class="help r" tabindex="0" aria-label="About fluent time">?<i>Correct within this time = Good (within 60% of it = Easy). Slower but correct = Hard. Wrong = Again.</i></span></span><b id="fVal"></b></label><input type="range" id="fSec" min="1" max="5" step="0.5"></div>
+
+      <h3>Sound</h3>
+      <div class="colf"><span class="lh"><span>Tone</span></span><span id="uTone" class="seg" role="group" aria-label="Tone"></span></div>
+      <div class="colf"><label class="lh" for="uGap"><span>Time between the notes</span><b id="gapV"></b></label><input type="range" id="uGap" min="0.3" max="1.5" step="0.1"></div>
+      <div class="colf"><span class="lh"><span>Register <span class="help r" tabindex="0" aria-label="About the register">?<i>Lowest and highest note that can sound (concert pitch). E2–E5 is the guitar from the low E to the high e at fret 12.</i></span></span></span>
+        <span class="reg"><select id="uLo" aria-label="Lowest note"></select><span class="cap">–</span><select id="uHi" aria-label="Highest note"></select></span></div>
+
+      <h3>Behaviour</h3>
+      <div class="colf"><span class="lh"><span>Auto-next <span class="cap">after a correct answer</span></span></span><span id="uAuto" class="seg" role="group" aria-label="Auto-next"></span></div>
+
+      <h3>Backup</h3>
+      <p class="note" style="margin-bottom:10px">All Practice Room apps.</p>
+      <div id="prBackup" data-app="Ear Trainer" data-btn="act sm"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="shared/look.js"></script>     <!-- geheim menu S (Look), vóór rail.js -->
+<script src="shared/rail.js"></script>     <!-- icoonbalk, achtergrond, korrel -->
+<script src="shared/guitar.js"></script>   <!-- zachte jazzgitaar (GTR) -->
+<script src="shared/backup.js"></script>   <!-- back-up (PRB): vóór de app, zie daar -->
+<script>
+
+/* ════════════════════════════════════════════════════════════════════════════
+   0. TEXT — alle schermtekst. Pas gerust aan (alleen de tekst tussen de aanhalingstekens).
+   ════════════════════════════════════════════════════════════════════════════ */
+const TEXT={
+  appName:'Ear Trainer',
+  modes:{name:'Name the interval',smart:'Smart practice'},
+  how:'<b>Name the interval</b>: listen to two notes and pick the interval between them (click a card or press its key). Choose which intervals and which direction in the bar: <b>Up</b>, <b>Down</b>, <b>Together</b> (both at once) or <b>Mix</b>.<br><br><b>Smart practice</b>: spaced repetition. Intervals due today come first, then weak spots, then a few new ones each day; the learning path adds more intervals, then down, then together.<br><br><b>Replay</b> plays the interval again, as often as you like. After a wrong answer, <b>Hear both</b> plays the right interval and then the one you picked. The small neck shows where the two notes lie.',
+  keysHelp:'<b>1–9 0 - =</b> answer (m2 … P8) · <b>R</b> or <b>Space</b> replay · <b>H</b> hear both · <b>Enter</b> next · <b>Esc</b> start or pause',
+  pathHelp:'Smart practice follows these steps. The next step unlocks once 80% of its items are known. Pick a step to set it by hand; the step you reached never goes back.',
+  soon:'Scores per interval and which intervals you mix up come in a later version.',
+  playIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5l9.5 5.5L3 12.5z" fill="currentColor"/></svg>',
+  pauseIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg>',
+  replayIco:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>',
+  start:'Start  (Esc)', pauseBtn:p=>(p?TEXT.playIco:TEXT.pauseIco)+(p?'Start':'Pause'),
+  replay:'Replay <kbd>R</kbd>', replayTray:'Replay',
+  next:'Next  ↵', nextDay:'Next day  ↵',
+  paused:'Paused', listen:'Listen…', which:'Which interval?',
+  dirs:{u:'Up',d:'Down',t:'Together',mix:'Mix'},
+  capName:d=>`Name the interval · ${d}`,
+  capSmart:(why,step,d)=>`Smart practice${why?' · '+why:''} · Step ${step} · ${d}`,
+  why:{relearn:'Again',due:'Due',weak:'Weak spot',new:'New'},
+  noItems:'No intervals to practise. Pick some intervals in the bar (or turn off Weak spots).',
+  correct:ms=>'Correct'+(ms!=null?' · '+(ms/1000).toFixed(1)+' s':''),
+  wrong:p=>`Not quite · you picked ${p}`,
+  hearBoth:'Hear both <kbd>H</kbd>', bothWas:'right', bothYou:'your answer',
+  miniCap:(n,s,f)=>`${n} on the ${s} string, fret ${f}`, miniNone:'Not on the neck in one position',
+  doneToday:'Done for today ✓',
+  summary:o=>`Answered <b>${o.n}</b> (${o.pct} correct) · Again ${o.g[0]} · Hard ${o.g[1]} · Good ${o.g[2]} · Easy ${o.g[3]} · newly learned <b>${o.nw}</b> · due tomorrow <b>${o.m}</b> · Enter = next day`,
+  todayProg:(d,t)=>`${d} of ${t} today`,
+  stepOf:(i,n)=>`${i} of ${n}`, setByPath:'set by the learning path',
+  all:'All', off:'Off', guitar:'Guitar', synth:'Synth',
+  noNote:'Start a session to see the history of each interval here.', firstTime:'First time',
+  noteScore:(p,l)=>`Score ${p}% · ${l}`, levels:['new','learning','known','fluent'],
+  nextReview:d=>d<=0?'Review due today':d===1?'Next review tomorrow':`Next review in ${d} days`, notInSrs:'Not in smart practice yet',
+  path:{auto:'Automatic',manual:(c,a)=>`Manual: step ${c} (automatic would be step ${a}).`,rule:'The next step unlocks once 80% of its items are known.',
+        step:i=>`Step ${i}`,here:'here',upTo:'up to here',title:i=>`Set to step ${i} (manual)`},
+  trayStat:(p,n,d)=>`Score ${p} · correct ${n}`+(d!=null?` · ${d} due today`:''),
+};
+const T=TEXT;
+
+/* ===== 1. DATA ===== */
+/* interval in halve tonen 1–12: [naam, trap, voluit] */
+const IV=[null,['m2','♭2','minor second'],['M2','2','major second'],['m3','♭3','minor third'],['M3','3','major third'],['P4','4','perfect fourth'],['TT','♭5','tritone'],
+  ['P5','5','perfect fifth'],['m6','♭6','minor sixth'],['M6','6','major sixth'],['m7','♭7','minor seventh'],['M7','7','major seventh'],['P8','8','octave']];
+const KEYS=['1','2','3','4','5','6','7','8','9','0','-','='];   // toets voor 1…12 halve tonen
+const ALL12=[1,2,3,4,5,6,7,8,9,10,11,12];
+const ARROW={u:'↑',d:'↓',t:'Together'};
+const OPENM=[40,45,50,55,59,64],SNAME=['E','A','D','G','B','e'],SLONG=['low E','A','D','G','B','high e'];
+const FL=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+const REG_LO=40,REG_HI=79;   // keuze voor het register: E2 … G5 (wat op de hals past, fret 15)
+const WEAK=.85;              // score onder deze grens = zwakke plek (nauwkeurigheid + snelheid)
+const IDLE_SEC=90;           // zonder invoer na zoveel seconden vanzelf pauze (logboek blijft eerlijk)
+const NOTE_LEN=1.8;          // hoe lang de tweede noot (of de samenklank) klinkt, in s
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mus=s=>'<span class="mus">'+esc(s)+'</span>';
+const nm=m=>FL[((m%12)+12)%12]+(Math.floor(m/12)-1);   // MIDI → D♭3
+
+/* ===== 2. STORE (localStorage, veilig met try/catch) ===== */
+const KEY='earTrainer.v1',LOGK='earTrainer.log';
+/* logboek veilig lezen: onleesbaar → kopie naar '.bad' (als die er nog niet is), dan leeg verder */
+function logRead(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return{};}if(raw==null)return{};
+  try{const o=JSON.parse(raw);if(o&&typeof o==='object'&&!Array.isArray(o))return o;}catch(e){}
+  try{if(localStorage.getItem(k+'.bad')==null)localStorage.setItem(k+'.bad',raw);}catch(e){}return{};}
+/* vóór het wegschrijven de opgeslagen versie erbij (ander tabblad): per dag blijft de grootste tijd */
+function logMerge(k,L){const o=logRead(k),sz=v=>v&&typeof v==='object'?+v.s||0:0;
+  Object.keys(o).forEach(d=>{if(!(d in L)||sz(o[d])>sz(L[d]))L[d]=o[d];});return L;}
+var ELOG=logRead(LOGK);
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+/* settings: mode name|smart, ints = 12× 0/1 (m2…P8), dir u|d|t|mix, labels int|deg, lo/hi = register (MIDI), tone guitar|synth,
+   gap = tijd tussen de noten (s), auto = vanzelf door na goed (s, 0 = uit), weak = alleen zwakke plekken, newPerDay, fluentSec,
+   stageSet = handmatige stap (null = automatisch), colOpen/colTab = kolom rechts */
+const DEF={mode:'name',ints:[1,1,1,1,1,1,1,1,1,1,1,1],dir:'u',labels:'int',lo:40,hi:76,tone:'guitar',gap:.7,auto:1.5,weak:false,newPerDay:6,fluentSec:2.5,stageSet:null,colOpen:true,colTab:'sess'};
+const STAGES=[{iv:[5,7,12,4],d:'u'},{iv:[3,9,10],d:'u'},{iv:[2,11,8],d:'u'},{iv:[1,6],d:'u'},{iv:ALL12,d:'d'},{iv:ALL12,d:'t'}];
+const IK=/^([1-9]|1[0-2]):[udt]$/;   // item = interval:richting, bv. "3:u"
+const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+const one=(v,list,d)=>list.includes(v)?v:d;
+const num=(v,a,b,d)=>typeof v==='number'&&isFinite(v)?Math.min(b,Math.max(a,v)):d;
+const int=(v,a,b,d)=>Number.isInteger(v)?Math.min(b,Math.max(a,v)):d;
+/* alles controleren; onbekende velden in settings blijven staan (een latere versie kan ze nodig hebben) */
+function hydrate(r){r=obj(r);const s=obj(r.settings),c={};
+  c.mode=one(s.mode,['name','smart'],DEF.mode);
+  c.ints=Array.isArray(s.ints)&&s.ints.length===12?s.ints.map(x=>x?1:0):[...DEF.ints];if(!c.ints.some(Boolean))c.ints=[...DEF.ints];
+  c.dir=one(s.dir,['u','d','t','mix'],DEF.dir);c.labels=one(s.labels,['int','deg'],DEF.labels);
+  c.lo=int(s.lo,REG_LO,REG_HI-12,DEF.lo);c.hi=int(s.hi,REG_LO+12,REG_HI,DEF.hi);if(c.hi-c.lo<12){c.lo=DEF.lo;c.hi=DEF.hi;}
+  c.tone=one(s.tone,['guitar','synth'],DEF.tone);c.gap=num(s.gap,.3,1.5,DEF.gap);c.auto=one(s.auto,[0,1,1.5,3],DEF.auto);
+  c.weak=s.weak===true;c.newPerDay=one(s.newPerDay,[3,6,10,20],DEF.newPerDay);c.fluentSec=num(s.fluentSec,1,5,DEF.fluentSec);
+  c.stageSet=Number.isInteger(s.stageSet)&&s.stageSet>=0&&s.stageSet<STAGES.length?s.stageSet:null;
+  c.colOpen=s.colOpen!==false;c.colTab=one(s.colTab,['sess','set'],'sess');
+  /* stats per item: n, ok, h = laatste 10 als [goed 0/1, ms of null], best = snelste goede antwoord (ms) */
+  const stats={};Object.entries(obj(r.stats)).forEach(([k,v])=>{if(!IK.test(k))return;v=obj(v);const n=int(v.n,0,1e7,0);
+    const t={n,ok:int(v.ok,0,n,0),h:(Array.isArray(v.h)?v.h:[]).filter(x=>Array.isArray(x)).map(x=>[x[0]?1:0,typeof x[1]==='number'&&isFinite(x[1])&&x[1]>=0?Math.round(x[1]):null]).slice(-10)};
+    if(typeof v.best==='number'&&isFinite(v.best)&&v.best>0)t.best=Math.round(v.best);stats[k]=t;});
+  /* conf: welk antwoord bij welk item (aantallen), voor het overzicht van verwarringen later */
+  const conf={};Object.entries(obj(r.conf)).forEach(([k,v])=>{if(!IK.test(k))return;const o={};
+    Object.entries(obj(v)).forEach(([a,n])=>{if(/^([1-9]|1[0-2])$/.test(a)&&Number.isInteger(n)&&n>0)o[a]=n;});conf[k]=o;});
+  /* srs: box (−1 … 4), due (dagnummer), lapses, g = laatste beoordeling 0–3 */
+  const srs={};Object.entries(obj(r.srs)).forEach(([k,v])=>{if(!IK.test(k))return;v=obj(v);if(!Number.isInteger(v.due))return;
+    srs[k]={box:int(v.box,-1,4,0),due:v.due,lapses:int(v.lapses,0,1e6,0),g:int(v.g,0,3,0)};});
+  const day=obj(r.day);
+  return{settings:Object.assign({},s,c),stats,conf,srs,day:Number.isInteger(day.d)?{d:day.d,newN:int(day.newN,0,1e4,0)}:{d:0,newN:0},
+    maxSt:int(r.maxSt,0,STAGES.length-1,0),off:int(r.off,0,1e5,0)};}
+let store=hydrate({});
+/* onleesbaar → kopie naar earTrainer.v1.bad (als die er nog niet is), dan met de standaard verder */
+try{const raw=localStorage.getItem(KEY);if(raw!=null){let o=null;try{o=JSON.parse(raw);}catch(e){}
+  if(o&&typeof o==='object'&&!Array.isArray(o))store=hydrate(o);
+  else if(localStorage.getItem(KEY+'.bad')==null)localStorage.setItem(KEY+'.bad',raw);}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
+const cfg=()=>store.settings;
+const st=k=>store.stats[k]||{n:0,ok:0,h:[]};
+const lab=s=>IV[s][cfg().labels==='deg'?1:0];
+
+/* ===== 3. ENGINE ===== */
+const med=a=>{if(!a||!a.length)return null;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
+const DECAY=.8;
+/* SCORE 0..1 (zelfde als Fretboard): recentste poging weegt 1, elke oudere ×DECAY. Fout = 0; goed = snelheidsfactor
+   (1 tot de vloeiend-grens, lineair naar 0.35 bij 3×). */
+function score(t){const h=t.h||[];if(!h.length)return null;const fl=cfg().fluentSec*1000;let a=0,b=0;
+  h.forEach(([ok,ms],i)=>{const w=Math.pow(DECAY,h.length-1-i),sp=ms==null?1:Math.max(.35,Math.min(1,1-.65*(ms-fl)/(2*fl)));a+=w*(ok?sp:0);b+=w;});
+  return a/b;}
+function lvl(t){const sc=score(t);if(!t.n||sc==null)return 0;return sc<WEAK?1:(t.h.length>=3&&sc>=.9?3:2);}
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+let lastKey='',recent=[];
+const firstFresh=l=>l.find(x=>!recent.slice(-2).includes(x.k))||l[0];
+const dirsOf=d=>d==='mix'?['u','d','t']:[d];
+/* vragen in Name the interval: gekozen intervallen × richting(en) */
+function pool(){const c=cfg(),p=[];c.ints.forEach((on,i)=>{if(on)dirsOf(c.dir).forEach(d=>p.push({s:i+1,d,k:(i+1)+':'+d}));});return p;}
+/* schud-zak (zoals Fretboard): elke ronde elk item ≥1×, nieuw/zwak 2×, heel zwak 3× */
+let bag=[],bagSig='';
+function pick(){let p=pool();if(!p.length)return null;
+  if(cfg().weak){p=p.filter(i=>lvl(st(i.k))===1);if(!p.length)return null;}
+  const by=new Map(p.map(i=>[i.k,i])),c=cfg(),sig=[c.weak,c.dir,c.ints.join('')].join('|');
+  if(sig!==bagSig){bag=[];bagSig=sig;}
+  bag=bag.filter(k=>by.has(k));
+  if(!bag.length){p.forEach(i=>{const t=st(i.k),sc=score(t);let n=1;if(lvl(t)!==3&&(sc==null||sc<WEAK))n++;if(sc!=null&&sc<.5)n++;
+      for(let j=0;j<n;j++)bag.push(i.k);});shuffle(bag);}
+  let ix=bag.findIndex(k=>k!==lastKey&&!recent.slice(-2).includes(k));if(ix<0)ix=bag.findIndex(k=>k!==lastKey);if(ix<0)ix=0;
+  return by.get(bag.splice(ix,1)[0]);}
+
+/* ===== 3b. SLIM OEFENEN (spaced repetition, zoals de Fretboard Trainer) =====
+   Item = interval × richting (12 × up/down/together = 36), store.srs["s:d"] = {box, due, lapses, g}.
+   Beoordeling: fout = Again, goed maar trager dan Fluent time = Hard, goed = Good, snel (≤ 60%) = Easy.
+   Sessie: fout → terug na 2–4 vragen, daarna na ~10. Dagen: Leitner 1/3/7/16/35. */
+const LADDER=[1,3,7,16,35];
+const EASY=.6;
+const today=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(store.off||0);
+const ORDER=STAGES.flatMap((g,i)=>g.iv.map(s=>({s,d:g.d,k:s+':'+g.d,st:i})));
+const STG=new Map(ORDER.map(x=>[x.k,x.st]));
+let rl={};
+function dayCheck(){if(store.day.d!==today())store.day={d:today(),newN:0};}
+const isKnown=k=>{const e=store.srs[k];return !!e&&e.g>=1;};   // Hard (goed maar traag) telt ook als gekend
+/* stap zakt nooit terug: hoogst bereikte stap staat in store.maxSt */
+function autoStage(){let i=0;for(;i<STAGES.length-1;i++){const it=ORDER.filter(x=>x.st===i);if(it.filter(x=>isKnown(x.k)).length<.8*it.length)break;}
+  if(i>store.maxSt){store.maxSt=i;save();}return Math.max(i,store.maxSt);}
+const curStage=()=>cfg().stageSet!=null?cfg().stageSet:autoStage();
+const smartItems=()=>{const cur=curStage();return ORDER.filter(x=>x.st<=cur);};
+/* intervallen die in Smart practice al meedoen (de andere kaartjes zijn vaag) */
+const smartInts=()=>new Set(smartItems().map(x=>x.s));
+const dueKeys=()=>{const cs=curStage();return Object.keys(store.srs).filter(k=>store.srs[k].due<=today()&&!sess.seen[k]&&STG.get(k)<=cs);};
+function dueUI(){dayCheck();const dk=dueKeys().length,sm=cfg().mode==='smart';$('#sDue').textContent=$('#tDue').textContent=dk;
+  $('#dueWrap').hidden=$('#tDueWrap').hidden=!sm&&!Object.keys(store.srs).length;$('#pgw').hidden=!sm;if(!sm)return;
+  const done=Object.keys(sess.seen).length,nw=Math.min(Math.max(0,cfg().newPerDay-store.day.newN),smartItems().filter(x=>!store.srs[x.k]).length),tot=done+dk+nw+Object.keys(rl).length;
+  $('#pgt').textContent=T.todayProg(done,tot);$('#pgb').style.width=(tot?100*done/tot:0)+'%';}
+function nextDay(){store.off=(store.off||0)+1;dayCheck();sess.seen={};sess.gr=[0,0,0,0];sess.nw=0;rl={};save();newQ();}
+/* volgorde: 1 sessie-herhaling · 2 due (oudste eerst) · 3 zwakke plekken · 4 nieuw (tot New per day) · 5 rest van de herhalingen */
+function pickSmart(){dayCheck();const all=smartItems(),n=sess.n,TD=today(),byK=k=>all.find(x=>x.k===k),ok=x=>x.k!==lastKey;
+  const rdy=Object.entries(rl).filter(([k,r])=>r.at<=n&&k!==lastKey&&byK(k)).sort((a,b)=>a[1].at-b[1].at).map(([k])=>byK(k));
+  if(rdy.length)return{...firstFresh(rdy),why:'relearn'};
+  const due=shuffle(all.filter(x=>{const e=store.srs[x.k];return e&&e.due<=TD&&!sess.seen[x.k]&&ok(x);})).sort((a,b)=>store.srs[a.k].due-store.srs[b.k].due);
+  if(due.length)return{...firstFresh(due),why:'due'};
+  const sc=x=>score(st(x.k));
+  const weak=shuffle(all.filter(x=>store.srs[x.k]&&store.stats[x.k]&&!sess.seen[x.k]&&ok(x)&&sc(x)!=null&&sc(x)<WEAK)).sort((a,b)=>sc(a)-sc(b));
+  if(weak.length)return{...firstFresh(weak),why:'weak'};
+  if(store.day.newN<cfg().newPerDay){const nw=all.filter(x=>!store.srs[x.k]&&ok(x));
+    if(nw.length){const s0=Math.min(...nw.map(x=>x.st));return{...firstFresh(shuffle(nw.filter(x=>x.st===s0))),why:'new'};}}
+  const left=Object.entries(rl).sort((a,b)=>a[1].at-b[1].at).map(([k])=>byK(k)).filter(Boolean);return left.length?{...firstFresh(left),why:'relearn'}:null;}
+function srsAfter(q,ok,ms){const k=q.k;
+  if(!sess.seen[k]){sess.seen[k]=1;const fl=cfg().fluentSec*1000;
+    const g=!ok?0:ms==null?2:ms>fl?1:ms<=fl*EASY?3:2;
+    let e=store.srs[k];const nieuw=!e;if(nieuw){e={box:-1,due:0,lapses:0,g:0};store.day.newN++;sess.nw++;}
+    const b=e.box,early=!nieuw&&e.due>today();
+    if(early&&g>0){e.g=g;store.srs[k]=e;sess.gr[g]++;}   // vóór de due-datum goed: planning blijft staan
+    else{e.box=g===0?0:g===1?Math.max(0,b):Math.min(LADDER.length-1,b+(g===3?2:1));
+      if(g===0&&!nieuw)e.lapses++;
+      e.g=g;e.due=today()+LADDER[e.box];store.srs[k]=e;sess.gr[g]++;}}
+  if(!ok)rl[k]={at:sess.n+2+Math.floor(Math.random()*3),step:1};
+  else if(rl[k]){if(rl[k].step===1)rl[k]={at:sess.n+10,step:2};else delete rl[k];}
+  save();}
+function showSum(){const TD=today(),m=Object.values(store.srs).filter(e=>e.due===TD+1).length;
+  $('#cap').textContent='';$('#prompt').textContent=T.doneToday;$('#btnNext').textContent=T.nextDay;
+  $('#sum').innerHTML=T.summary({n:sess.n,pct:pct(sess.ok,sess.n),g:sess.gr,nw:sess.nw,m});}
+
+/* ===== 4. SPELLING + HALSJE ===== */
+/* naam van de bovenste noot volgens het interval (C + m3 = E♭, niet D♯); grondtoon met ♭ voor de zwarte toetsen.
+   Zou het een dubbele ♯/♭ worden, dan gewoon de ♭-naam. Geeft [onder met octaaf, boven met octaaf, onder, boven]. */
+const LET='CDEFGAB',LPC=[0,2,4,5,7,9,11],STEP=[0,1,1,2,2,3,4,4,5,5,6,6,7];
+function spell(lo,s){const rn=FL[lo%12],li=LET.indexOf(rn[0]),up=lo+s,ul=(li+STEP[s])%7,diff=((up%12-LPC[ul])%12+18)%12-6;
+  const un=Math.abs(diff)>1?FL[up%12]:LET[ul]+(diff===1?'♯':diff===-1?'♭':'');let uo=Math.floor(up/12)-1;
+  if(un==='C♭')uo++;if(un==='B♯')uo--;   // C♭4 klinkt als B3
+  return[rn+(Math.floor(lo/12)-1),un+uo,rn,un];}
+/* greep: grondtoon op een snaar (fret 0–14), de bovenste noot op dezelfde of een hogere snaar binnen 4 frets; de kleinste greep wint */
+function shape(lo,hi){let best=null;
+  for(let s=0;s<6;s++){const f=lo-OPENM[s];if(f<0||f>14)continue;
+    for(let s2=s;s2<6;s2++){const f2=hi-OPENM[s2];if(f2<0||f2>15||(s2===s&&f2<=f))continue;const sp=Math.abs(f2-f);if(sp>4)continue;
+      const c=sp*1.2+(s2===s?1.5:0)+(s2-s)*.2+Math.max(0,f-7)*.3;if(!best||c<best.c)best={c,s,f,s2,f2};}}
+  return best;}
+/* liggend halsje van 5–6 frets rond de greep; hoge e boven, palissander (of de kaartstijl uit menu S) */
+function neckMini(g,n1,n2){const fs=[g.f,g.f2],lo=Math.max(0,Math.min(...fs)-1),F=Math.max(5,Math.max(...fs)-lo),W=42,L=30,top=10,G=15,bot=top+5*G,
+    X=f=>f===0?L-13:L+(f-lo-.5)*W,Y=s=>top+(5-s)*G;
+  let h='<svg class="mini" viewBox="0 0 '+(L+F*W+8)+' '+(bot+24)+'" aria-hidden="true"><rect class="wd" x="'+L+'" y="'+(top-6)+'" width="'+(F*W)+'" height="'+(5*G+12)+'" rx="3"/>';
+  for(let f=lo+1;f<=lo+F;f++){if([3,5,7,9,15].includes(f))h+='<circle class="mk" cx="'+X(f)+'" cy="'+(top+G*2.5)+'" r="3.4"/>';
+    if(f===12)[1.5,3.5].forEach(k=>{h+='<circle class="mk" cx="'+X(12)+'" cy="'+(top+G*k)+'" r="3.4"/>';});
+    h+='<text class="fn" x="'+X(f)+'" y="'+(bot+20)+'" text-anchor="middle">'+f+'</text>';}
+  for(let k=0;k<=F;k++)h+='<line class="'+(k===0&&lo===0?'nut':'fr')+'" x1="'+(L+k*W)+'" x2="'+(L+k*W)+'" y1="'+(top-6)+'" y2="'+(bot+6)+'"/>';
+  for(let s=0;s<6;s++)h+='<line class="st" x1="'+(L-(lo===0?24:4))+'" x2="'+(L+F*W)+'" y1="'+Y(s)+'" y2="'+Y(s)+'" stroke-width="'+(1.7-s*.2).toFixed(2)+'"/>'+
+    (lo===0?'':'<text class="sl" x="'+(L-8)+'" y="'+(Y(s)+3)+'" text-anchor="end">'+SNAME[s]+'</text>');
+  [[g.s,g.f,'rt',n1],[g.s2,g.f2,'up',n2]].forEach(([s,f,c,l])=>{h+='<circle class="'+c+'" cx="'+X(f)+'" cy="'+Y(s)+'" r="7.4"/><text class="ml" x="'+X(f)+'" y="'+(Y(s)+2.5)+'" text-anchor="middle">'+esc(l)+'</text>';});
+  return h+'</svg>';}
+
+/* ===== 5. AUDIO: gitaar uit shared/guitar.js (GTR), anders een eenvoudige synth. AudioContext pas bij de eerste klik (Firefox). ===== */
+let AC=null,MASTER=null,BUS=null,gtrOK=false,SYN=[],LT=[];
+function audio(){
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
+    MASTER=AC.createGain();MASTER.gain.value=.9;MASTER.connect(AC.destination);
+    try{gtrOK=typeof GTR!=='undefined'&&GTR.ok(AC);if(gtrOK){BUS=GTR.bus(AC,MASTER,{gain:1.1});GTR.warm(AC,Math.max(28,cfg().lo-12),Math.min(100,cfg().hi+12));}}catch(e){gtrOK=false;}}
+  if(AC.state!=='running')AC.resume().catch(()=>{});
+  return AC;}
+const useGtr=()=>gtrOK&&cfg().tone==='guitar';
+function synth(m,t,len){const f=440*Math.pow(2,(m-69)/12),o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),g2=AC.createGain(),lp=AC.createBiquadFilter();
+  o.type='triangle';o.frequency.value=f;o2.type='sine';o2.frequency.value=f*2;g2.gain.value=.12;lp.type='lowpass';lp.frequency.value=2600;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.3,t+.015);g.gain.exponentialRampToValueAtTime(.11,t+.35);g.gain.exponentialRampToValueAtTime(.0001,t+len);
+  o.connect(lp);o2.connect(g2).connect(lp);lp.connect(g).connect(MASTER);o.start(t);o2.start(t);o.stop(t+len+.05);o2.stop(t+len+.05);SYN.push({g,o,o2});}
+/* twee noten: a dan b (melodisch, met cfg().gap ertussen) of samen; geeft de tijd (AudioContext) van de tweede aanslag terug */
+function pair(a,b,tog,t){const gap=cfg().gap;
+  if(useGtr()){if(tog)GTR.chord(AC,BUS,[a,b],t,{strum:.012,len:NOTE_LEN,vel:80});
+    else{GTR.note(AC,BUS,a,t,{vel:82,len:gap});GTR.note(AC,BUS,b,t+gap,{vel:82,len:NOTE_LEN});}}
+  else if(tog){synth(a,t,NOTE_LEN);synth(b,t,NOTE_LEN);}
+  else{synth(a,t,gap+.04);synth(b,t+gap,NOTE_LEN);}
+  return tog?t:t+gap;}
+/* stil: alles wat klinkt kort dempen, geplande lampjes en tijden weg */
+function hush(){LT.forEach(clearTimeout);LT=[];document.querySelectorAll('.ear i').forEach(i=>i.classList.remove('on'));
+  if(!AC)return;const t=AC.currentTime;if(gtrOK)try{GTR.damp(AC,t);}catch(e){}
+  SYN.forEach(v=>{try{v.g.gain.cancelScheduledValues(t);v.g.gain.setTargetAtTime(.0001,t,.02);v.o.stop(t+.15);v.o2.stop(t+.15);}catch(e){}});SYN=[];}
+const later=(fn,sec)=>{LT.push(setTimeout(fn,Math.max(0,sec*1000)));};
+/* stip in het luistervak laten oplichten zolang de noot klinkt */
+function glow(id,at,len){later(()=>$(id).classList.add('on'),at);later(()=>$(id).classList.remove('on'),at+len);}
+/* de vraag laten horen; de reactietijd telt vanaf de aanslag van de tweede noot (bij Together vanaf de samenklank) */
+function playQ(){if(!q||paused)return;const A=audio();
+  if(!A){q.ready=true;if(!q.t0)q.t0=performance.now();return;}   // geen geluid mogelijk: niet blijven hangen
+  if(A.state!=='running'){const mine=q;A.resume().then(()=>{if(q===mine&&!paused)playQ();}).catch(()=>{});return;}
+  hush();const now=AC.currentTime,t=now+.08,tog=q.d==='t',t2=pair(q.a,q.b,tog,t),gap=cfg().gap;
+  glow('#n1',t-now,tog?NOTE_LEN*.7:gap);glow('#n2',t2-now,NOTE_LEN*.7);
+  if(!q.done&&!q.ready){const mine=q;later(()=>{if(q!==mine||paused||q.done)return;q.ready=true;q.t0=performance.now();
+    $('#answers').classList.remove('wait');$('#prompt').textContent=T.which;},t2-now);}}
+/* fout geantwoord: eerst het echte interval, dan het gekozen interval (zelfde eerste noot) */
+function hearBoth(){if(!q||!q.done||q.ok||q.pick==null||paused)return;const A=audio();if(!A)return;
+  if(A.state!=='running'){A.resume().then(hearBoth).catch(()=>{});return;}
+  hush();const now=AC.currentTime,t=now+.08,tog=q.d==='t',gap=cfg().gap,[c,d]=notesOf(q,q.pick);
+  pair(q.a,q.b,tog,t);const t3=t+(tog?0:gap)+NOTE_LEN*.85+.25;pair(c,d,tog,t3);
+  const box=$('#bothTxt'),txt=(on)=>'<span'+(on===1?' class="on"':'')+'>1 · <b>'+mus(lab(q.s))+'</b> '+T.bothWas+'</span> &nbsp; <span'+(on===2?' class="on"':'')+'>2 · <b>'+mus(lab(q.pick))+'</b> '+T.bothYou+'</span>';
+  box.innerHTML=txt(1);later(()=>{box.innerHTML=txt(2);},t3-now);later(()=>{box.innerHTML=txt(0);},t3-now+NOTE_LEN);}
+function replay(){if(!q||paused||view!=='play')return;playQ();}   // ook na het antwoord
+/* één keer per klik/toets: een AudioContext die nog wacht, mag nu starten */
+['pointerdown','keydown'].forEach(ev=>addEventListener(ev,e=>{if(AC&&AC.state!=='running'&&e.key!=='Escape')AC.resume().catch(()=>{});},true));
+
+/* ===== 6. PAUZE + LOGBOEK: tijd telt alleen mee zolang de sessie loopt ===== */
+let logMark=0;
+function logAdd(sec,n,ok){const e=ELOG[dayKey()]||(ELOG[dayKey()]={s:0,n:0,ok:0});e.s+=sec;e.n+=n||0;e.ok+=ok||0;}
+function logFlush(){if(!paused&&logMark){const now=performance.now();logAdd((now-logMark)/1000);logMark=now;}
+  logMerge(LOGK,ELOG);const ks=Object.keys(ELOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete ELOG[k]);
+  try{localStorage.setItem(LOGK,JSON.stringify(ELOG));}catch(e){}}
+setInterval(()=>{if(!paused)logFlush();},15000);
+let paused=true,runStart=0,activeMs=0,idleT=null,q=null,autoT=null;
+const fmtT=ms=>{const t=Math.round(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+const tick=()=>{$('#sAct').textContent=fmtT(activeMs+(paused?0:performance.now()-runStart));};
+function armIdle(){clearTimeout(idleT);if(!paused)idleT=setTimeout(()=>setPaused(true),IDLE_SEC*1000);}
+function setPaused(p){if(p===paused)return;if(!p&&view!=='play')setView('play');if(p)logFlush();paused=p;if(!p)logMark=performance.now();
+  $('#play').classList.toggle('paused',p);$('#btnPause').innerHTML=T.pauseBtn(p);
+  if(p){activeMs+=performance.now()-runStart;clearTimeout(idleT);clearTimeout(autoT);hush();
+    if(q&&!q.done){q.ready=false;q.t0=null;$('#answers').classList.add('wait');$('#prompt').textContent=T.listen;}}
+  else{runStart=performance.now();armIdle();if(!q)newQ();else if(!q.done)playQ();}
+  noteCard();tick();}
+['mousemove','mousedown','keydown'].forEach(ev=>addEventListener(ev,()=>{if(!paused)armIdle();},{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true);});
+setInterval(tick,1000);
+
+/* ===== 7. TRAINER ===== */
+const newSess=()=>({n:0,ok:0,streak:0,times:[],seen:{},gr:[0,0,0,0],nw:0});
+let sess=newSess();
+const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';
+/* noten bij een gekozen interval: zelfde eerste noot, zelfde richting */
+const notesOf=(q,s)=>[q.a,q.d==='d'?q.a-s:q.a+s];
+function record(k,ok,ms,c){const t=store.stats[k]||(store.stats[k]={n:0,ok:0,h:[]});
+  t.n++;if(ok)t.ok++;t.h=(t.h||[]).concat([[ok?1:0,ok&&ms!=null?Math.round(ms):null]]).slice(-10);
+  if(ok&&ms!=null){sess.times.push(ms);t.best=Math.min(t.best||1e9,Math.round(ms));}
+  const cf=store.conf[k]||(store.conf[k]={});cf[c]=(cf[c]||0)+1;
+  sess.n++;if(ok){sess.ok++;sess.streak++;}else sess.streak=0;logAdd(0,1,ok?1:0);logFlush();save();}
+function scoreboard(){let n=0,ok=0;Object.values(store.stats).forEach(t=>{n+=t.n;ok+=t.ok;});
+  $('#sPct').textContent=$('#tPct').textContent=pct(sess.ok,sess.n);$('#sN').textContent=$('#tN').textContent=sess.ok+'/'+sess.n;
+  $('#sStreak').textContent=sess.streak;dueUI();
+  $('#tStat').title=T.trayStat(pct(sess.ok,sess.n),sess.ok+'/'+sess.n,$('#tDueWrap').hidden?null:$('#tDue').textContent);
+  $('#sMed').textContent=sess.times.length?(med(sess.times)/1000).toFixed(1)+' s':'–';$('#sLife').textContent=pct(ok,n);noteCard();}
+/* kaartje "This interval": historie van de huidige vraag (naam pas na het antwoord, anders verklapt het iets) */
+function noteCard(){const box=$('#nc');if(!q){box.innerHTML='<p class="cap">'+T.noNote+'</p>';return;}
+  const t=st(q.k),h=t.h||[],fl=cfg().fluentSec*1000,sc=score(t),show=q.done;
+  let html='<div class="ncn">'+(show?mus(lab(q.s))+' '+esc(ARROW[q.d]):'?')+'</div>';
+  if(show&&h.length)html+='<div class="dots">'+h.map(([ok,ms])=>`<i class="dt ${!ok?'bad':ms!=null&&ms>fl?'slow':''}"></i>`).join('')+'</div>';
+  if(show)html+='<p class="cap" style="margin:8px 0 0">'+(sc!=null&&h.length?T.noteScore(Math.round(100*sc),T.levels[lvl(t)]):T.firstTime)+'</p>';
+  if(show&&cfg().mode==='smart'){const e=store.srs[q.k];html+='<p class="cap" style="margin:4px 0 0">'+(e?T.nextReview(e.due-today()):T.notInSrs)+'</p>';}
+  box.innerHTML=html;}
+/* welke kaartjes meedoen: in Name the interval de gekozen intervallen, in Smart practice wat het leerpad al vraagt */
+const enabled=s=>cfg().mode==='smart'?smartInts().has(s):!!cfg().ints[s-1];
+function buildAnswers(){const box=$('#answers');box.innerHTML='';
+  ALL12.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='ans'+(enabled(s)?'':' off');b.dataset.s=s;b.title=IV[s][2];
+    b.innerHTML='<b class="mus">'+esc(lab(s))+'</b><small>'+KEYS[i]+'</small>';b.onclick=()=>answer(s);box.append(b);});}
+let lastRoot=-1;
+function newQ(){clearTimeout(autoT);hush();const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick();
+  $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#after').classList.add('ghost');$('#bothTxt').innerHTML='';
+  buildAnswers();$('#answers').classList.add('wait');
+  if(!it){q=null;$('#ear').dataset.d='u';if(sm)showSum();else{$('#cap').textContent=T.capName(T.dirs[c.dir]);$('#prompt').textContent=T.noItems;}scoreboard();return;}
+  lastKey=it.k;recent.push(it.k);if(recent.length>6)recent.shift();
+  /* grondtoon (onderste noot) zo dat beide noten in het register vallen; niet twee keer dezelfde */
+  let r=c.lo;for(let i=0;i<6;i++){r=c.lo+Math.floor(Math.random()*(c.hi-it.s-c.lo+1));if(r!==lastRoot)break;}lastRoot=r;
+  q={...it,root:r,a:it.d==='d'?r+it.s:r,b:it.d==='d'?r:r+it.s,ready:false,done:false,t0:null,pick:null,ok:null};
+  $('#ear').dataset.d=it.d;
+  $('#cap').textContent=sm?T.capSmart(T.why[it.why]||'',curStage()+1,T.dirs[it.d]):T.capName(T.dirs[it.d]);
+  $('#prompt').textContent=T.listen;
+  scoreboard();if(!paused)playQ();}
+function answer(s){if(!q||q.done||paused||view!=='play'||!enabled(s))return;
+  if(!q.ready)return;   // pas antwoorden als het interval helemaal geklonken heeft
+  q.done=true;q.pick=s;clearTimeout(autoT);
+  const ms=q.t0?Math.min(performance.now()-q.t0,15000):null,ok=s===q.s;q.ok=ok;
+  record(q.k,ok,ms,s);if(cfg().mode==='smart')srsAfter(q,ok,ms);
+  document.querySelectorAll('#answers .ans').forEach(b=>{b.disabled=true;const v=+b.dataset.s;if(v===q.s)b.classList.add('ok');else if(v===s)b.classList.add('bad');});
+  $('#answers').classList.remove('wait');
+  const fb=$('#fb');fb.className='pill '+(ok?'ok':'bad');
+  fb.innerHTML=(ok?'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>'+esc(T.correct(ms)):T.wrong(mus(lab(s))));
+  /* beide noten met naam, in de volgorde waarin ze klonken; daaronder de greep op het halsje */
+  const lo=q.root,[l1,l2,n1,n2]=spell(lo,q.s),sep=q.d==='t'?' + ':' → ',first=q.d==='d'?[l2,l1]:[l1,l2];
+  $('#notes').innerHTML=mus(first[0])+'<span class="ar">'+sep.trim()+'</span>'+mus(first[1])+'<span class="iv">'+esc(IV[q.s][2])+' · '+mus(lab(q.s))+'</span>';
+  const g=shape(lo,lo+q.s);
+  $('#mini').innerHTML=g?neckMini(g,n1,n2):'';$('#miniCap').innerHTML=g?T.miniCap(mus(n1),SLONG[g.s],g.f):T.miniNone;
+  $('#bothBar').hidden=ok;$('#prompt').textContent=ok?IV[q.s][2][0].toUpperCase()+IV[q.s][2].slice(1):T.which;
+  $('#after').classList.remove('ghost');
+  scoreboard();
+  if(ok&&cfg().auto)autoT=setTimeout(()=>{if(q&&q.done&&!paused&&view==='play')newQ();},cfg().auto*1000);}
+
+/* ===== 8. LEERPAD: automatisch of handmatig ===== */
+function stageWhat(i){const g=STAGES[i],prev=new Set(STAGES.slice(0,i).filter(x=>x.d===g.d).flatMap(x=>x.iv));
+  if(new Set([...prev,...g.iv]).size===12)return ARROW[g.d]+' all 12'+(prev.size?' (+ '+g.iv.filter(s=>!prev.has(s)).map(lab).join(' · ')+')':'');
+  return ARROW[g.d]+' '+(prev.size?'+ ':'')+g.iv.map(lab).join(' · ');}
+function stageStat(i){const it=ORDER.filter(x=>x.st===i);return{n:it.filter(x=>isKnown(x.k)).length,t:it.length};}
+const pathChanged=()=>{save();if(cfg().mode==='smart'){newQ();filUI();}renderPath();};
+function renderPath(){const cur=curStage(),man=cfg().stageSet!=null,box=$('#path'),top=$('#pathTop');box.innerHTML='';top.innerHTML='';
+  const a=document.createElement('button');a.className='act sm';a.type='button';a.textContent=T.path.auto;a.setAttribute('aria-pressed',!man);
+  a.onclick=()=>{cfg().stageSet=null;pathChanged();};
+  const nt=document.createElement('span');nt.className='note';nt.textContent=man?T.path.manual(cur+1,autoStage()+1):T.path.rule;top.append(a,nt);
+  STAGES.forEach((g,i)=>{const{n,t}=stageStat(i),lk=i>cur,dn=!lk&&n>=.8*t;
+    const r=document.createElement('div');r.className='stg'+(lk?' lk':dn?' dn':' ac');
+    r.innerHTML=`<div class="t"><span class="ic">${lk?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-label="locked"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':dn?'✓':'●'}</span><b>${T.path.step(i+1)}</b><span class="nn2">${n}/${t}</span></div>`+
+      `<div class="d">${esc(stageWhat(i))}</div><div class="pb"><i style="width:${Math.round(100*n/t)}%"></i><u></u></div>`;
+    const b=document.createElement('button');b.className='act sm';b.type='button';b.textContent=i===cur?T.path.here:T.path.upTo;b.disabled=i===cur;
+    b.title=T.path.title(i+1);b.onclick=()=>{cfg().stageSet=i;pathChanged();};r.append(b);box.append(r);});}
+
+/* ===== 9. UI ===== */
+/* knoppenrij (één keuze) in een .seg */
+function seg(id,key,opts,after){const box=$(id);box.innerHTML='';
+  opts.forEach(([v,l])=>{const b=document.createElement('button');b.type='button';b.innerHTML=l;b.setAttribute('aria-pressed',cfg()[key]===v);
+    b.onclick=()=>{cfg()[key]=v;save();seg(id,key,opts,after);(after||restart)();};box.append(b);});}
+function intChips(){const box=$('#uInts');box.innerHTML='';
+  ALL12.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='chip';b.innerHTML=mus(lab(s));b.title=IV[s][2];
+    b.setAttribute('aria-pressed',!!cfg().ints[s-1]);
+    b.onclick=()=>{const v=cfg().ints;v[s-1]=v[s-1]?0:1;if(!v.some(Boolean))v[s-1]=1;save();intChips();restart();};box.append(b);});
+  const a=document.createElement('button');a.type='button';a.className='chip';a.textContent=T.all;
+  a.onclick=()=>{cfg().ints=[...DEF.ints];save();intChips();restart();};box.append(a);}
+/* register: twee keuzelijsten, altijd minstens een octaaf ertussen */
+function regSel(){const a=$('#uLo'),b=$('#uHi'),c=cfg();a.innerHTML=b.innerHTML='';
+  for(let m=REG_LO;m<=REG_HI-12;m++)a.add(new Option(nm(m),m));for(let m=REG_LO+12;m<=REG_HI;m++)b.add(new Option(nm(m),m));
+  a.value=c.lo;b.value=c.hi;
+  a.onchange=()=>{c.lo=+a.value;if(c.hi-c.lo<12){c.hi=c.lo+12;b.value=c.hi;}save();restart();};
+  b.onchange=()=>{c.hi=+b.value;if(c.hi-c.lo<12){c.lo=c.hi-12;a.value=c.lo;}save();restart();};}
+function rangeSel(id,vid,key,fmt,after){const r=$(id),show=()=>{$(vid).textContent=fmt(+r.value);};
+  r.value=cfg()[key];show();r.oninput=show;r.onchange=()=>{cfg()[key]=+r.value;save();if(after)after();};}
+/* balk bovenaan: de vragen; in Smart practice de stap van het leerpad */
+function filUI(){const sm=cfg().mode==='smart';$('#setQ').hidden=sm;$('#smBar').hidden=!sm;
+  if(sm){const cur=curStage();$('#smStep').textContent=T.stepOf(cur+1,STAGES.length);$('#smTxt').textContent=stageWhat(cur)+' · '+T.setByPath;}}
+function restart(){newQ();filUI();if(view==='prog')renderPath();}
+/* weergave in het midden: Practice of Progress (pauzeert; Start gaat terug naar Practice). Niet bewaard. */
+let view='play';
+function setView(v){view=v;$('#vPlay').hidden=v!=='play';$('#vProg').hidden=v!=='prog';
+  $('#uView').querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  if(v==='prog'){setPaused(true);renderPath();}$('#scroll').scrollTop=0;}
+$('#uView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b)setView(b.dataset.v);});
+$('#smPath').onclick=()=>setView('prog');
+function drawSettings(){
+  seg('#uMode','mode',[['name',T.modes.name],['smart',T.modes.smart]]);
+  intChips();
+  seg('#uDir','dir',['u','d','t','mix'].map(d=>[d,T.dirs[d]]));
+  seg('#uLab','labels',[['int',mus('m3')],['deg',mus('♭3')]],()=>{intChips();filUI();if(q&&q.done)answerRedraw();else buildAnswers();if(view==='prog')renderPath();});
+  const wk=$('#uWeak');wk.checked=!!cfg().weak;wk.onchange=()=>{cfg().weak=wk.checked;save();restart();};
+  seg('#uNew','newPerDay',[[3,'3'],[6,'6'],[10,'10'],[20,'20']]);
+  rangeSel('#fSec','#fVal','fluentSec',v=>v.toFixed(1)+' s',()=>noteCard());
+  seg('#uTone','tone',[['guitar',T.guitar],['synth',T.synth]],()=>{if(q&&!paused)playQ();});
+  rangeSel('#uGap','#gapV','gap',v=>v.toFixed(1)+' s');
+  regSel();
+  seg('#uAuto','auto',[[0,T.off],[1,'1 s'],[1.5,'1.5 s'],[3,'3 s']],()=>{});
+  filUI();}
+/* labels wisselen terwijl de uitslag in beeld is: kaartjes en tekst opnieuw, keuze blijft zichtbaar */
+function answerRedraw(){const s=q.pick,ok=q.ok;buildAnswers();document.querySelectorAll('#answers .ans').forEach(b=>{b.disabled=true;const v=+b.dataset.s;if(v===q.s)b.classList.add('ok');else if(v===s)b.classList.add('bad');});
+  $('#answers').classList.remove('wait');if(!ok)$('#fb').innerHTML=T.wrong(mus(lab(s)));}
+function applyText(){$('#btnStart').textContent=T.start;$('#btnPause').innerHTML=T.pauseBtn(paused);$('#pz').textContent=T.paused;
+  $('#btnReplay').innerHTML=T.replayIco+T.replay;$('#btnReplay2').innerHTML=T.replayIco+T.replayTray;$('#btnBoth').innerHTML=T.hearBoth;
+  $('#howTxt').innerHTML=T.how;$('#keysTxt').innerHTML=T.keysHelp;$('#pathHelp').textContent=T.pathHelp;$('#soon').textContent=T.soon;
+  $('#kh').innerHTML='Keys: <span class="mus">1–9 0 - =</span> · <span class="mus">R</span> or Space replay';document.title=T.appName;}
+
+$('#btnNext').onclick=()=>{if(paused){setPaused(false);return;}if(!q&&cfg().mode==='smart')nextDay();else if(!q||q.done)newQ();};
+$('#btnPause').onclick=$('#btnStart').onclick=()=>setPaused(!paused);
+$('#btnReplay').onclick=$('#btnReplay2').onclick=()=>{if(paused){setPaused(false);return;}replay();};
+$('#btnBoth').onclick=hearBoth;
+$('#btnSess').onclick=()=>{sess=newSess();rl={};activeMs=0;runStart=performance.now();tick();scoreboard();};
+const typing=e=>{const t=e.target;return !!(t&&t.closest&&t.closest('input,textarea,select,[contenteditable="true"]'))||!!document.querySelector('dialog[open]');};
+const lookOpen=()=>{const lb=document.querySelector('.lookbox');return !!lb&&!lb.hidden;};
+/* toetsen: 1–9 0 - = antwoord, R/spatie = nog eens, H = hear both, Enter = volgende, Esc = start/pauze.
+   Op document, dus vóór LOOK (window): Esc sluit eerst het menu S als dat open is */
+document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||typing(e))return;
+  if(e.key==='Escape'){if(lookOpen())return;e.preventDefault();setPaused(!paused);return;}
+  if(lookOpen())return;
+  const k=e.key,i=KEYS.indexOf(k);
+  if(i>=0&&!e.repeat){if(view==='play'&&q&&!q.done&&!paused){e.preventDefault();answer(i+1);}return;}
+  if(k==='r'||k==='R'||k===' '){e.preventDefault();if(e.repeat)return;
+    const f=document.activeElement;if(f&&f.tagName==='BUTTON')f.blur();   // spatie mag geen knop indrukken
+    if(paused)setPaused(false);else replay();return;}
+  if(k==='h'||k==='H'){e.preventDefault();hearBoth();return;}
+  if(k==='Enter'){e.preventDefault();if(e.repeat)return;if(paused)setPaused(false);else if(!q&&cfg().mode==='smart')nextDay();else if(q&&q.done)newQ();}});
+/* kolom rechts (shared/rail.js: ROOM.column): open/dicht = colOpen, tabblad = colTab (Session · Settings) */
+function colShow(t){cfg().colTab=t;$('#tabSess').hidden=t!=='sess';$('#tabSet').hidden=t!=='set';
+  $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));}
+function colInit(){if(typeof ROOM!=='undefined')ROOM.open(cfg().colOpen,true);colShow(cfg().colTab);}
+if(typeof ROOM!=='undefined')ROOM.column($('#col'),cfg().colOpen,o=>{cfg().colOpen=o;save();});
+$('#colTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){colShow(b.dataset.tab);save();}});
+/* ander tabblad heeft opgeslagen: overnemen */
+addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;let o=null;try{o=JSON.parse(e.newValue);}catch(x){return;}
+  if(!o||typeof o!=='object')return;store=hydrate(o);dayCheck();drawSettings();colInit();restart();});
+if(typeof GTR!=='undefined')GTR.look();   // regels "Guitar sound" in menu S
+
+/* ===== START ===== */
+dayCheck();applyText();colInit();drawSettings();restart();setView('play');
+/* rec-lampje (shared/rail.js): rec = sessie loopt, tijd = logboek van vandaag + het lopende stuk */
+ROOM.status({log:LOGK,rec:()=>!paused,time:()=>{const e=ELOG[dayKey()];return(e&&e.s||0)+(!paused&&logMark?(performance.now()-logMark)/1000:0);}});
+</script>
+</body>
+</html>

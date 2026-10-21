@@ -22,7 +22,7 @@
    · Dagdeel: 's avonds en 's nachts wordt de kamer donkerder en gaan de lampen meer gloeien.
      Testen: index.html?hour=22
    ════════════════════════════════════════════════════════════════════════════ */
-:root{--bg:#0b0806;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;--rose:#ff8fab;--sky:#7cc4ff;--lime:#a8d672;
+:root{--bg:#0b0806;--tx:#f5efe6;--mut:#b8b0a3;--mut2:#7d766b;--glow:#ffb547;--teal:#4fe3d0;--violet:#b98cff;--rose:#ff8fab;--sky:#7cc4ff;--lime:#a8d672;--clay:#d9906a;
   --glass:rgba(18,13,10,.74);   /* geen backdrop-filter (live blur rekent elk beeld opnieuw boven de bewegende scène), dus iets dichter */
   --rec:#ff3b30;
   --df:"DotGothic16";--dw:400;--dfs:1;--dls:0;   /* lo-fi lettertype voor titels en labels (keuze in het menu S) */
@@ -159,7 +159,7 @@ dialog.cdlg::backdrop{background:rgba(6,4,3,.62)}
 .calf{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 .callg{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--mut)}
 .callg i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
-.callg i.p{background:var(--violet)}.callg i.c{background:var(--rose)}.callg i.f{background:var(--teal)}.callg i.s{background:var(--glow)}.callg i.cf{background:var(--sky)}.callg i.l{background:var(--lime)}.callg i.m{background:#f5efe6}.callg i.r{background:transparent;box-shadow:inset 0 0 0 2px #f5efe6}
+.callg i.p{background:var(--violet)}.callg i.c{background:var(--rose)}.callg i.f{background:var(--teal)}.callg i.s{background:var(--glow)}.callg i.cf{background:var(--sky)}.callg i.l{background:var(--lime)}.callg i.e{background:var(--clay)}.callg i.m{background:#f5efe6}.callg i.r{background:transparent;box-shadow:inset 0 0 0 2px #f5efe6}
 .calbtn{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--tx);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
 .calbtn:hover,.calbtn[aria-expanded="true"]{border-color:var(--glow)}
 .calgoals{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.calgoals p{margin:0 0 10px;font-size:13px;color:var(--mut)}
@@ -263,7 +263,7 @@ const CONFIG={
    spot = de klikzone: punten [x,y] rond het object, in pixels van het beeld (druk E op de pagina om ze te tekenen).
    at   = waar het label staat [x,y].
    Makkelijker: druk E op de pagina, sleep de labels en teken zones; "Copy as TOOLS code" geeft dit hele blok terug om hier te plakken.
-   live = 'fretboard', 'scales', 'prompter' of 'moves' toont je actuele voortgang in het label.
+   live = 'fretboard', 'scales', 'prompter', 'moves' of 'ear' toont je actuele voortgang in het label.
    (Chord Moves, de piano, staat hier bewust niet meer; chord-moves.html en zijn gegevens blijven bestaan.) */
 const TOOLS=[
   {file:'fretboard-trainer.html', name:'Fretboard Trainer', tagline:'Find every note, on every string.', live:'fretboard',
@@ -276,6 +276,8 @@ const TOOLS=[
    spot:[[640,778],[662,767],[700,762],[760,764],[784,768],[795,796],[792,824],[700,828],[641,826],[635,800]], at:[716,856]},
   {file:'toonladder-trainer.html', name:'Scale Trainer', tagline:'Scales, arpeggios and progressions.', live:'scales',
    spot:[[1150,381],[1311,376],[1292,497],[1226,501],[1226,700],[1286,756],[1274,763],[1220,714],[1130,754],[1122,746],[1210,700],[1210,499],[1144,491]], at:[1230,352]},
+  {file:'ear-trainer.html', name:'Ear Trainer', tagline:'Hear an interval, name it.', live:'ear',
+   spot:[[1632,92],[1668,96],[1672,140],[1660,230],[1618,330],[1660,345],[1672,360],[1672,770],[1600,772],[1556,800],[1536,806],[1520,770],[1478,742],[1462,690],[1470,600],[1488,520],[1478,450],[1496,390],[1540,350],[1580,330],[1612,220]], at:[1560,470]},
   {file:'note-prompter.html', name:'Note Prompter', tagline:'Random notes and chords, on your foot pedal.', live:'prompter',
    spot:[[1410,255],[1428,255],[1452,328],[1387,330]], at:[1419,356]},
 ];
@@ -305,13 +307,14 @@ const SCENE={
 /* Overige teksten. Mag je ook aanpassen. */
 const TEXT={
   cal:{title:'Your practice',week:'this week',month:'this month',today:'today / goal',rest:'rest day',
-       fret:'Fretboard Trainer',scale:'Scale Trainer',prompt:'Note Prompter',moves:'Chord Moves',lick:'Lick Lab',finder:'Chord Finder',manual:'Without the app',promptT:(m,n)=>`Prompter ${m}`+(n?` (${n} prompts)`:''),lickT:m=>`Lick Lab ${m}`,movesT:(m,l)=>`Chord Moves ${m}`+(l?` (${l})`:''),finderT:(m,l)=>`Chord Finder ${m}`+(l?` (${l})`:''),goalMet:'Daily goal met',none:'no practice',goal:g=>`goal ${g}`,
+       fret:'Fretboard Trainer',scale:'Scale Trainer',prompt:'Note Prompter',moves:'Chord Moves',lick:'Lick Lab',finder:'Chord Finder',ear:'Ear Trainer',earT:(m,n,p)=>`Ear Trainer ${m}`+(n?` (${n} intervals, ${p}% right)`:''),manual:'Without the app',promptT:(m,n)=>`Prompter ${m}`+(n?` (${n} prompts)`:''),lickT:m=>`Lick Lab ${m}`,movesT:(m,l)=>`Chord Moves ${m}`+(l?` (${l})`:''),finderT:(m,l)=>`Chord Finder ${m}`+(l?` (${l})`:''),goalMet:'Daily goal met',none:'no practice',goal:g=>`goal ${g}`,
        fretT:(m,n,p)=>`Fretboard ${m}`+(n?` (${n} notes, ${p}% right)`:''),scaleT:(m,l)=>`Scale ${m}`+(l?` (${l})`:''),manT:m=>`Without the app ${m}`,
        popQ:'Practised without the app?',less:'5 minutes less',more:'5 minutes more',clear:'Clear',
        goalsBtn:'Daily goals',goalsHelp:'Minutes per day of the week. 0 = rest day: it just doesn’t count.',
        wd:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],wdLong:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']},
   mini:{title:'This week',week:'this week',open:'Calendar',today:(a,b)=>`Today <b>${a}</b> of ${b}`,rest:'Rest day today',wd:['M','T','W','T','F','S','S']},
   due:n=>n===1?'1 note due today':`${n} notes due today`,caughtUp:'All caught up for today',
+  dueEar:n=>n===1?'1 interval due today':`${n} intervals due today`,
   promptToday:n=>`${n} prompts today`,movesLearned:(n,t)=>`${n} of ${t} moves learned`,calSub:t=>t?`${t} this week`:'Your practice log'
 };
 
@@ -339,12 +342,17 @@ function fretDue(){const sum=read('practiceRoom.fretSum');if(sum&&Array.isArray(
   const today=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(+s.off||0);
   const due=Object.values(s.srs||{}).filter(e=>e&&e.due<=today).length;
   return{due,practised:Object.keys(s.stats||{}).length};}
+/* Ear Trainer: intervallen die vandaag aan de beurt zijn (srs in earTrainer.v1, alleen lezen; dagnummer zoals de trainer, met 'off') */
+function earDue(){const s=read('earTrainer.v1');if(!s||typeof s!=='object'||!s.srs||typeof s.srs!=='object')return null;
+  const today=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+(+s.off||0),v=Object.values(s.srs).filter(e=>e&&typeof e==='object');
+  return{due:v.filter(e=>e.due<=today).length,practised:v.length};}
 function progName(){const s=read('toonladderTrainer:v1');
   if(!s||!Array.isArray(s.progs)||!s.progs.length)return CACHE.scale&&CACHE.scale.p&&CACHE.scale.p.name||null;
   const p=s.progs.find(x=>x.id===(s.view&&s.view.prog))||s.progs[0];return p&&p.name||null;}
 /* label: tweede regel (bij hover) en eventueel een teller */
 function summary(t){
   if(t.live==='fretboard'){const d=fretDue();if(d&&d.practised)return d.due?{line:TEXT.due(d.due),badge:d.due}:{line:TEXT.caughtUp};}
+  if(t.live==='ear'){const d=earDue();if(d&&d.practised)return d.due?{line:TEXT.dueEar(d.due),badge:d.due}:{line:TEXT.caughtUp};}
   if(t.live==='scales'){const n=progName();if(n)return{line:n};}
   if(t.live==='prompter'){const L=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},td=L[dKey(new Date())];if(td&&td.n)return{line:TEXT.promptToday(td.n)};}
   if(t.live==='moves'){const m=read('practiceRoom.movesSum')||(CACHE.moves&&CACHE.moves.sum);if(m&&m.total)return{line:TEXT.movesLearned(+m.learned||0,+m.total)};}
@@ -361,6 +369,7 @@ const ICONS={
   'chord-finder.html':'<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M5 7h14M9.7 3v18M14.3 3v18M5 11h14M5 15h14"/><circle cx="12" cy="9" r="1.4" fill="currentColor"/><circle cx="16.6" cy="13" r="1.4" fill="currentColor"/>',
   'lick-lab.html':'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
   'note-prompter.html':'<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M9 21h6M12 17v4"/><path d="M10 13V8l4 2.5z"/>',
+  'ear-trainer.html':'<path d="M7 9.5a5 5 0 0 1 10 0c0 2.6-1.8 3.6-2.6 4.9-.7 1.1-.6 2.7-1.6 3.8a2.6 2.6 0 0 1-4.3-.8"/><path d="M10 9.7a2 2 0 1 1 3.4 1.4c-.6.6-1.1 1-1.1 1.9"/>',
   'tuner.html':'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l3.5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor"/>',
   'cal':'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/><path d="M8.5 14.5l1.5 1.5 3-3"/>'};
 const atOf=s=>S.pos[s.key]||s.at,spotOf=s=>S.zone[s.key]||s.spot;   /* versleept label / eigen zone (bewerkmodus) gaat vóór TOOLS */
@@ -604,7 +613,7 @@ function bindEdit(){
 
 /* ══ OEFENKALENDER (gelijk aan de vorige Home) ══════════════════════════════════
    Bronnen (alleen lezen): logboek van de Fretboard Trainer (fretTrainer.log), van de Scale Trainer (toonladderTrainer:log),
-   van de Note Prompter (notePrompter.log), van Chord Moves (chordMoves.log), van Chord Finder (chordFinder.log), van Lick Lab (practiceRoom.lickLab.log),
+   van de Note Prompter (notePrompter.log), van Chord Moves (chordMoves.log), van Chord Finder (chordFinder.log), van Lick Lab (practiceRoom.lickLab.log), van de Ear Trainer (earTrainer.log),
    en wat je zelf invult (practiceRoom.manual, minuten per dag). Dagdoelen per weekdag: practiceRoom.goals (ma…zo, 0 = rustdag). */
 const CAL={weeksWide:52,weeksNarrow:26,step:5};
 const dKey=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -614,11 +623,11 @@ const fmtMin=m=>{m=Math.round(m);return m<60?m+' min':Math.floor(m/60)+' h'+(m%6
 function calLogs(){
   const fl=read('fretTrainer.log')||(CACHE.fret&&CACHE.fret.log)||{},sl=read('toonladderTrainer:log')||(CACHE.scale&&CACHE.scale.log)||{};
   const pl=read('notePrompter.log')||(CACHE.prompt&&CACHE.prompt.log)||{},ml=read('chordMoves.log')||(CACHE.moves&&CACHE.moves.log)||{};
-  const cfl=read('chordFinder.log')||(CACHE.finder&&CACHE.finder.log)||{},ll=read('practiceRoom.lickLab.log')||{};
-  return{fl,sl,pl,ml,cfl,ll,man:read('practiceRoom.manual')||{}};}
+  const cfl=read('chordFinder.log')||(CACHE.finder&&CACHE.finder.log)||{},ll=read('practiceRoom.lickLab.log')||{},el=read('earTrainer.log')||{};
+  return{fl,sl,pl,ml,cfl,ll,el,man:read('practiceRoom.manual')||{}};}
 const goals=()=>{const g=read('practiceRoom.goals');return Array.isArray(g)&&g.length===7?g.map(x=>Math.max(0,Math.min(600,+x||0))):[20,20,20,20,20,20,20];};
-function dayInfo(L,k,d,G){const f=(L.fl[k]&&L.fl[k].s||0)/60,sc=(L.sl[k]&&L.sl[k].s||0)/60,p=(L.pl[k]&&L.pl[k].s||0)/60,cm=(L.ml[k]&&L.ml[k].s||0)/60,cf=(L.cfl[k]&&L.cfl[k].s||0)/60,ll=(L.ll[k]&&L.ll[k].s||0)/60,m=+L.man[k]||0,t=f+sc+p+cm+cf+ll+m,g=G[wdIdx(d)];
-  return{f,sc,p,cm,cf,ll,m,t,g,met:g>0&&t>=g,rest:g===0,fe:L.fl[k],se:L.sl[k],pe:L.pl[k],me:L.ml[k],cfe:L.cfl[k],lle:L.ll[k]};}
+function dayInfo(L,k,d,G){const f=(L.fl[k]&&L.fl[k].s||0)/60,sc=(L.sl[k]&&L.sl[k].s||0)/60,p=(L.pl[k]&&L.pl[k].s||0)/60,cm=(L.ml[k]&&L.ml[k].s||0)/60,cf=(L.cfl[k]&&L.cfl[k].s||0)/60,ll=(L.ll[k]&&L.ll[k].s||0)/60,et=(L.el[k]&&L.el[k].s||0)/60,m=+L.man[k]||0,t=f+sc+p+cm+cf+ll+et+m,g=G[wdIdx(d)];
+  return{f,sc,p,cm,cf,ll,et,m,t,g,met:g>0&&t>=g,rest:g===0,fe:L.fl[k],se:L.sl[k],pe:L.pl[k],me:L.ml[k],cfe:L.cfl[k],lle:L.ll[k],ete:L.el[k]};}
 /* minuten van deze week (maandag t/m vandaag), over alle bronnen */
 function weekMin(L){const today=new Date();today.setHours(0,0,0,0);let w=0;
   for(let d=addDays(today,-wdIdx(today));d<=today;d=addDays(d,1))w+=dayInfo(L,dKey(d),d,[0,0,0,0,0,0,0]).t;
@@ -630,7 +639,7 @@ function renderCal(){const T=TEXT.cal,L=calLogs(),G=goals(),today=new Date();tod
     if(ws.getMonth()!==lastM){lastM=ws.getMonth();months+='<span style="grid-column:'+(w+1)+'">'+ws.toLocaleDateString('en-GB',{month:'short'})+'</span>';}
     for(let r=0;r<7;r++){const d=addDays(ws,r),k=dKey(d),fut=d>today,i=dayInfo(L,k,d,G);
       if(fut){cells+='<span class="cd fut"></span>';continue;}
-      let bg='';if(i.t>0){const a=i.f/i.t*360,b=a+i.sc/i.t*360,c=b+i.p/i.t*360,e=c+i.cm/i.t*360,e2=e+i.cf/i.t*360,e3=e2+i.ll/i.t*360;bg='background:conic-gradient(var(--teal) 0 '+a+'deg,var(--glow) '+a+'deg '+b+'deg,var(--violet) '+b+'deg '+c+'deg,var(--rose) '+c+'deg '+e+'deg,var(--sky) '+e+'deg '+e2+'deg,var(--lime) '+e2+'deg '+e3+'deg,#f5efe6 '+e3+'deg 360deg);opacity:'+(.35+.65*Math.min(1,i.t/(i.g||20))).toFixed(2)+';';}
+      let bg='';if(i.t>0){const a=i.f/i.t*360,b=a+i.sc/i.t*360,c=b+i.p/i.t*360,e=c+i.cm/i.t*360,e2=e+i.cf/i.t*360,e3=e2+i.ll/i.t*360,e4=e3+i.et/i.t*360;bg='background:conic-gradient(var(--teal) 0 '+a+'deg,var(--glow) '+a+'deg '+b+'deg,var(--violet) '+b+'deg '+c+'deg,var(--rose) '+c+'deg '+e+'deg,var(--sky) '+e+'deg '+e2+'deg,var(--lime) '+e2+'deg '+e3+'deg,var(--clay) '+e3+'deg '+e4+'deg,#f5efe6 '+e4+'deg 360deg);opacity:'+(.35+.65*Math.min(1,i.t/(i.g||20))).toFixed(2)+';';}
       cells+='<button type="button" class="cd'+(i.t>0?' on':'')+(i.met?' met':'')+(i.rest?' rest':'')+(+d===+today?' today':'')+'" data-k="'+k+'" style="'+bg+'" aria-label="'+esc(calLabel(i,d))+'"></button>';}}
   $('#calGrid').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';$('#calMonths').style.gridTemplateColumns='repeat('+weeks+',var(--cs))';
   $('#calGrid').innerHTML=cells;$('#calMonths').innerHTML=months;
@@ -641,7 +650,7 @@ function renderCal(){const T=TEXT.cal,L=calLogs(),G=goals(),today=new Date();tod
   const ti=dayInfo(L,dKey(today),today,G);
   $('#calStats').innerHTML=[[fmtMin(wk),T.week],[fmtMin(mo),T.month],[ti.rest?T.rest:fmtMin(ti.t)+' / '+fmtMin(ti.g),T.today]]
     .map(([v,l])=>'<div><b>'+esc(String(v))+'</b><small>'+esc(l)+'</small></div>').join('');
-  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],...(Object.keys(L.ml).length?[['c',T.moves]]:[]),['cf',T.finder],['l',T.lick],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');
+  $('#calLegend').innerHTML=[['f',T.fret],['s',T.scale],['p',T.prompt],...(Object.keys(L.ml).length?[['c',T.moves]]:[]),['cf',T.finder],['l',T.lick],['e',T.ear],['m',T.manual],['r',T.goalMet]].map(([c,l])=>'<span><i class="'+c+'"></i>'+esc(l)+'</span>').join('');
   renderMini();}
 function calLabel(i,d){const T=TEXT.cal,parts=[];
   if(i.f)parts.push(T.fretT(fmtMin(i.f),i.fe&&i.fe.n,i.fe&&i.fe.n?Math.round(100*i.fe.ok/i.fe.n):null));
@@ -650,6 +659,7 @@ function calLabel(i,d){const T=TEXT.cal,parts=[];
   if(i.cm)parts.push(T.movesT(fmtMin(i.cm),i.me&&Array.isArray(i.me.p)&&i.me.p.length?i.me.p.join(', '):''));
   if(i.cf)parts.push(T.finderT(fmtMin(i.cf),i.cfe&&Array.isArray(i.cfe.p)&&i.cfe.p.length?i.cfe.p.slice(0,8).join(', '):''));
   if(i.ll)parts.push(T.lickT(fmtMin(i.ll)));
+  if(i.et)parts.push(T.earT(fmtMin(i.et),i.ete&&i.ete.n,i.ete&&i.ete.n?Math.round(100*i.ete.ok/i.ete.n):null));
   if(i.m)parts.push(T.manT(fmtMin(i.m)));
   return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+(i.t?fmtMin(i.t):T.none)+(i.rest?' · '+T.rest:' · '+T.goal(fmtMin(i.g)))+(parts.length?'\n'+parts.join('\n'):'');}
 function calPop(btn){const T=TEXT.cal,k=btn.dataset.k,[y,mo,da]=k.split('-').map(Number),d=new Date(y,mo-1,da),man=read('practiceRoom.manual')||{},v=+man[k]||0;
