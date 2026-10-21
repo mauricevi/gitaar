@@ -26,7 +26,7 @@
 /* ===== 1. TOKENS ===== */
 :root{--colw:1240px}
 /* op body (niet :root): dan volgen ze de kaartstijl uit menu S */
-body{--dok:var(--c7);--dbad:var(--cx);--ok:#3f7a35;--okbg:rgba(111,152,104,.2);--badbg:rgba(179,54,31,.12)}
+body{--dok:var(--c7);--dbad:var(--cx);--due:#4d8fd6;--ok:#3f7a35;--okbg:rgba(111,152,104,.2);--badbg:rgba(179,54,31,.12)}
 
 /* ===== 2. BALK + OEFENVAK ===== */
 .panel{padding:16px 18px;min-width:0}
@@ -42,7 +42,7 @@ body{--dok:var(--c7);--dbad:var(--cx);--ok:#3f7a35;--okbg:rgba(111,152,104,.2);-
 .qbar .tg{font-size:14px}
 .chip{border:1px solid var(--line);border-radius:10px;min-height:30px;padding:0 7px;min-width:36px;background:var(--fill);font-size:13px;font-weight:600;color:var(--mut)}
 .ints{display:inline-flex;flex-wrap:wrap;gap:4px}
-#smStep{font:600 15px "JetBrains Mono",monospace;color:var(--tx)}
+#smStep,#drPair,#drN{font:600 15px "JetBrains Mono",monospace;color:var(--tx)}
 kbd{font:600 11px "JetBrains Mono",monospace;padding:1px 5px;border-radius:5px;border:1px solid var(--line2);color:var(--mut);background:var(--field)}
 .stage{display:flex;flex-direction:column;padding-bottom:6px}
 .play{position:relative;padding:20px 28px 18px}
@@ -143,7 +143,7 @@ svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
 .dt{display:inline-block;width:11px;height:11px;border-radius:50%;background:#6f9868;vertical-align:middle}
 .dt.slow{background:#e0a02b}.dt.bad{background:var(--err)}
 
-/* ===== 7. VOORTGANG (fase 1: alleen het leerpad; de rest komt later) ===== */
+/* ===== 7. VOORTGANG: raster intervallen × richting, leerpad, vaak verwisseld ===== */
 .prog{padding:20px 28px 22px}
 .phd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 12px}
 .phd h2{margin:0;font-size:calc(12.5px * var(--dfs));letter-spacing:.14em;text-transform:uppercase;color:var(--onx);font-family:var(--df),sans-serif;font-weight:400;display:flex;align-items:center;gap:8px}
@@ -161,7 +161,34 @@ svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
 .pb{position:relative;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
 .pb i{display:block;height:100%;background:var(--glow2)}.stg.dn .pb i{background:#6f9868}
 .pb u{position:absolute;left:80%;top:0;bottom:0;width:2px;background:var(--mut);opacity:.6}
-.soon{margin-top:22px}
+/* raster: 12 intervallen × Up/Down/Together, kleur = score zoals de heatmap van de Fretboard Trainer (rood → geel bij de zwakke-grens → groen) */
+.phd .grow{flex:1}
+.phd.gap{margin-top:22px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--mut)}
+.legend>i{display:inline-block;width:12px;height:12px;border-radius:50%}
+.legend>i.ring{background:var(--fill);box-shadow:0 0 0 2px var(--due)}
+.legend>i.dash{background:var(--fill);outline:2px dashed var(--mut);outline-offset:-1px}
+.heat{display:grid;grid-template-columns:86px repeat(12,minmax(0,1fr));gap:6px}
+.heat .hh{text-align:center;font-size:14px;font-weight:700;color:var(--mut);align-self:end;padding-bottom:1px}
+.heat .rl{display:flex;align-items:center;font-size:13px;font-weight:600;color:var(--mut)}
+.hc{display:flex;align-items:center;justify-content:center;height:44px;border-radius:10px;font:600 14px "JetBrains Mono",monospace;cursor:default}
+.hc.few{opacity:.72}.hc.out{opacity:.45}.hc.lk{opacity:.3}
+.hc.weak{outline:2px dashed var(--mut);outline-offset:1px}
+.hc.due{box-shadow:0 0 0 2.5px var(--due)}
+#tip{position:fixed;z-index:50;pointer-events:none;display:none;max-width:260px;background:var(--field);color:var(--tx);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(60,30,10,.25)}
+#tip .cap{font-size:12px}
+/* vaak verwisseld: drie kaartjes, klik = korte A/B-oefening */
+.conf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cf{display:flex;flex-direction:column;gap:3px;align-items:stretch;text-align:left;padding:10px 14px;border-radius:12px;background:var(--fill);border:1px solid var(--line);color:var(--tx);min-width:0;transition:border-color .15s,background .15s}
+.cf:hover{border-color:rgba(196,106,28,.55)}
+.cf .l1{display:flex;align-items:baseline;gap:10px}
+.cf .l1 b{font-size:20px;font-weight:700}
+.cf .l1 .ar{color:var(--mut2);font-weight:400}
+.cf .l1 .cn{margin-left:auto;font:600 15px "JetBrains Mono",monospace}
+.cf .l2{font-size:13px;color:var(--mut)}
+.cf .l3{font-size:12.5px;color:var(--onx);font-weight:600}
+.cf.none{grid-column:1/-1;cursor:default;padding:12px 14px;color:var(--mut);font-size:13px}
+.cf.none:hover{border-color:var(--line)}
 @media (prefers-reduced-motion:reduce){.tray .pg i,.ear i{transition:none}}
 </style>
 </head>
@@ -189,6 +216,12 @@ svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
           <div class="f"><span class="lb px opt">Direction</span><span id="uDir" class="seg" role="group" aria-label="Direction"></span></div>
           <div class="f"><span class="lb px opt">Labels</span><span id="uLab" class="seg" role="group" aria-label="Labels"></span></div>
           <div class="f"><label class="tg" title="Only intervals you often get wrong or answer slowly"><input type="checkbox" role="switch" id="uWeak"><i></i><span>Weak spots</span></label></div>
+        </div>
+        <div class="bar" id="drBar" hidden>
+          <div class="f"><span class="lb px">Drill</span><b id="drPair" class="mus"></b><b id="drN"></b></div>
+          <span class="cap" id="drTxt"></span>
+          <span class="grow"></span>
+          <button type="button" class="act sm" id="drEnd"></button>
         </div>
         <div class="bar" id="smBar" hidden>
           <div class="f"><span class="lb px">Step</span><b id="smStep"></b></div>
@@ -222,15 +255,23 @@ svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
       </section>
       </div>
 
-      <!-- voortgang: in deze fase alleen het leerpad (handmatig te kiezen); scores per interval en verwarringen komen later -->
+      <!-- voortgang: raster (interval × richting), leerpad als zes tegels, vaak verwisselde paren (klik = A/B-oefening) -->
       <div class="stage" id="vProg" hidden>
       <section class="paper prog" aria-label="Progress">
         <div class="phd">
+          <h2>Intervals <span class="help r" tabindex="0" aria-label="How is the score calculated?">?<i id="heatHelp"></i></span></h2>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div id="heat" class="heat"></div>
+        <div class="phd gap">
           <h2>Learning path <span class="help r" tabindex="0" aria-label="About the learning path">?<i id="pathHelp"></i></span></h2>
           <div class="pathtop" id="pathTop"></div>
         </div>
         <div id="path" class="path"></div>
-        <p class="note soon" id="soon"></p>
+        <div class="phd gap">
+          <h2>Often confused <span class="help r" tabindex="0" aria-label="About often confused">?<i id="confHelp"></i></span></h2>
+        </div>
+        <div id="conf" class="conf"></div>
       </section>
       </div>
      </div>
@@ -293,6 +334,8 @@ svg.mini .ml{fill:var(--dtx);font:700 7px "Bricolage Grotesque",sans-serif}
   </aside>
 </div>
 
+<div id="tip"></div>
+
 <script src="shared/look.js"></script>     <!-- geheim menu S (Look), vóór rail.js -->
 <script src="shared/rail.js"></script>     <!-- icoonbalk, achtergrond, korrel -->
 <script src="shared/guitar.js"></script>   <!-- zachte jazzgitaar (GTR) -->
@@ -308,7 +351,15 @@ const TEXT={
   how:'<b>Name the interval</b>: listen to two notes and pick the interval between them (click a card or press its key). Choose which intervals and which direction in the bar: <b>Up</b>, <b>Down</b>, <b>Together</b> (both at once) or <b>Mix</b>.<br><br><b>Smart practice</b>: spaced repetition. Intervals due today come first, then weak spots, then a few new ones each day; the learning path adds more intervals, then down, then together.<br><br><b>Replay</b> plays the interval again, as often as you like. After a wrong answer, <b>Hear both</b> plays the right interval and then the one you picked. The small neck shows where the two notes lie.',
   keysHelp:'<b>1–9 0 - =</b> answer (m2 … P8) · <b>R</b> or <b>Space</b> replay · <b>H</b> hear both · <b>Enter</b> next · <b>Esc</b> start or pause',
   pathHelp:'Smart practice follows these steps. The next step unlocks once 80% of its items are known. Pick a step to set it by hand; the step you reached never goes back.',
-  soon:'Scores per interval and which intervals you mix up come in a later version.',
+  heatHelp:'Each square is one interval in one direction. Colour = score from your last 10 answers (recent ones count more; accuracy and speed): red = weak, yellow = the weak limit, green = strong. Grey = not practised yet.',
+  confHelp:'The pairs of intervals you mix up most, both ways and in all directions (at least twice). A → B means you heard A and answered B. Click a pair for a short drill: 10 questions with only those two intervals. A drill does not count for smart practice, but it is saved in your scores and practice time.',
+  confEmpty:'No pairs yet. A pair shows up here once you have mixed it up twice.',
+  heat:{nw:'new',scale:'weak {g} strong',foot:'dashed ring = weak · faded = little data · blue ring = due · hover a square for details',
+        tip:(n,d,f)=>`<b>${n}</b> · ${d}<br><span class="cap">${f}</span><br>`,score:(p,l)=>`Score: <b>${p}%</b> (${l})<br>`,ok:(p,a,b)=>`Correct: ${p} (${a}/${b})<br>`,
+        time:(b,m)=>`Best: ${b} s`+(m?` · median ${m} s`:'')+'<br>',never:'Not practised yet',due:'<b>Due today</b>',locked:i=>`Locked (step ${i})`},
+  conf:{say:(a,b,n)=>`${a} → ${b} ${n}×`,go:ds=>`Start drill · ${ds}`},
+  drill:{bar:'Only these two intervals · does not count for smart practice',end:'End drill',cap:(i,n,d)=>`A/B drill · Question ${i} of ${n} · ${d}`,
+         done:'Drill done',back:'Back to practice  ↵',sum:(ok,n,a,b)=>`<b>${ok}</b> of ${n} correct · ${a} ↔ ${b} · Enter = back to practice`},
   playIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5l9.5 5.5L3 12.5z" fill="currentColor"/></svg>',
   pauseIco:'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg>',
   replayIco:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>',
@@ -392,7 +443,7 @@ function hydrate(r){r=obj(r);const s=obj(r.settings),c={};
   const stats={};Object.entries(obj(r.stats)).forEach(([k,v])=>{if(!IK.test(k))return;v=obj(v);const n=int(v.n,0,1e7,0);
     const t={n,ok:int(v.ok,0,n,0),h:(Array.isArray(v.h)?v.h:[]).filter(x=>Array.isArray(x)).map(x=>[x[0]?1:0,typeof x[1]==='number'&&isFinite(x[1])&&x[1]>=0?Math.round(x[1]):null]).slice(-10)};
     if(typeof v.best==='number'&&isFinite(v.best)&&v.best>0)t.best=Math.round(v.best);stats[k]=t;});
-  /* conf: welk antwoord bij welk item (aantallen), voor het overzicht van verwarringen later */
+  /* conf: welk antwoord bij welk item (aantallen), voor Often confused in Progress */
   const conf={};Object.entries(obj(r.conf)).forEach(([k,v])=>{if(!IK.test(k))return;const o={};
     Object.entries(obj(v)).forEach(([a,n])=>{if(/^([1-9]|1[0-2])$/.test(a)&&Number.isInteger(n)&&n>0)o[a]=n;});conf[k]=o;});
   /* srs: box (−1 … 4), due (dagnummer), lapses, g = laatste beoordeling 0–3 */
@@ -586,6 +637,20 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(t
 setInterval(tick,1000);
 
 /* ===== 7. TRAINER ===== */
+/* A/B-oefening (uit Often confused): 10 vragen, alleen twee intervallen, 5× elk in willekeurige volgorde (nooit drie dezelfde achter elkaar).
+   Telt niet mee in de spaced repetition (geen srsAfter), wel in stats, conf en het logboek (record). Niet bewaard. */
+let drill=null;
+const DRILL_N=10;
+function drillSeq(a,b){for(let t=0;t<60;t++){const l=shuffle([...Array(DRILL_N/2).fill(a),...Array(DRILL_N/2).fill(b)]);
+    if(!l.some((x,i)=>i>1&&x===l[i-1]&&x===l[i-2]))return l;}
+  return Array.from({length:DRILL_N},(_,i)=>i%2?b:a);}
+function drillNext(){if(!drill||drill.i>=drill.seq.length)return null;const s=drill.seq[drill.i++],d=drill.dirs[Math.floor(Math.random()*drill.dirs.length)];return{s,d,k:s+':'+d};}
+function startDrill(p){const ds=['u','d','t'].filter(d=>p.d[d]);
+  drill={a:p.a,b:p.b,dirs:ds.length?ds:['u'],seq:drillSeq(p.a,p.b),i:0,ok:0};
+  q=null;filUI();setView('play');setPaused(false);}
+function endDrill(){drill=null;filUI();newQ();}
+function showDrillSum(){$('#cap').textContent='';$('#prompt').textContent=T.drill.done;$('#btnNext').textContent=T.drill.back;
+  $('#sum').innerHTML=T.drill.sum(drill.ok,drill.seq.length,mus(lab(drill.a)),mus(lab(drill.b)));$('#drN').textContent=drill.seq.length+' / '+drill.seq.length;}
 const newSess=()=>({n:0,ok:0,streak:0,times:[],seen:{},gr:[0,0,0,0],nw:0});
 let sess=newSess();
 const pct=(a,b)=>b?Math.round(100*a/b)+'%':'–';
@@ -610,28 +675,29 @@ function noteCard(){const box=$('#nc');if(!q){box.innerHTML='<p class="cap">'+T.
   if(show&&cfg().mode==='smart'){const e=store.srs[q.k];html+='<p class="cap" style="margin:4px 0 0">'+(e?T.nextReview(e.due-today()):T.notInSrs)+'</p>';}
   box.innerHTML=html;}
 /* welke kaartjes meedoen: in Name the interval de gekozen intervallen, in Smart practice wat het leerpad al vraagt */
-const enabled=s=>cfg().mode==='smart'?smartInts().has(s):!!cfg().ints[s-1];
+const enabled=s=>drill?s===drill.a||s===drill.b:cfg().mode==='smart'?smartInts().has(s):!!cfg().ints[s-1];
 function buildAnswers(){const box=$('#answers');box.innerHTML='';
   ALL12.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='ans'+(enabled(s)?'':' off');b.dataset.s=s;b.title=IV[s][2];
     b.innerHTML='<b class="mus">'+esc(lab(s))+'</b><small>'+KEYS[i]+'</small>';b.onclick=()=>answer(s);box.append(b);});}
 let lastRoot=-1;
-function newQ(){clearTimeout(autoT);hush();const c=cfg(),sm=c.mode==='smart',it=sm?pickSmart():pick();
+function newQ(){clearTimeout(autoT);hush();const c=cfg(),sm=c.mode==='smart'&&!drill,it=drill?drillNext():sm?pickSmart():pick();
   $('#sum').textContent='';$('#btnNext').textContent=T.next;$('#after').classList.add('ghost');$('#bothTxt').innerHTML='';
   buildAnswers();$('#answers').classList.add('wait');
-  if(!it){q=null;$('#ear').dataset.d='u';if(sm)showSum();else{$('#cap').textContent=T.capName(T.dirs[c.dir]);$('#prompt').textContent=T.noItems;}scoreboard();return;}
+  if(!it){q=null;$('#ear').dataset.d='u';if(drill)showDrillSum();else if(sm)showSum();else{$('#cap').textContent=T.capName(T.dirs[c.dir]);$('#prompt').textContent=T.noItems;}scoreboard();return;}
   lastKey=it.k;recent.push(it.k);if(recent.length>6)recent.shift();
   /* grondtoon (onderste noot) zo dat beide noten in het register vallen; niet twee keer dezelfde */
   let r=c.lo;for(let i=0;i<6;i++){r=c.lo+Math.floor(Math.random()*(c.hi-it.s-c.lo+1));if(r!==lastRoot)break;}lastRoot=r;
   q={...it,root:r,a:it.d==='d'?r+it.s:r,b:it.d==='d'?r:r+it.s,ready:false,done:false,t0:null,pick:null,ok:null};
   $('#ear').dataset.d=it.d;
-  $('#cap').textContent=sm?T.capSmart(T.why[it.why]||'',curStage()+1,T.dirs[it.d]):T.capName(T.dirs[it.d]);
+  $('#cap').textContent=drill?T.drill.cap(drill.i,drill.seq.length,T.dirs[it.d]):sm?T.capSmart(T.why[it.why]||'',curStage()+1,T.dirs[it.d]):T.capName(T.dirs[it.d]);
+  if(drill)$('#drN').textContent=drill.i+' / '+drill.seq.length;
   $('#prompt').textContent=T.listen;
   scoreboard();if(!paused)playQ();}
 function answer(s){if(!q||q.done||paused||view!=='play'||!enabled(s))return;
   if(!q.ready)return;   // pas antwoorden als het interval helemaal geklonken heeft
   q.done=true;q.pick=s;clearTimeout(autoT);
   const ms=q.t0?Math.min(performance.now()-q.t0,15000):null,ok=s===q.s;q.ok=ok;
-  record(q.k,ok,ms,s);if(cfg().mode==='smart')srsAfter(q,ok,ms);
+  record(q.k,ok,ms,s);if(drill){if(ok)drill.ok++;}else if(cfg().mode==='smart')srsAfter(q,ok,ms);
   document.querySelectorAll('#answers .ans').forEach(b=>{b.disabled=true;const v=+b.dataset.s;if(v===q.s)b.classList.add('ok');else if(v===s)b.classList.add('bad');});
   $('#answers').classList.remove('wait');
   const fb=$('#fb');fb.className='pill '+(ok?'ok':'bad');
@@ -651,7 +717,39 @@ function stageWhat(i){const g=STAGES[i],prev=new Set(STAGES.slice(0,i).filter(x=
   if(new Set([...prev,...g.iv]).size===12)return ARROW[g.d]+' all 12'+(prev.size?' (+ '+g.iv.filter(s=>!prev.has(s)).map(lab).join(' · ')+')':'');
   return ARROW[g.d]+' '+(prev.size?'+ ':'')+g.iv.map(lab).join(' · ');}
 function stageStat(i){const it=ORDER.filter(x=>x.st===i);return{n:it.filter(x=>isKnown(x.k)).length,t:it.length};}
-const pathChanged=()=>{save();if(cfg().mode==='smart'){newQ();filUI();}renderPath();};
+const pathChanged=()=>{save();if(cfg().mode==='smart'){newQ();filUI();}renderProg();};
+/* raster: score zoals Fretboard (recent weegt zwaarder); x 0 … .5 loopt tot de zwakke-grens, daarna naar 1 → hsl rood · geel · groen */
+const heatX=sc=>sc<WEAK?.5*sc/WEAK:.5+.5*(sc-WEAK)/(1-WEAK);
+const sec1=ms=>(ms/1000).toFixed(1);
+function renderHeat(){const box=$('#heat'),H=T.heat,cs=curStage(),sm=cfg().mode==='smart',c=cfg(),dd=dirsOf(c.dir);box.innerHTML='';
+  const hd=document.createElement('div');box.append(hd);
+  ALL12.forEach(s=>{const h=document.createElement('div');h.className='hh mus';h.textContent=lab(s);h.title=IV[s][2];box.append(h);});
+  ['u','d','t'].forEach(d=>{const rl=document.createElement('div');rl.className='rl';rl.textContent=(d==='t'?'':ARROW[d]+' ')+T.dirs[d];box.append(rl);
+    ALL12.forEach(s=>{const k=s+':'+d,t=st(k),sc=score(t),e=store.srs[k],x=sc==null?null:heatX(sc),lk=sm&&STG.get(k)>cs,
+        due=sm&&!lk&&!!e&&e.due<=today(),el=document.createElement('div');
+      el.className='hc'+(t.n&&t.n<3?' few':'')+(lk?' lk':'')+(!sm&&(!c.ints[s-1]||!dd.includes(d))?' out':'')+(lvl(t)===1?' weak':'')+(due?' due':'');
+      el.style.background=x==null||lk?'#6f6a60':`hsl(${Math.round(120*Math.max(0,Math.min(1,x)))} 68% 42%)`;
+      el.style.color=x!=null&&!lk&&x>=.25?'#14130f':'#fff';el.textContent=sc==null?'–':Math.round(100*sc);
+      const ms=(t.h||[]).filter(([ok,m])=>ok&&m!=null).map(y=>y[1]),m=med(ms),b=t.best;
+      el._tip=H.tip(mus(lab(s)),T.dirs[d],IV[s][2])+(t.n?(sc!=null?H.score(Math.round(100*sc),T.levels[lvl(t)]):'')+H.ok(pct(t.ok,t.n),t.ok,t.n)+(b?H.time(sec1(b),m!=null?sec1(m):null):''):H.never)+
+        (lk?H.locked(STG.get(k)+1):e&&sm?(due?H.due:T.nextReview(e.due-today())):sm?T.notInSrs:'');
+      box.append(el);});});
+  const gr='<i style="width:90px;border-radius:7px;background:linear-gradient(90deg,hsl(0 68% 42%),hsl(60 68% 42%),hsl(120 68% 42%))"></i>';
+  $('#legend').innerHTML='<i style="background:#6f6a60"></i>'+H.nw+' '+H.scale.replace('{g}',gr)+' <i class="dash"></i>weak <i class="ring"></i>due';}
+/* vaak verwisseld: antwoorden uit conf, per paar (beide kanten, alle richtingen) opgeteld; minstens 2×, top 3 */
+function confPairs(){const m=new Map();
+  Object.entries(store.conf).forEach(([k,o])=>{const[s0,d]=k.split(':'),s=+s0;
+    Object.entries(o).forEach(([a0,n])=>{const a=+a0;if(a===s)return;const lo=Math.min(s,a),hi=Math.max(s,a),pk=lo+'-'+hi,
+        p=m.get(pk)||{a:lo,b:hi,n:0,ab:0,ba:0,d:{}};
+      p.n+=n;if(s===lo)p.ab+=n;else p.ba+=n;p.d[d]=(p.d[d]||0)+n;m.set(pk,p);});});
+  return[...m.values()].filter(p=>p.n>=2).sort((x,y)=>y.n-x.n||x.a-y.a||x.b-y.b).slice(0,3);}
+function renderConf(){const box=$('#conf'),ps=confPairs();box.innerHTML='';
+  if(!ps.length){const e=document.createElement('div');e.className='cf none';e.textContent=T.confEmpty;box.append(e);return;}
+  ps.forEach(p=>{const ds=['u','d','t'].filter(d=>p.d[d]),b=document.createElement('button'),A=mus(lab(p.a)),B=mus(lab(p.b));b.type='button';b.className='cf';
+    const say=[p.ab&&T.conf.say(A,B,p.ab),p.ba&&T.conf.say(B,A,p.ba)].filter(Boolean).join(' &nbsp;·&nbsp; ');
+    b.innerHTML=`<span class="l1"><b>${A}</b><span class="ar">↔</span><b>${B}</b><span class="cn">${p.n}×</span></span><span class="l2">${say}</span><span class="l3">${T.conf.go(ds.map(d=>T.dirs[d]).join(' · '))}</span>`;
+    b.title=IV[p.a][2]+' ↔ '+IV[p.b][2];b.onclick=()=>startDrill(p);box.append(b);});}
+function renderProg(){renderHeat();renderPath();renderConf();}
 function renderPath(){const cur=curStage(),man=cfg().stageSet!=null,box=$('#path'),top=$('#pathTop');box.innerHTML='';top.innerHTML='';
   const a=document.createElement('button');a.className='act sm';a.type='button';a.textContent=T.path.auto;a.setAttribute('aria-pressed',!man);
   a.onclick=()=>{cfg().stageSet=null;pathChanged();};
@@ -683,21 +781,30 @@ function regSel(){const a=$('#uLo'),b=$('#uHi'),c=cfg();a.innerHTML=b.innerHTML=
 function rangeSel(id,vid,key,fmt,after){const r=$(id),show=()=>{$(vid).textContent=fmt(+r.value);};
   r.value=cfg()[key];show();r.oninput=show;r.onchange=()=>{cfg()[key]=+r.value;save();if(after)after();};}
 /* balk bovenaan: de vragen; in Smart practice de stap van het leerpad */
-function filUI(){const sm=cfg().mode==='smart';$('#setQ').hidden=sm;$('#smBar').hidden=!sm;
-  if(sm){const cur=curStage();$('#smStep').textContent=T.stepOf(cur+1,STAGES.length);$('#smTxt').textContent=stageWhat(cur)+' · '+T.setByPath;}}
-function restart(){newQ();filUI();if(view==='prog')renderPath();}
+function filUI(){const sm=cfg().mode==='smart',dr=!!drill;$('#setQ').hidden=sm||dr;$('#smBar').hidden=!sm||dr;$('#drBar').hidden=!dr;
+  if(dr){$('#drPair').innerHTML=mus(lab(drill.a))+' ↔ '+mus(lab(drill.b));$('#drN').textContent=drill.i+' / '+drill.seq.length;}
+  if(sm&&!dr){const cur=curStage();$('#smStep').textContent=T.stepOf(cur+1,STAGES.length);$('#smTxt').textContent=stageWhat(cur)+' · '+T.setByPath;}}
+function restart(){drill=null;newQ();filUI();if(view==='prog')renderProg();}
 /* weergave in het midden: Practice of Progress (pauzeert; Start gaat terug naar Practice). Niet bewaard. */
 let view='play';
 function setView(v){view=v;$('#vPlay').hidden=v!=='play';$('#vProg').hidden=v!=='prog';
   $('#uView').querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
-  if(v==='prog'){setPaused(true);renderPath();}$('#scroll').scrollTop=0;}
+  if(v==='prog'){setPaused(true);renderProg();}$('#scroll').scrollTop=0;}
 $('#uView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b)setView(b.dataset.v);});
 $('#smPath').onclick=()=>setView('prog');
+/* tooltip van het raster */
+const tip=$('#tip');
+$('#heat').addEventListener('mousemove',e=>{const c=e.target.closest('.hc');
+  if(!c||!c._tip){tip.style.display='none';return;}
+  tip.innerHTML=c._tip;tip.style.display='block';const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.max(6,Math.min(innerWidth-w-6,e.clientX+14))+'px';
+  tip.style.top=(e.clientY+h+22>innerHeight?e.clientY-h-12:e.clientY+16)+'px';});
+$('#heat').addEventListener('mouseleave',()=>{tip.style.display='none';});
 function drawSettings(){
   seg('#uMode','mode',[['name',T.modes.name],['smart',T.modes.smart]]);
   intChips();
   seg('#uDir','dir',['u','d','t','mix'].map(d=>[d,T.dirs[d]]));
-  seg('#uLab','labels',[['int',mus('m3')],['deg',mus('♭3')]],()=>{intChips();filUI();if(q&&q.done)answerRedraw();else buildAnswers();if(view==='prog')renderPath();});
+  seg('#uLab','labels',[['int',mus('m3')],['deg',mus('♭3')]],()=>{intChips();filUI();if(q&&q.done)answerRedraw();else buildAnswers();if(view==='prog')renderProg();});
   const wk=$('#uWeak');wk.checked=!!cfg().weak;wk.onchange=()=>{cfg().weak=wk.checked;save();restart();};
   seg('#uNew','newPerDay',[[3,'3'],[6,'6'],[10,'10'],[20,'20']]);
   rangeSel('#fSec','#fVal','fluentSec',v=>v.toFixed(1)+' s',()=>noteCard());
@@ -711,10 +818,14 @@ function answerRedraw(){const s=q.pick,ok=q.ok;buildAnswers();document.querySele
   $('#answers').classList.remove('wait');if(!ok)$('#fb').innerHTML=T.wrong(mus(lab(s)));}
 function applyText(){$('#btnStart').textContent=T.start;$('#btnPause').innerHTML=T.pauseBtn(paused);$('#pz').textContent=T.paused;
   $('#btnReplay').innerHTML=T.replayIco+T.replay;$('#btnReplay2').innerHTML=T.replayIco+T.replayTray;$('#btnBoth').innerHTML=T.hearBoth;
-  $('#howTxt').innerHTML=T.how;$('#keysTxt').innerHTML=T.keysHelp;$('#pathHelp').textContent=T.pathHelp;$('#soon').textContent=T.soon;
+  $('#howTxt').innerHTML=T.how;$('#keysTxt').innerHTML=T.keysHelp;$('#pathHelp').textContent=T.pathHelp;$('#heatHelp').textContent=T.heatHelp;$('#confHelp').textContent=T.confHelp;$('#drEnd').textContent=T.drill.end;$('#drTxt').textContent=T.drill.bar;
   $('#kh').innerHTML='Keys: <span class="mus">1–9 0 - =</span> · <span class="mus">R</span> or Space replay';document.title=T.appName;}
 
-$('#btnNext').onclick=()=>{if(paused){setPaused(false);return;}if(!q&&cfg().mode==='smart')nextDay();else if(!q||q.done)newQ();};
+function goNext(){if(paused){setPaused(false);return;}
+  if(drill&&!q){endDrill();return;}   // uitslag van de A/B-oefening: terug naar gewoon oefenen
+  if(!q&&cfg().mode==='smart')nextDay();else if(!q||q.done)newQ();}
+$('#btnNext').onclick=goNext;
+$('#drEnd').onclick=endDrill;
 $('#btnPause').onclick=$('#btnStart').onclick=()=>setPaused(!paused);
 $('#btnReplay').onclick=$('#btnReplay2').onclick=()=>{if(paused){setPaused(false);return;}replay();};
 $('#btnBoth').onclick=hearBoth;
@@ -732,7 +843,7 @@ document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||typin
     const f=document.activeElement;if(f&&f.tagName==='BUTTON')f.blur();   // spatie mag geen knop indrukken
     if(paused)setPaused(false);else replay();return;}
   if(k==='h'||k==='H'){e.preventDefault();hearBoth();return;}
-  if(k==='Enter'){e.preventDefault();if(e.repeat)return;if(paused)setPaused(false);else if(!q&&cfg().mode==='smart')nextDay();else if(q&&q.done)newQ();}});
+  if(k==='Enter'){e.preventDefault();if(e.repeat)return;if(q&&!q.done&&!paused)return;goNext();}});
 /* kolom rechts (shared/rail.js: ROOM.column): open/dicht = colOpen, tabblad = colTab (Session · Settings) */
 function colShow(t){cfg().colTab=t;$('#tabSess').hidden=t!=='sess';$('#tabSet').hidden=t!=='set';
   $('#colTabs').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));}
