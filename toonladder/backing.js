@@ -321,7 +321,7 @@ function progStop(){
     try{b.gain.cancelScheduledValues(actx.currentTime);b.gain.setTargetAtTime(0,actx.currentTime,0.04);setTimeout(()=>{try{b.disconnect();}catch(e){}},400);}catch(e){}}
   if(D&&D.prog){renderHead();renderProgCard();}}
 const at=(t,fn)=>{progPlayer.vis.push(setTimeout(fn,Math.max(0,(t-actx.currentTime)*1000)));};
-function showBar(b){document.querySelectorAll('#loopR .lc').forEach(e=>e.classList.toggle('now',+e.dataset.bar===b));}
+function showBar(b){document.querySelectorAll('#secs .lb').forEach(e=>e.classList.toggle('now',+e.dataset.bar===b));}
 function showBeat(i,ci){progPlayer.vb=i;progPlayer.vci=ci;document.querySelectorAll('#beats i').forEach((e,j)=>{e.className=j===i?'on'+(ci?' ci':''):'';});}
 /* slotakkoord: eindigt de vorm op een dominant, dan landt de band op het akkoord een kwint lager (of een halve toon lager:
    tritonus-substituut), bij voorkeur het eerste akkoord van de vorm, anders een ander akkoord uit de progressie met die grondtoon.

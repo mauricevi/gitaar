@@ -36,12 +36,10 @@
       <!-- Compare A / B: alleen grondtoon en toonladder; labels, kleuren en afspelen staan in de kolom rechts -->
       <div id="rows" aria-label="Scales"></div>
 
-      <!-- progressie: de akkoorden -->
+      <!-- progressie: de akkoorden; boven elke kaart de maatnummers (slepen = stuk herhalen); uitleg toetsen = ? op de transportplank -->
       <section class="paper panel" id="progCard" aria-label="Progression" hidden>
         <div class="ebar" id="editBar" hidden></div>
         <div id="secs"></div>
-        <div class="loopr" id="loopR" hidden></div>
-        <p class="cap kbd" data-t="prog.keysHint"></p>
       </section>
 
       <section class="paper panel" id="cardBoard" aria-labelledby="hBoard">
@@ -55,6 +53,7 @@
             <select id="outSel"><option value="hide" data-t="ui.hide">Hide</option><option value="faint" data-t="ui.faint">Show faintly</option></select></div>
           <div class="pf" id="customBox"><span data-t="ui.range">Fret range</span>
             <span class="rng"><input type="number" id="cLo" min="0" max="22" data-ta="ui.from"> – <input type="number" id="cHi" min="0" max="22" data-ta="ui.to"></span></div>
+          <span class="help dn l wide" id="hintCmp" tabindex="0" aria-label="How to use">?<i data-t="ui.hint"></i></span>
         </div>
         <div class="pchips" id="posChips" role="group" data-ta="ui.positions"></div>
         <!-- positie kiezen (progressie): hele hals · venster · Martino-vormen -->
@@ -62,7 +61,6 @@
         <div class="fmap" id="formMap" hidden></div>
         <div class="bwrap"><div id="board"></div></div>
         <div class="legend" id="legend"></div>
-        <p class="hint" id="hintCmp" data-t="ui.hint"></p>
       </section>
 
       <section class="paper panel" id="cardCmp" aria-labelledby="hCmp" hidden>

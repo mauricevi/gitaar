@@ -49,7 +49,7 @@ function init(){
     setTimeout(()=>{msg.textContent='';},2500);
   });
   /* menu S (shared/look.js): kaartstijl verandert de hals → opnieuw tekenen (ringkleur volgt licht/donker) */
-  if(typeof LOOK!=='undefined')LOOK.on(()=>{if(D){renderBoard();renderLegend();}});
+  if(typeof LOOK!=='undefined')LOOK.on(()=>{if(D){renderBoard();renderLegend();fitScreen();}});
   /* in een ingesloten weergave (zoals een artifact) leidt de icoonbalk nergens heen */
   try{if(window.top!==window.self)$('#side').hidden=true;}catch(e){}
   update();
