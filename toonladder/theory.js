@@ -3,14 +3,21 @@
 const KEY='toonladderTrainer:v1';
 /* Oefenlogboek per dag (voor de kalender op Home): {"2026-10-08":{s:seconden,p:[progressies]}}. Eigen opslagsleutel.
    Telt mee: de band speelt, of je deed iets in de app in de laatste 60 s terwijl het tabblad zichtbaar is. */
-var SLOG=(()=>{try{return JSON.parse(localStorage.getItem('toonladderTrainer:log'))||{};}catch(e){return{};}})(),lastAct=Date.now(),logTicks=0;
+/* logboek veilig lezen: onleesbaar → kopie naar '.bad' (als die er nog niet is), dan leeg verder */
+function logRead(k){let raw=null;try{raw=localStorage.getItem(k);}catch(e){return{};}if(raw==null)return{};
+  try{const o=JSON.parse(raw);if(o&&typeof o==='object'&&!Array.isArray(o))return o;}catch(e){}
+  try{if(localStorage.getItem(k+'.bad')==null)localStorage.setItem(k+'.bad',raw);}catch(e){}return{};}
+/* vóór het wegschrijven de opgeslagen versie erbij (ander tabblad): per dag blijft de grootste tijd */
+function logMerge(k,L){const o=logRead(k),sz=v=>v&&typeof v==='object'?+v.s||0:0;
+  Object.keys(o).forEach(d=>{if(!(d in L)||sz(o[d])>sz(L[d]))L[d]=o[d];});return L;}
+var SLOG=logRead('toonladderTrainer:log'),lastAct=Date.now(),logTicks=0;
 const dayKey=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');   /* lokale datum JJJJ-MM-DD */
 ['pointerdown','keydown','input','wheel'].forEach(ev=>addEventListener(ev,()=>{lastAct=Date.now();},{passive:true,capture:true}));
 setInterval(()=>{const playing=typeof progPlayer!=='undefined'&&progPlayer.on;
   if(!playing&&(document.visibilityState!=='visible'||Date.now()-lastAct>60000))return;
   const e=SLOG[dayKey()]||(SLOG[dayKey()]={s:0,p:[]});e.s+=5;
   if(state&&state.view.mode==='prog'){const p=curProg();if(p&&!e.p.includes(p.name)){e.p.push(p.name);e.p=e.p.slice(-6);}}
-  if(++logTicks%3===0){const ks=Object.keys(SLOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete SLOG[k]);
+  if(++logTicks%3===0){logMerge('toonladderTrainer:log',SLOG);const ks=Object.keys(SLOG).sort();ks.slice(0,Math.max(0,ks.length-400)).forEach(k=>delete SLOG[k]);
     try{localStorage.setItem('toonladderTrainer:log',JSON.stringify(SLOG));}catch(x){}homeSum();}},5000);
 /* Voorkeurstoonladder per akkoordsoort (Instellingen → Scale per chord type): {akkoordsoort-id: toonladder-id}.
    Eigen opslagsleutel, omdat merge() alleen vaste sleutels bewaart. Leeg = de suggestie op basis van de toonsoort. */
