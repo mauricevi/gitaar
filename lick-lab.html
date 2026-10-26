@@ -20,8 +20,10 @@
       eventueel elke ronde een paar BPM sneller.
    Schil (icoonbalk, achtergrond = de versterker, kolom rechts, transportplank): shared/room.css + shared/rail.js;
    toets S = geheim menu (shared/look.js). Daglicht: geen thema-knop meer.
-   In beeld: lick kiezen (⋯ = New/Duplicate/Delete/Undo/Export/Import), Record + "over" akkoord, positie, tempo, de
-   akkoordrij, de lick (tab + hals) en de transportplank. Raster, lengte, timing, ingang en oefenopties: kolom rechts.
+   Twee weergaven (knoppen in de kop, bewaard in set.view): Library = de lijst van al je licks (zoeken, tags, status,
+   sorteren, ▶ = even beluisteren in het eigen tempo, zonder band) en Lick = één lick: naam, status, ‹ ›, ⋯ (New/Duplicate/
+   Delete/Undo/Export/Import), Record + "over" akkoord, positie, tempo, de akkoordrij, de lick (tab + hals) en de
+   transportplank. Details (tags, bron, notities), raster, lengte, timing, ingang en oefenopties: kolom rechts.
    Opslag: 'practiceRoom.lickLab' (licks en instellingen). Gedeeld: 'practiceRoom.guitarIn' (ingang, kanaal, gevoeligheid + auto).
    'practiceRoom.theme' en 'practiceRoom.board' worden niet meer gelezen (blijven staan); de hals is altijd palissander
    (of de kaartstijl uit menu S).
@@ -55,8 +57,20 @@ input[type=number]{width:72px;font:600 15px "JetBrains Mono",monospace}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .bar .div{width:1px;height:28px;background:var(--line2)}
 .f{display:inline-flex;align-items:center;gap:8px}
-#libSel{width:280px;font-weight:600}
 #rPos{width:150px}
+/* kop van de lick: terug naar de lijst, vorige/volgende, naam, status, menu ⋯ */
+.lkhd{display:flex;align-items:center;gap:10px;margin:-2px 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.ib.sm{width:32px;height:32px;border-radius:9px}
+.ib.sm svg{width:17px;height:17px}
+#lkName{font:700 20px "Bricolage Grotesque",system-ui,sans-serif;width:360px;min-height:38px;border-color:transparent;background:transparent;padding:0 8px}
+#lkName:hover{border-color:var(--line)}
+#lkName:focus{background:var(--field);border-color:rgba(196,106,28,.55)}
+#lkPar{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lkhd .grow{flex:1}
+.lkhd .mpanel{left:auto;right:0}
+.stseg button i,.lst i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--line2);vertical-align:1px}
+[data-s="learning"] i,.stseg [data-v="learning"] i{background:#d27a2a}
+[data-s="known"] i,.stseg [data-v="known"] i{background:#6f9868}
 #rPosV{min-width:76px}
 /* menu ⋯ naast de lick */
 .menu{position:relative}
@@ -139,6 +153,59 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
 .editbar .grow{flex:1}
 .editbar .seg button{padding:5px 10px;font-size:13px}
 
+/* ── Library: de lijst van alle licks, over de hele breedte (geen transportplank, kolom dicht) ── */
+body[data-view="lib"]{--colw:1560px}
+.lib{padding:16px 20px 12px}
+.lbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+#lq{width:320px}
+#lSort{min-height:34px}
+.lcount{font-size:13px;color:var(--mut);white-space:nowrap}
+.lbar .grow{flex:1}
+.ltags{margin-top:12px}
+.chip.ltag{min-height:27px;padding:0 11px;border-radius:999px;font-size:13px;font-weight:600}
+.lgrid{--lcols:40px minmax(190px,1.5fr) 168px minmax(120px,1fr) minmax(120px,1fr) 100px 44px 84px 104px 34px;margin-top:10px;outline:none}
+.lhd,.lr{display:grid;grid-template-columns:var(--lcols);align-items:center;gap:0 14px;padding:0 10px}
+.lhd{padding-top:6px;padding-bottom:7px;border-bottom:1px solid var(--line2);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
+.lr{min-height:58px;border-bottom:1px solid var(--line);cursor:pointer}
+.lr:hover{background:var(--fill)}
+.lr.on{background:rgba(255,250,240,.72);box-shadow:inset 3px 0 0 var(--glow)}
+.lgrid:focus-visible .lr.on{box-shadow:inset 3px 0 0 var(--glow),inset 0 0 0 2px rgba(196,106,28,.45)}
+.lname{min-width:0}
+.lname b{display:block;font-size:15px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lname small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lmini svg{display:block}
+.mcl{fill:none;stroke:var(--mut2);stroke-width:1.2;stroke-linejoin:round;opacity:.7}
+.mcd{fill:var(--mut)}.mcd.rt{fill:var(--onx)}
+.mbl{stroke:var(--line2);stroke-width:1}
+.lhar,.ltg{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.hc{padding:2px 8px;border-radius:7px;background:var(--fill);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap}
+.ltg button{border:1px solid var(--line);border-radius:999px;background:transparent;padding:1px 8px;font-size:12px;color:var(--mut);white-space:nowrap}
+.ltg button:hover{color:var(--tx);border-color:var(--line2)}
+.lst{border:0;background:none;padding:3px 0;font-size:13px;color:var(--mut);white-space:nowrap}
+.lst:hover{color:var(--tx)}
+.ln{font:13px "JetBrains Mono",monospace;color:var(--mut);white-space:nowrap}
+.lplay{width:34px;height:34px;border-radius:50%;font-size:12px;color:var(--onx)}
+.lplay.on{background:var(--glow);border-color:var(--glow);color:#fff6e6}
+.lmore{width:30px;height:30px;opacity:0}
+.lr:hover .lmore,.lr.on .lmore,.lmore:focus-visible{opacity:1}
+.lempty{margin:0;padding:34px 10px;text-align:center;color:var(--mut);font-size:14px}
+/* menu ⋯ van een rij (vast op het scherm, naast de knop) */
+.rmenu{position:fixed;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;background:#f9efdc}
+.rmenu button{border:0;background:none;text-align:left;padding:7px 11px;border-radius:8px;font-size:14px;color:var(--tx)}
+.rmenu button:hover,.rmenu button:focus-visible{background:var(--fill)}
+.rmenu .dang{color:var(--err)}
+
+/* ── Details van de lick (kolom rechts): tags, bron, notities ── */
+.col .row.stk>input,.col .row.stk>textarea{width:100%}
+textarea{border-radius:10px;border:1px solid var(--line);background:var(--field);padding:7px 10px;font:14px/1.45 "Bricolage Grotesque",system-ui,sans-serif;color:var(--tx);outline:none;resize:vertical;min-height:64px}
+textarea:focus{border-color:rgba(196,106,28,.55)}
+.tagbox{display:flex;flex-wrap:wrap;align-items:center;gap:5px;width:100%;min-height:38px;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--field);cursor:text}
+.tagbox:focus-within{border-color:rgba(196,106,28,.55)}
+.tagbox input[type=text]{flex:1;min-width:110px;min-height:26px;border:0;background:transparent;padding:0 4px}
+.tagx{display:inline-flex;align-items:center;gap:3px;padding:1px 3px 1px 9px;border-radius:999px;background:var(--fill);border:1px solid var(--line);font-size:13px;color:var(--tx)}
+.tagx button{display:grid;place-items:center;width:18px;height:18px;padding:0;border:0;border-radius:50%;background:none;color:var(--mut);font-size:14px;line-height:1}
+.tagx button:hover{background:var(--line);color:var(--tx)}
+
 /* ── transportplank: tweede knop op glas ── */
 .tray .gb{border:1px solid rgba(255,240,220,.4);background:transparent;color:#fff3df;border-radius:12px;padding:8px 16px;font-weight:600}
 .tray .gb:hover{background:rgba(255,243,225,.12)}
@@ -163,6 +230,8 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
 .toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(14px);opacity:0;pointer-events:none;background:#fbf3e3;color:var(--tx);border:1px solid var(--line2);box-shadow:0 10px 28px rgba(60,30,10,.3);padding:10px 16px;border-radius:12px;font-size:14px;max-width:min(620px,calc(100vw - 32px));transition:opacity .2s,transform .2s;z-index:60}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:#b3361f;border-color:#b3361f;color:#fff6e6}
+.toast.act{pointer-events:auto}   /* met knop (Undo) */
+.toast .tact{margin-left:12px;font-weight:700}
 @media (prefers-reduced-motion:reduce){.act.rec.on{animation:none}.toast{transition:none}}
 </style>
 </head>
@@ -177,7 +246,9 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
      <div class="wrap">
       <header class="top">
         <h1 class="px">Lick Lab</h1>
+        <span class="seg glass" id="uView" role="group" aria-label="View"><button type="button" data-v="lib">Library</button><button type="button" data-v="lick">Lick</button></span>
         <span class="help dn r xwide" tabindex="0" aria-label="How it works">?<i>
+          <span class="hl"><b>Library</b> lists all your licks. Click one to open it; <span class="kbd">Esc</span> in a lick brings you back.</span>
           <span class="hl">Record a lick once, then play it with the same fingering over every chord.</span>
           <span class="hl"><b>1 · Set up first:</b> the chord you play the lick over, the position (where your index finger sits) and a slow tempo; grid and length are in the side panel. Press <b>Record</b>: one bar of clicks, then play. Notes in the count-in bar become pickups.</span>
           <span class="hl"><b>2 · Check the fingering.</b> Every note goes on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also move earlier or later, be deleted, or be added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher; <b>Octave ↓ / ↑</b> moves it 12 frets (on another chord only where you play it over that chord).</span>
@@ -188,27 +259,54 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
         <div class="grow"></div>
       </header>
 
-      <div class="view">
-      <!-- de lick: kiezen (⋯ = beheer), opnemen over welk akkoord, positie, tempo -->
+      <!-- Library: alle licks, zoeken, filteren, sorteren; klik = openen -->
+      <div class="view" id="vLib">
+      <section class="paper panel lib" aria-label="Lick library">
+        <div class="lbar">
+          <label for="lq" class="vh">Search licks</label><input type="text" id="lq" placeholder="Search name, tags, source, notes   /" spellcheck="false" autocomplete="off">
+          <span class="seg" id="lStat" role="group" aria-label="Status"></span>
+          <label class="f"><span class="lb px">Sort</span><select id="lSort"></select></label>
+          <span class="lcount" id="lCount" aria-live="polite"></span>
+          <span class="grow"></span>
+          <button type="button" class="act sm" id="lImp" title="Add licks from a .json file">Import</button>
+          <button type="button" class="act sm" id="lExp" title="All licks as one .json file">Export all</button>
+          <button type="button" class="act pri" id="lNew">+ New lick</button>
+          <span class="help l wide" tabindex="0" aria-label="Library keys">?<i>Click a lick (or <span class="kbd">Enter</span>) to open it. <span class="kbd">▶</span> listens to it at its own tempo, without the band. The status dot (new · learning · known) changes with a click; a tag filters the list.<br>Keys: <span class="kbd">/</span> search · <span class="kbd">↑ ↓</span> choose · <span class="kbd">Enter</span> open · <span class="kbd">Space</span> listen · <span class="kbd">Delete</span> delete (Undo brings it back) · <span class="kbd">Ctrl Z</span> undo.</i></span>
+        </div>
+        <div class="chips ltags" id="lTags" role="group" aria-label="Filter by tag"></div>
+        <div class="lgrid" id="lGrid" role="listbox" tabindex="0" aria-label="Licks">
+          <div class="lhd" aria-hidden="true"><span></span><span>Name</span><span>Shape</span><span>Harmony</span><span>Tags</span><span>Status</span><span>Bars</span><span>Added</span><span>Practised</span><span></span></div>
+          <div id="lRows"></div>
+        </div>
+      </section>
+      </div>
+
+      <div class="view" id="vLick">
+      <!-- de lick: naam, status, ⋯ = beheer; opnemen over welk akkoord, positie, tempo -->
       <section class="paper panel" aria-label="Lick and recording">
-        <div class="bar">
-          <div class="f menu">
-            <label for="libSel" class="vh">Lick</label><select id="libSel"></select>
+        <div class="lkhd">
+          <button type="button" class="act sm" id="toLib" title="Esc">← Library</button>
+          <button type="button" class="ib sm" id="lkPrev" title="Previous lick in the library" aria-label="Previous lick"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button type="button" class="ib sm" id="lkNext" title="Next lick in the library" aria-label="Next lick"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <label for="lkName" class="vh">Lick name</label><input type="text" id="lkName" maxlength="60" spellcheck="false" autocomplete="off" title="Click to rename">
+          <span id="lkPar"></span>
+          <span class="grow"></span>
+          <span class="seg stseg" id="lkStat" role="group" aria-label="Status"></span>
+          <div class="menu">
             <button type="button" class="ib" id="libMenuB" aria-expanded="false" aria-controls="libMenu" title="Lick: new, duplicate, delete, undo, export, import" aria-label="Lick actions"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></svg></button>
             <div class="paper mpanel" id="libMenu" role="dialog" aria-label="Lick actions" hidden>
-              <label class="mname"><span class="lb px">Name</span><input type="text" id="libName" maxlength="60" spellcheck="false"></label>
               <div class="mgrid">
                 <button type="button" class="act sm" id="libNew">New</button>
-                <button type="button" class="act sm" id="libDup">Duplicate</button>
+                <button type="button" class="act sm" id="libDup" title="A variant of this lick">Duplicate</button>
                 <button type="button" class="act sm" id="libDel">Delete</button>
                 <button type="button" class="act sm" id="libUndo" title="Ctrl+Z">Undo</button>
-                <button type="button" class="act sm" id="libExp">Export</button>
+                <button type="button" class="act sm" id="libExp" title="This lick as a .json file">Export</button>
                 <button type="button" class="act sm" id="libImp">Import</button>
               </div>
-              <input type="file" id="libFile" accept=".json,application/json" hidden>
             </div>
           </div>
-          <span class="div"></span>
+        </div>
+        <div class="bar">
           <div class="f"><span class="lb px">Over</span><select id="rRoot" aria-label="Chord root"></select><select id="rQual" aria-label="Chord quality"></select></div>
           <div class="f"><label class="lb px" for="rPos">Position</label><input type="range" id="rPos" min="0" max="14" step="1"><span class="cap" id="rPosV"></span></div>
           <div class="f"><label class="lb px" for="rBpm">Tempo</label><input type="number" id="rBpm" min="30" max="240" step="1"><span class="cap">BPM</span><span class="help l" tabindex="0" aria-label="About the tempo">?<i>The recording tempo. Play slowly: the app keeps the rhythm, and you practise faster with the tempo in the play bar.</i></span></div>
@@ -274,6 +372,13 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
       <button type="button" class="ib" data-col="shut" title="Hide settings" aria-label="Hide settings"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
 
+    <div id="detBox">
+    <h3>Details</h3>
+    <div class="row stk"><label for="dTag">Tags</label><div class="tagbox" id="dTagBox"><span class="chips" id="dTags"></span><input type="text" id="dTag" list="dTagList" maxlength="24" placeholder="Add a tag, Enter" spellcheck="false" autocomplete="off"></div><datalist id="dTagList"></datalist></div>
+    <div class="row stk"><label for="dSrc">Source</label><input type="text" id="dSrc" maxlength="120" placeholder="Wes Montgomery – Four on Six, 1:23" spellcheck="false"></div>
+    <div class="row stk"><label for="dNote">Notes</label><textarea id="dNote" maxlength="1000" rows="3" placeholder="Fingering tips, where it fits, what to watch…"></textarea></div>
+    </div>
+
     <h3>Practice</h3>
     <div class="row"><label for="pLad">Each round</label><select id="pLad"></select></div>
     <div class="row"><span>Swing the eighths</span><label class="tg"><input type="checkbox" role="switch" id="pSwing" aria-label="Swing the eighths"><i></i></label></div>
@@ -305,6 +410,14 @@ svg text{font-family:"Bricolage Grotesque",system-ui,sans-serif}
   </aside>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- menu ⋯ van een rij in de Library -->
+<div class="paper rmenu" id="rowMenu" role="menu" aria-label="Lick actions" hidden>
+  <button type="button" role="menuitem" data-m="open">Open</button>
+  <button type="button" role="menuitem" data-m="dup">Duplicate (variant)</button>
+  <button type="button" role="menuitem" data-m="exp">Export this lick</button>
+  <button type="button" role="menuitem" data-m="del" class="dang">Delete</button>
+</div>
+<input type="file" id="libFile" accept=".json,application/json" hidden>
 
 <!-- volgorde telt -->
 <script src="shared/look.js"></script>           <!-- geheim menu S (Look), vóór rail.js -->
@@ -364,13 +477,26 @@ const chordName=c=>ROOTN[c.root]+QUAL[c.q].lbl;
 /* ═══════════ 2. OPSLAG ═══════════ */
 const DEF_SET={lat:.04,latCal:false,ptempo:80,ladder:0,loop:true,swing:true,follow:true,labels:'deg',
   hold:50,snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false,
-  colOpen:true,neckW:100};   /* schil: kolom rechts open; breedte van de hals in % (menu S → Neck size) */
+  colOpen:true,neckW:100,   /* schil: kolom rechts open; breedte van de hals in % (menu S → Neck size) */
+  view:'lib',lsort:'new',lstat:'',ltag:''};   /* weergave lib|lick; Library: sortering, filter op status en op één tag ('' = alle) */
+const STATS=['new','learning','known'],STATN={new:'New',learning:'Learning',known:'Known'};
+const SORTS=[['new','Newest'],['name','Name A–Z'],['last','Recently practised'],['least','Least recently practised']];
 const newId=()=>'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const isInt=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
+/* tags: ingekorte tekst, ≤ 24 tekens, ≤ 12 per lick, dubbele (hoofdletters tellen niet) vallen weg */
+function fixTags(a){const out=[],seen=new Set();(Array.isArray(a)?a:[]).forEach(t=>{if(typeof t!=='string')return;t=t.replace(/\s+/g,' ').trim().slice(0,24).trim();
+  const k=t.toLowerCase();if(t&&!seen.has(k)&&out.length<12){seen.add(k);out.push(t);}});return out;}
+/* een lick. Bibliotheekvelden (alle met standaard, dus oude licks laden ongewijzigd): tags, src = bron, note = notities,
+   status new|learning|known, last = laatst geoefend (ms, 0 = nooit: gezet bij afspelen met de band of opnemen in de
+   weergave Lick, niet bij ▶ in de lijst), keys = bitmasker 0–4095 (voor later: welke toonsoorten), parent = id van de lick
+   waar deze een variant van is ('' = geen) */
 function fixLick(l){if(!l||typeof l!=='object')return null;
   const L={id:typeof l.id==='string'&&l.id?l.id:newId(),name:typeof l.name==='string'&&l.name.trim()?l.name.slice(0,60):'Lick',
     root:isInt(l.root,0,11)?l.root:9,q:QUAL[l.q]?l.q:'m7',pos:isInt(l.pos,0,14)?l.pos:5,bpm:isInt(l.bpm,30,240)?l.bpm:70,
-    sub:[2,3,4].includes(l.sub)?l.sub:2,bars:[0,1,2,4].includes(l.bars)?l.bars:2,notes:[],raw:null,made:+l.made||Date.now()};
+    sub:[2,3,4].includes(l.sub)?l.sub:2,bars:[0,1,2,4].includes(l.bars)?l.bars:2,notes:[],raw:null,made:+l.made||Date.now(),
+    tags:fixTags(l.tags),src:typeof l.src==='string'?l.src.slice(0,120):'',note:typeof l.note==='string'?l.note.slice(0,1000):'',
+    status:STATS.includes(l.status)?l.status:'new',last:Number.isFinite(+l.last)&&+l.last>0?+l.last:0,keys:isInt(l.keys,0,4095)?l.keys:0,
+    parent:typeof l.parent==='string'?l.parent.slice(0,40):''};
   if(Array.isArray(l.notes))L.notes=l.notes.filter(n=>n&&isInt(n.t,-16,999)&&isInt(n.s,0,5)&&isInt(n.f,0,MAXF))
     .map(n=>({t:n.t,d:isInt(n.d,1,64)?n.d:1,s:n.s,f:n.f,lock:!!n.lock})).sort((a,b)=>a.t-b.t)
     .filter((n,i,a)=>!i||a[i-1].t!==n.t);
@@ -386,7 +512,9 @@ function hydrate(o){const st={v:1,licks:[],cur:'',set:JSON.parse(JSON.stringify(
     st.set.snd=Object.assign({},DEF_SET.snd,o.set.snd&&typeof o.set.snd==='object'?o.set.snd:{});
     if(!Array.isArray(st.set.over))st.set.over=[];if(!['deg','ord','note'].includes(st.set.labels))st.set.labels='deg';
     st.set.ptempo=clamp(Math.round(st.set.ptempo)||80,30,240);st.set.lat=clamp(+st.set.lat||0,-.1,.5);
-    st.set.neckW=clamp(Math.round(st.set.neckW)||100,60,100);}
+    st.set.neckW=clamp(Math.round(st.set.neckW)||100,60,100);
+    if(!['lib','lick'].includes(st.set.view))st.set.view='lib';if(!SORTS.some(s=>s[0]===st.set.lsort))st.set.lsort='new';
+    if(!STATS.includes(st.set.lstat))st.set.lstat='';st.set.ltag=st.set.ltag.slice(0,24);}
   st.cur=typeof o.cur==='string'?o.cur:'';return st;}
 let ST;{const raw=(()=>{try{return localStorage.getItem(KEY);}catch(e){return null;}})();
   try{ST=hydrate(raw?JSON.parse(raw):null);}catch(e){try{localStorage.setItem(KEY+'.bad',raw);}catch(x){}ST=hydrate(null);}}   /* onleesbare data niet stil overschrijven */
@@ -404,7 +532,7 @@ function undo(){const u=UNDO.pop();if(!u){toast('Nothing to undo.');return;}stop
   if(i>=0)ST.licks[i]=L;else ST.licks.splice(clamp(u.idx??ST.licks.length,0,ST.licks.length),0,L);
   ST.cur=L.id;
   if(u.added){const j=ST.licks.findIndex(l=>l.id===u.added);if(j>=0)ST.licks.splice(j,1);if(!ST.licks.length)ST.licks.push(example());
-    ST.cur=ST.licks.some(l=>l.id===u.prev)?u.prev:ST.licks[Math.max(0,j-1)].id;}sel=null;save();renderAll();toast('Undone.');}
+    ST.cur=ST.licks.some(l=>l.id===u.prev)?u.prev:ST.licks[Math.max(0,j-1)].id;}lsel=ST.cur;sel=null;save();renderAll();markSel(true);toast('Undone.');}
 const syncUndo=()=>{$('#libUndo').disabled=!UNDO.length;};
 
 /* ═══════════ 3. RITME EN VINGERZETTING ═══════════ */
@@ -675,7 +803,7 @@ let REC=null;
 async function recStart(into){if(REC){recStop();return;}stopPlay();if(CAL)return;
   if(!IN.on&&!(await IN.connect()))return;
   let L=lick(),created=null;
-  if(!into&&L.notes.length){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now()}));
+  if(!into&&L.notes.length){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now(),tags:[],src:'',note:'',status:'new',last:0,keys:0,parent:''}));
     created={id:N.id,prev:L.id};ST.licks.push(N);ST.cur=N.id;L=N;}
   const a=audio(),spb=60/L.bpm,t0=a.currentTime+.15+4*spb;
   REC={id:L.id,into:!!into,created,t0,spb,end:L.bars?t0+L.bars*4*spb:t0+16*4*spb,beat:-4,ev:[],raf:0,
@@ -697,7 +825,7 @@ function recFinish(){const R=REC;if(!R)return;
   const q=raw.length?quantizeRaw(raw,L.sub,L.bars):[];
   if(!q.length){recEnd(R);$('#recL').textContent='No notes heard';toast('No notes heard. Check the input level (Input below) and play a little louder.',true);return;}
   if(R.into)pushUndo(L);else if(R.created)pushUndo(L,{added:L.id,prev:R.created.prev});
-  finger(q,L.pos);L.raw=raw;L.notes=q.map(n=>({t:n.t,d:n.d,s:n.s,f:n.f,lock:false}));R.created=null;
+  finger(q,L.pos);L.raw=raw;L.notes=q.map(n=>({t:n.t,d:n.d,s:n.s,f:n.f,lock:false}));L.last=Date.now();R.created=null;   /* opnemen telt als oefenen */
   recEnd(R);$('#recL').textContent=q.length+' notes';
   const miss=IN.missed,res=R.ev.filter(e=>e.rescued).length;
   toast('Recorded '+q.length+' notes'+(miss?'. '+miss+' attack'+(miss===1?'':'s')+' had no clear pitch: let the notes ring a little longer, or turn the input up.':R.into?'. Undo brings back the previous version.':'. Check the fingering below.'),miss>0);
@@ -728,24 +856,28 @@ async function calibrate(){if(CAL||REC)return;stopPlay();if(!IN.on&&!(await IN.c
 
 /* ═══════════ 9. AFSPELEN EN OEFENEN ═══════════ */
 let PL=null;
-function playStart(mode){if(PL){const was=PL.mode;stopPlay();if(was===mode)return;}if(REC||CAL)return;if(!audio())return;
-  const L=lick();if(!L.notes.length){toast('This lick has no notes yet. Record one first.');return;}
-  const go=()=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i),list=mode==='one'?[S.sel]:cs.length?cs:[-1];
-    const bpm=clamp(S.ptempo,30,240),spb=60/bpm,t0=actx.currentTime+.12,mix=chain();
-    for(let b=0;b<4;b++)click(t0+b*spb,b===0,true,mix.click);
-    PL={mode,mix,list,k:0,t:t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false};
-    sched();PL.iv=setInterval(sched,40);PL.raf=requestAnimationFrame(visLoop);syncTransport();};
-  if(SND||!window.BACKING_SOUNDS)go();else{PL={loading:true,mode};syncTransport();loadSounds().then(()=>{if(PL&&PL.loading){PL=null;go();}});}}
-function sched(){const p=PL;if(!p||p.loading)return;const L=lick();
+/* mode: 'prog' = de progressie, 'one' = het gekozen akkoord (beide met band, tellen als oefenen: L.last),
+   'pre' = ▶ in de Library: lick L één keer in zijn eigen tempo, alleen de gitaar, zonder aftellen */
+function playStart(mode,L){L=L||lick();const pre=mode==='pre';
+  if(PL){const same=PL.mode===mode&&(!pre||PL.L===L);stopPlay();if(same)return;}if(REC||CAL)return;if(!audio())return;
+  if(!L.notes.length){toast(pre?'“'+L.name+'” has no notes yet.':'This lick has no notes yet. Record one first.');return;}
+  const go=()=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i),list=pre?[-1]:mode==='one'?[S.sel]:cs.length?cs:[-1];
+    const bpm=pre?L.bpm:clamp(S.ptempo,30,240),spb=60/bpm,t0=actx.currentTime+.12,mix=chain();
+    if(!pre){for(let b=0;b<4;b++)click(t0+b*spb,b===0,true,mix.click);L.last=Date.now();save();}
+    PL={mode,L:pre?L:null,mix,list,k:0,t:pre?t0-tOf(minT(L),L.sub,spb):t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false};
+    sched();PL.iv=setInterval(sched,40);PL.raf=requestAnimationFrame(visLoop);syncTransport();syncPre();};
+  if(pre||SND||!window.BACKING_SOUNDS)go();else{PL={loading:true,mode};syncTransport();loadSounds().then(()=>{if(PL&&PL.loading){PL=null;go();}});}}
+function sched(){const p=PL;if(!p||p.loading)return;const L=p.L||lick();
   while(!p.done){const spb=60/p.bpm,dur=lickBars(L)*4*spb,lead=-tOf(minT(L),L.sub,spb)+.05;
     if(p.t-lead>actx.currentTime+.4)break;
     segment(p,L,p.list[p.k],p.t,spb);p.t+=dur;p.k++;
-    if(p.k>=p.list.length){if(!S.loop){p.done=true;p.vis.push({at:p.t+.2,kind:'end'});break;}
+    if(p.k>=p.list.length){if(!S.loop||p.mode==='pre'){p.done=true;p.vis.push({at:p.t+(p.mode==='pre'?.5:.2),kind:'end'});break;}
       p.k=0;p.round++;if(S.ladder){p.bpm=Math.min(240,p.bpm+S.ladder);}p.vis.push({at:p.t,kind:'round',round:p.round,bpm:p.bpm});}}}
-function segment(p,L,ci,T,spb){const c=chordAt(ci),P=place(L,c),mx=p.mix,bars=lickBars(L);
+function segment(p,L,ci,T,spb){const pre=p.mode==='pre',c=ci<0?refChord(L):chordAt(ci),P=place(L,c),mx=p.mix,bars=lickBars(L);
   p.vis.push({at:T,kind:'seg',ci});
   L.notes.forEach((n,j)=>{const at=T+tOf(n.t,L.sub,spb),len=tOf(n.t+n.d,L.sub,spb)-tOf(n.t,L.sub,spb),f=n.f+P.d;
-    if(S.snd.lick&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
+    if((S.snd.lick||pre)&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
+  if(pre)return;   /* beluisteren: geen band */
   const V=voicing(c),sw=S.swing?SWING:.5;let bassRef=36;
   for(let b=0;b<bars;b++){const B=T+b*4*spb;
     if(S.snd.piano){if(GTR_BUS(mx.piano)){GTR.chord(actx,mx.piano,V,B,{strum:.012,len:1.4*spb,vel:72});GTR.chord(actx,mx.piano,V,B+(1+sw)*spb,{strum:.012,len:1.1*spb,vel:62});}
@@ -756,6 +888,7 @@ function segment(p,L,ci,T,spb){const c=chordAt(ci),P=place(L,c),mx=p.mix,bars=li
 function visLoop(){const p=PL;if(!p||p.loading)return;p.raf=requestAnimationFrame(visLoop);
   const now=actx.currentTime-(actx.outputLatency||0);p.vis.sort((a,b)=>a.at-b.at);
   while(p.vis.length&&p.vis[0].at<=now){const e=p.vis.shift();
+    if(p.mode==='pre'){if(e.kind==='end'){stopPlay();return;}continue;}   /* beluisteren in de lijst: niets op de hals tonen */
     if(e.kind==='count')$('#pNow').textContent='Count-in…';
     else if(e.kind==='seg'){p.cur=e.ci;follow(e.ci);markNow(e.ci);$('#pNow').textContent=chordAt(e.ci).label+' · round '+p.round+' · '+p.bpm+' BPM';}
     else if(e.kind==='note'){follow(e.ci);if(S.sel===e.ci)hiNote(e.j);}
@@ -764,7 +897,7 @@ function visLoop(){const p=PL;if(!p||p.loading)return;p.raf=requestAnimationFram
 function follow(ci){if(S.follow&&PL&&PL.mode==='prog'&&S.sel!==ci){S.sel=ci;sel=null;renderChips();renderView();}}
 function stopPlay(){const p=PL;PL=null;if(p&&!p.loading){clearInterval(p.iv);cancelAnimationFrame(p.raf);
     try{const g=p.mix.out.gain;g.cancelScheduledValues(actx.currentTime);g.setTargetAtTime(0,actx.currentTime,.03);setTimeout(()=>{try{p.mix.out.disconnect();}catch(e){}},300);}catch(e){}}
-  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';syncTransport();}
+  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';syncTransport();syncPre();}
 function stopAll(){stopPlay();if(REC)recStop();}
 function syncTransport(){const m=PL&&PL.mode;
   $('#btnProg').textContent=m==='prog'?(PL.loading?'Loading sounds…':'■ Stop'):'▶ Play progression';
@@ -776,12 +909,116 @@ function markNow(ci){$$('#chips .chip').forEach(b=>b.classList.toggle('now',ci!=
 /* ═══════════ 10. SCHERM ═══════════ */
 let sel=null;   /* index van de geselecteerde noot */
 let toastT=0;
-function toast(t,err){const el=$('#toast');el.textContent=t;el.className='toast on'+(err?' err':'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',err?5200:3400);}
-function renderAll(){renderLib();renderSetup();renderChips();renderView();renderPractice();syncUndo();}
-function renderLib(){const L=lick();
-  $('#libSel').innerHTML=ST.licks.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name)+' · '+esc(chordName(l))+(l.notes.length?'':' (empty)')+'</option>').join('');
-  $('#libSel').value=L.id;if(document.activeElement!==$('#libName'))$('#libName').value=L.name;
-  $('#libDel').disabled=ST.licks.length<2;}
+/* melding; act = {l: knoptekst, fn} voor een knop erin (Undo na verwijderen) */
+function toast(t,err,act){const el=$('#toast');el.textContent=t;
+  if(act){const b=document.createElement('button');b.type='button';b.className='lnk tact';b.textContent=act.l;b.onclick=()=>{el.className='toast';act.fn();};el.append(b);}
+  el.className='toast on'+(err?' err':'')+(act?' act':'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',act?7000:err?5200:3400);}
+function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderChips();renderView();renderPractice();syncUndo();}
+/* kop van de weergave Lick: naam, "variant of …", status, vorige/volgende; daarna de details in de kolom */
+function renderHead(){const L=lick(),par=L.parent&&ST.licks.find(x=>x.id===L.parent);
+  if(document.activeElement!==$('#lkName'))$('#lkName').value=L.name;
+  $('#lkPar').innerHTML=par?'variant of <button type="button" class="lnk" data-open="'+esc(par.id)+'">'+esc(par.name)+'</button>':'';
+  $('#lkStat').innerHTML=STATS.map(v=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.status===v)+'"><i></i>'+STATN[v]+'</button>').join('');
+  const a=navList(),i=a.indexOf(L);$('#lkPrev').disabled=i<=0;$('#lkNext').disabled=i<0||i>=a.length-1;
+  $('#libDel').disabled=ST.licks.length<2;renderDet();}
+function renderDet(){const L=lick(),has=t=>L.tags.some(x=>x.toLowerCase()===t.toLowerCase());
+  $('#dTags').innerHTML=L.tags.map((t,i)=>'<span class="tagx">'+esc(t)+'<button type="button" data-i="'+i+'" aria-label="Remove tag '+esc(t)+'" title="Remove">×</button></span>').join('');
+  $('#dTagList').innerHTML=allTags().filter(x=>!has(x.t)).map(x=>'<option value="'+esc(x.t)+'"></option>').join('');
+  $('#dTag').disabled=L.tags.length>=12;$('#dTag').placeholder=L.tags.length>=12?'12 tags at most':'Add a tag, Enter';
+  if(document.activeElement!==$('#dSrc'))$('#dSrc').value=L.src;
+  if(document.activeElement!==$('#dNote'))$('#dNote').value=L.note;}
+
+/* ── Library: zoeken (naam, tags, bron, notities, akkoord), filter op status en tag, sorteren ── */
+let LQ='',lsel='';   /* zoektekst (niet bewaard) en de gekozen rij */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dShort=ts=>{const d=new Date(ts);return d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'');};
+function ago(ts){if(!ts)return 'never';const a=new Date(),b=new Date(ts);a.setHours(0,0,0,0);b.setHours(0,0,0,0);const n=Math.round((a-b)/864e5);
+  return n<=0?'today':n===1?'yesterday':n<14?n+' days ago':n<60?Math.round(n/7)+' weeks ago':dShort(ts);}
+function allTags(){const m=new Map();ST.licks.forEach(l=>l.tags.forEach(t=>{const k=t.toLowerCase();if(!m.has(k))m.set(k,{t,n:0});m.get(k).n++;}));
+  return[...m.values()].sort((a,b)=>b.n-a.n||a.t.localeCompare(b.t));}
+const hay=l=>(l.name+' '+l.tags.join(' ')+' '+l.src+' '+l.note+' '+chordName(l)+' '+chordName(l).replace(/♭/g,'b').replace(/♯/g,'#')).toLowerCase();
+function libList(){const q=LQ.toLowerCase().split(/\s+/).filter(Boolean),tg=S.ltag.toLowerCase();
+  const by={new:(x,y)=>y.made-x.made,name:(x,y)=>x.name.localeCompare(y.name,undefined,{numeric:true,sensitivity:'base'}),
+    last:(x,y)=>y.last-x.last||y.made-x.made,least:(x,y)=>x.last-y.last||x.made-y.made}[S.lsort];
+  return ST.licks.filter(l=>(!S.lstat||l.status===S.lstat)&&(!tg||l.tags.some(t=>t.toLowerCase()===tg))&&(!q.length||q.every(w=>hay(l).includes(w)))).sort(by);}
+/* vorige/volgende lick: in de volgorde van de lijst zoals je hem laatst zag (anders alle licks) */
+function navList(){const a=libList();return a.includes(lick())?a:ST.licks;}
+/* klein lijntje van de lick voor de lijst: toonhoogte over de tijd, maatstrepen, grondtonen van het akkoord in amber */
+function miniSVG(L){if(!L.notes.length)return '<span class="cap">empty</span>';
+  const W=160,H=36,sub=L.sub,bar=4*sub,t0=Math.min(0,Math.floor(L.notes[0].t/sub)*sub),t1=lickBars(L)*bar,ms=L.notes.map(midiOf);
+  const lo=Math.min(...ms),hi=Math.max(...ms),sp=Math.max(hi-lo,7),pad=(sp-(hi-lo))/2;
+  const x=t=>(3+(t-t0)/(t1-t0)*(W-6)).toFixed(1),y=m=>(H-5-(m-lo+pad)/sp*(H-10)).toFixed(1);
+  let o='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">';
+  for(let t=Math.floor(t0/bar)*bar+bar;t<t1;t+=bar)o+='<line class="mbl" x1="'+x(t)+'" y1="4" x2="'+x(t)+'" y2="'+(H-4)+'"/>';
+  o+='<polyline class="mcl" points="'+L.notes.map((n,i)=>x(n.t+.5)+','+y(ms[i])).join(' ')+'"/>';
+  L.notes.forEach((n,i)=>{const r=mod(ms[i]-L.root,12)===0;o+='<circle class="mcd'+(r?' rt':'')+'" cx="'+x(n.t+.5)+'" cy="'+y(ms[i])+'" r="'+(r?2.7:1.9)+'"/>';});
+  return o+'</svg>';}
+/* één rij. Harmonie: nu het akkoord van de opname; later (fase 2) past hier een eigen akkoordrij als losse .hc-blokjes */
+function rowHTML(l){const par=l.parent&&ST.licks.find(x=>x.id===l.parent),on=l.id===lsel;
+  const sub=[l.src?esc(l.src):'',par?'variant of '+esc(par.name):''].filter(Boolean).join(' · ');
+  return '<div class="lr'+(on?' on':'')+'" role="option" id="lr-'+esc(l.id)+'" data-id="'+esc(l.id)+'" aria-selected="'+on+'">'
+    +'<button type="button" class="ib lplay" data-act="play" title="Listen (Space)" aria-label="Listen to '+esc(l.name)+'">▶</button>'
+    +'<div class="lname"><b>'+esc(l.name)+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'
+    +'<div class="lmini">'+miniSVG(l)+'</div>'
+    +'<div class="lhar"><span class="hc mus">'+esc(chordName(l))+'</span></div>'
+    +'<div class="ltg">'+l.tags.map(t=>'<button type="button" data-tag="'+esc(t)+'" title="Show only this tag">'+esc(t)+'</button>').join('')+'</div>'
+    +'<div><button type="button" class="lst" data-act="stat" data-s="'+l.status+'" title="Click to change the status"><i></i>'+STATN[l.status]+'</button></div>'
+    +'<div class="ln">'+(l.notes.length?lickBars(l):'–')+'</div>'
+    +'<div class="ln" title="'+esc(new Date(l.made).toLocaleString())+'">'+dShort(l.made)+'</div>'
+    +'<div class="ln"'+(l.last?' title="'+esc(new Date(l.last).toLocaleString())+'"':'')+'>'+ago(l.last)+'</div>'
+    +'<button type="button" class="ib lmore" data-act="more" aria-label="More for '+esc(l.name)+'" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></svg></button></div>';}
+function renderList(){const tags=allTags();if(S.ltag&&!tags.some(x=>x.t.toLowerCase()===S.ltag.toLowerCase()))S.ltag='';
+  const list=libList(),n=ST.licks.length;
+  if(!list.some(l=>l.id===lsel))lsel=list.some(l=>l.id===ST.cur)?ST.cur:list.length?list[0].id:'';
+  $('#lStat').innerHTML=[['','All']].concat(STATS.map(v=>[v,STATN[v]])).map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.lstat===v)+'">'+l+'</button>').join('');
+  $('#lSort').value=S.lsort;
+  $('#lTags').innerHTML=tags.map(x=>'<button type="button" class="chip ltag" data-tag="'+esc(x.t)+'" aria-pressed="'+(x.t.toLowerCase()===S.ltag.toLowerCase())+'">'+esc(x.t)+'<small>'+x.n+'</small></button>').join('');
+  $('#lTags').hidden=!tags.length;
+  $('#lCount').textContent=(list.length===n?'':list.length+' of ')+n+' lick'+(n===1?'':'s');
+  $('#lRows').innerHTML=list.length?list.map(rowHTML).join(''):'<p class="lempty">No licks match. <button type="button" class="lnk" id="lClear">Show all licks</button></p>';
+  $('#lGrid').setAttribute('aria-activedescendant',lsel?'lr-'+lsel:'');syncPre();}
+/* gekozen rij aangeven zonder alles opnieuw te tekenen */
+function markSel(scroll){if(S.view!=='lib')return;$$('#lRows .lr').forEach(r=>{const on=r.dataset.id===lsel;r.classList.toggle('on',on);r.setAttribute('aria-selected',on);
+    if(on&&scroll)r.scrollIntoView({block:'nearest'});});
+  $('#lGrid').setAttribute('aria-activedescendant',lsel?'lr-'+lsel:'');}
+function moveSel(d){const a=libList();if(!a.length)return;const i=a.findIndex(l=>l.id===lsel);lsel=a[clamp(i<0?0:i+d,0,a.length-1)].id;markSel(true);}
+/* ▶ in de lijst: speelt deze rij? */
+function syncPre(){$$('#lRows .lplay').forEach(b=>{const on=!!(PL&&PL.mode==='pre'&&PL.L&&PL.L.id===b.closest('.lr').dataset.id);
+  b.classList.toggle('on',on);b.textContent=on?'■':'▶';b.title=on?'Stop (Space)':'Listen (Space)';});}
+
+/* ── weergave wisselen: Library ↔ Lick. Stopt afspelen en opnemen; in de Library geen transportplank en de kolom dicht
+   (alleen getoond, niet bewaard: terug in Lick staat hij weer zoals jij hem liet) ── */
+function setView(v,init){v=v==='lick'?'lick':'lib';if(!init)stopAll();
+  S.view=v;save();document.body.dataset.view=v;$('#vLib').hidden=v!=='lib';$('#vLick').hidden=v!=='lick';$('#tray').hidden=v!=='lick';
+  $$('#uView [data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  libMenu(false);rowMenu(null);if(hasROOM)ROOM.open(v==='lick'&&S.colOpen,true);
+  if(v==='lib')lsel=ST.cur;renderAll();$('#scroll').scrollTop=0;if(v==='lib')markSel(true);}
+function openLick(id){if(!ST.licks.some(l=>l.id===id))return;stopAll();if(ST.cur!==id){ST.cur=id;sel=null;S.sel=-1;}lsel=id;setView('lick');}
+function newLick(){stopAll();const L=lick(),N=fixLick({name:nextName(),root:L.root,q:L.q,pos:L.pos,bpm:L.bpm,sub:L.sub,bars:L.bars,notes:[]});
+  pushUndo(N,{added:N.id,prev:L.id});ST.licks.push(N);ST.cur=N.id;lsel=N.id;sel=null;S.sel=-1;save();setView('lick');
+  $('#btnRec').focus();toast('New empty lick. Name it at the top, set up the chord and position, then press Record.');}
+/* variant: kopie met parent = de bron, eigen datum, status new, nog nooit geoefend */
+function dupLick(id,open){stopAll();const L=ST.licks.find(l=>l.id===id);if(!L)return;
+  const N=fixLick(Object.assign(JSON.parse(JSON.stringify(L)),{id:newId(),name:(L.name+' (variant)').slice(0,60),parent:L.id,made:Date.now(),last:0,status:'new',keys:0}));
+  pushUndo(N,{added:N.id,prev:ST.cur});ST.licks.splice(ST.licks.indexOf(L)+1,0,N);lsel=N.id;
+  if(open){ST.cur=N.id;sel=null;}save();renderAll();markSel(true);toast('Variant of “'+L.name+'” added. Undo removes it.');}
+/* verwijderen zonder te vragen; de melding heeft een knop Undo (ook Ctrl+Z). Minstens één lick blijft er. */
+function delLick(id){const i=ST.licks.findIndex(l=>l.id===id);if(i<0)return;
+  if(ST.licks.length<2){toast('Keep at least one lick: make a new one first.',true);return;}
+  stopAll();const L=ST.licks[i],vis=libList(),vi=vis.indexOf(L),nb=vis[vi+1]||vis[vi-1];
+  UNDO.push({id:L.id,data:JSON.stringify(L),idx:i});syncUndo();ST.licks.splice(i,1);
+  if(ST.cur===id){ST.cur=(nb||ST.licks[Math.max(0,i-1)]).id;sel=null;S.sel=-1;}
+  lsel=nb?nb.id:ST.cur;save();if(S.view==='lick')setView('lib');else{renderAll();markSel(true);}
+  toast('“'+L.name+'” deleted.',false,{l:'Undo',fn:undo});}
+function expLicks(list,file){const blob=new Blob([JSON.stringify({app:'lickLab',v:1,exported:new Date().toISOString(),licks:list},null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('Exported '+list.length+' lick'+(list.length===1?'':'s')+'.');}
+const expOne=L=>expLicks([L],'lick-'+(L.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lick')+'.json');
+/* menu ⋯ van een rij: vast op het scherm onder de knop; rowMenu(null) = dicht */
+let rmL=null;
+function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;return;}m.hidden=false;
+  const r=btn.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
+  m.style.left=clamp(r.right-w,8,innerWidth-w-8)+'px';m.style.top=(r.bottom+6+h>innerHeight-8?r.top-h-6:r.bottom+6)+'px';m.querySelector('button').focus();}
 function renderSetup(){const L=lick(),busy=!!(REC||CAL);
   $('#rRoot').value=L.root;$('#rQual').value=L.q;
   $('#rPos').value=L.pos;const br=boxRange(L.pos);$('#rPosV').textContent=L.pos===0?'Open · 0–4':'Frets '+br[0]+'–'+br[1];
@@ -954,36 +1191,73 @@ function addAt(s,fShown){const L=lick(),P=place(L,chordAt(S.sel)),f=fShown-P.d;
   previewNote(OPEN[s]+fShown);}
 
 /* ═══════════ 12. BEDIENING ═══════════ */
-/* menu ⋯ naast de lick: naam, New/Duplicate/Delete/Undo/Export/Import; dicht bij klik ernaast of Esc */
+/* menu ⋯ in de kop van de lick: New/Duplicate/Delete/Undo/Export/Import; dicht bij klik ernaast of Esc */
 function libMenu(o){const m=$('#libMenu'),b=$('#libMenuB');o=o==null?m.hidden:o;m.hidden=!o;b.setAttribute('aria-expanded',o);
-  if(o){renderLib();$('#libName').focus();$('#libName').select();}}
+  if(o){renderHead();$('#libNew').focus();}}
 $('#libMenuB').addEventListener('click',()=>libMenu());
-document.addEventListener('pointerdown',e=>{if(!$('#libMenu').hidden&&!e.target.closest('.menu'))libMenu(false);});
-['#libNew','#libDup','#libUndo','#libExp','#libImp'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
-$('#libName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();libMenu(false);$('#libMenuB').focus();}});
-$('#libSel').addEventListener('change',e=>{stopAll();ST.cur=e.target.value;sel=null;S.sel=-1;save();renderAll();});
-$('#libName').addEventListener('input',e=>{const L=lick();L.name=e.target.value.slice(0,60)||'Lick';save();renderLib();});
-$('#libName').addEventListener('blur',()=>renderLib());
-$('#libNew').addEventListener('click',()=>{stopAll();const L=lick(),N=fixLick({name:nextName(),root:L.root,q:L.q,pos:L.pos,bpm:L.bpm,sub:L.sub,bars:L.bars,notes:[]});
-  pushUndo(N,{added:N.id,prev:L.id});ST.licks.push(N);ST.cur=N.id;sel=null;S.sel=-1;save();renderAll();toast('New empty lick. Press Record when you’re ready.');});
-$('#libDup').addEventListener('click',()=>{stopAll();const L=lick(),N=fixLick(JSON.parse(JSON.stringify(L)));N.id=newId();N.name=(L.name+' (copy)').slice(0,60);
-  pushUndo(N,{added:N.id,prev:L.id});ST.licks.splice(ST.licks.indexOf(L)+1,0,N);ST.cur=N.id;save();renderAll();});
-let delSure=0;
-$('#libDel').addEventListener('click',()=>{const b=$('#libDel');if(ST.licks.length<2)return;
-  if(!delSure){delSure=setTimeout(()=>{delSure=0;b.textContent='Delete';b.classList.remove('sure');},2500);b.textContent='Sure? Click again';b.classList.add('sure');return;}
-  clearTimeout(delSure);delSure=0;b.textContent='Delete';b.classList.remove('sure');stopAll();
-  const L=lick(),i=ST.licks.indexOf(L);UNDO.push({id:L.id,data:JSON.stringify(L),idx:i});syncUndo();
-  ST.licks.splice(i,1);ST.cur=ST.licks[Math.max(0,i-1)].id;sel=null;S.sel=-1;save();renderAll();libMenu(false);toast('Lick deleted. Undo brings it back.');});
+document.addEventListener('pointerdown',e=>{if(!$('#libMenu').hidden&&!e.target.closest('.menu'))libMenu(false);
+  if(!$('#rowMenu').hidden&&!e.target.closest('#rowMenu,.lmore'))rowMenu(null);});
+['#libNew','#libDup','#libDel','#libUndo','#libExp','#libImp'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
+$('#libNew').addEventListener('click',newLick);
+$('#libDup').addEventListener('click',()=>dupLick(ST.cur,true));
+$('#libDel').addEventListener('click',()=>delLick(ST.cur));
 $('#libUndo').addEventListener('click',undo);
-$('#libExp').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({app:'lickLab',v:1,exported:new Date().toISOString(),licks:ST.licks},null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='licks-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('Exported '+ST.licks.length+' lick'+(ST.licks.length===1?'':'s')+'.');});
-$('#libImp').addEventListener('click',()=>{$('#libFile').value='';$('#libFile').click();});
+$('#libExp').addEventListener('click',()=>expOne(lick()));
+$('#lExp').addEventListener('click',()=>expLicks(ST.licks,'licks-'+new Date().toISOString().slice(0,10)+'.json'));
+['#libImp','#lImp'].forEach(s=>$(s).addEventListener('click',()=>{$('#libFile').value='';$('#libFile').click();}));
+/* importeren: elke lick door fixLick (ook de bibliotheekvelden); een id die al bestaat krijgt een nieuwe, en varianten
+   in hetzelfde bestand verwijzen dan naar die nieuwe id */
 $('#libFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const o=JSON.parse(r.result),list=(Array.isArray(o)?o:o&&o.licks||[]).map(fixLick).filter(Boolean);
-      if(!list.length)throw new Error('none');list.forEach(l=>{if(ST.licks.some(x=>x.id===l.id))l.id=newId();});
-      ST.licks.push(...list);ST.cur=list[0].id;sel=null;S.sel=-1;save();renderAll();toast('Imported '+list.length+' lick'+(list.length===1?'':'s')+'.');}
+  r.onload=()=>{try{const o=JSON.parse(r.result),list=(Array.isArray(o)?o:o&&o.licks||[]).map(fixLick).filter(Boolean),re={};
+      if(!list.length)throw new Error('none');list.forEach(l=>{if(ST.licks.some(x=>x.id===l.id)){const n=newId();re[l.id]=n;l.id=n;}});
+      list.forEach(l=>{if(re[l.parent])l.parent=re[l.parent];});
+      ST.licks.push(...list);ST.cur=lsel=list[0].id;sel=null;S.sel=-1;save();renderAll();markSel(true);toast('Imported '+list.length+' lick'+(list.length===1?'':'s')+'.');}
     catch(err){toast('That file has no licks in it.',true);}};r.readAsText(f);});
+
+/* weergave, kop van de lick, details */
+$('#uView').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b&&b.dataset.v!==S.view)setView(b.dataset.v);});
+$('#toLib').addEventListener('click',()=>setView('lib'));
+[['#lkPrev',-1],['#lkNext',1]].forEach(([s,d])=>$(s).addEventListener('click',()=>{const a=navList(),L=a[a.indexOf(lick())+d];if(L)openLick(L.id);}));
+$('#lkName').addEventListener('input',e=>{const L=lick();L.name=e.target.value.slice(0,60).trim()?e.target.value.slice(0,60):'Lick';save();});
+$('#lkName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
+$('#lkName').addEventListener('blur',()=>renderHead());
+$('#lkPar').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openLick(b.dataset.open);});
+$('#lkStat').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;lick().status=b.dataset.v;save();renderHead();});
+function addTag(v){const L=lick(),t=fixTags(L.tags.concat(String(v).split(',')));if(L.tags.length>=12)toast('12 tags at most.');L.tags=t;save();renderDet();}
+$('#dTag').addEventListener('keydown',e=>{const v=e.target.value;
+  if(e.key==='Enter'||e.key===','){e.preventDefault();e.target.value='';if(v.trim())addTag(v);}
+  else if(e.key==='Backspace'&&!v){const L=lick();if(L.tags.length){L.tags.pop();save();renderDet();}}});
+/* een suggestie uit de lijst gekozen (geen getypte letter): meteen toevoegen */
+$('#dTag').addEventListener('input',e=>{if(e.inputType&&e.inputType!=='insertReplacementText')return;const v=e.target.value.trim();
+  if(v&&allTags().some(x=>x.t===v)){e.target.value='';addTag(v);}});
+$('#dTag').addEventListener('blur',e=>{const v=e.target.value;if(v.trim()){e.target.value='';addTag(v);}});
+$('#dTags').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;const L=lick();L.tags.splice(+b.dataset.i,1);save();renderDet();$('#dTag').focus();});
+$('#dTagBox').addEventListener('click',e=>{if(e.target===e.currentTarget)$('#dTag').focus();});
+$('#dSrc').addEventListener('input',e=>{lick().src=e.target.value.slice(0,120);save();});
+$('#dNote').addEventListener('input',e=>{lick().note=e.target.value.slice(0,1000);save();});
+
+/* Library */
+$('#lq').addEventListener('input',e=>{LQ=e.target.value;renderList();});
+$('#lStat').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.lstat=b.dataset.v;save();renderList();});
+$('#lSort').innerHTML=SORTS.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
+$('#lSort').addEventListener('change',e=>{S.lsort=e.target.value;save();renderList();});
+$('#lTags').addEventListener('click',e=>{const b=e.target.closest('[data-tag]');if(!b)return;S.ltag=S.ltag.toLowerCase()===b.dataset.tag.toLowerCase()?'':b.dataset.tag;save();renderList();});
+$('#lNew').addEventListener('click',newLick);
+$('#lRows').addEventListener('click',e=>{
+  if(e.target.closest('#lClear')){LQ='';$('#lq').value='';S.ltag='';S.lstat='';save();renderList();return;}
+  const tg=e.target.closest('[data-tag]');if(tg){S.ltag=S.ltag.toLowerCase()===tg.dataset.tag.toLowerCase()?'':tg.dataset.tag;save();renderList();return;}
+  const r=e.target.closest('.lr'),L=r&&ST.licks.find(l=>l.id===r.dataset.id);if(!L)return;
+  const a=e.target.closest('[data-act]');lsel=L.id;
+  if(!a){openLick(L.id);return;}
+  markSel();
+  if(a.dataset.act==='play')playStart('pre',L);
+  else if(a.dataset.act==='stat'){L.status=STATS[(STATS.indexOf(L.status)+1)%STATS.length];save();renderList();}
+  else if(a.dataset.act==='more'){if(rmL===L&&!$('#rowMenu').hidden)rowMenu(null);else rowMenu(L,a);}});
+$('#rowMenu').addEventListener('click',e=>{const b=e.target.closest('[data-m]'),L=rmL;if(!b||!L)return;rowMenu(null);
+  ({open:()=>openLick(L.id),dup:()=>dupLick(L.id,false),exp:()=>expOne(L),del:()=>delLick(L.id)})[b.dataset.m]();});
+$('#rowMenu').addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();e.stopPropagation();
+  const bs=$$('#rowMenu button'),i=bs.indexOf(document.activeElement);bs[mod(i+(e.key==='ArrowDown'?1:-1),bs.length)].focus();});
+$('#scroll').addEventListener('scroll',()=>{if(!$('#rowMenu').hidden)rowMenu(null);},{passive:true});
 
 $('#rRoot').addEventListener('change',e=>{const L=lick();L.root=+e.target.value;save();renderAll();});
 $('#rQual').addEventListener('change',e=>{const L=lick();L.q=e.target.value;save();renderAll();});
@@ -1037,12 +1311,32 @@ $('#pFollow').addEventListener('change',e=>{S.follow=e.target.checked;save();});
 $('#pSnd').addEventListener('change',e=>{const k=e.target.dataset.k;if(k){S.snd[k]=e.target.checked;save();}});
 
 /* op document (vóór window): zo kan S met een gekozen noot het menu Look (shared/look.js, op window) overslaan */
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(!$('#libMenu').hidden){libMenu(false);$('#libMenuB').focus();return;}stopAll();if(sel!=null){sel=null;renderView();}return;}
-  if(e.target.closest&&e.target.closest('input,select,textarea'))return;
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return;}
+/* Esc, van boven naar beneden: menu dicht → veld verlaten → stoppen → noot loslaten → (in Lick) terug naar de Library */
+document.addEventListener('keydown',e=>{const lib=S.view==='lib',field=e.target.closest&&e.target.closest('input,select,textarea'),k=e.key;
+  if(k==='Escape'){if(hasLOOK&&LOOK.box&&!LOOK.box.hidden)return;   /* het menu Look sluit zelf */
+    if(!$('#rowMenu').hidden){rowMenu(null);markSel();$('#lGrid').focus();return;}
+    if(!$('#libMenu').hidden){libMenu(false);$('#libMenuB').focus();return;}
+    if(field){if(e.target.id==='lq'&&LQ){LQ='';e.target.value='';renderList();return;}e.target.blur();if(REC||PL)stopAll();return;}
+    if(REC||PL){stopAll();return;}
+    if(lib)return;
+    if(sel!=null){sel=null;renderView();return;}
+    setView('lib');return;}
+  /* Library: / zoeken, ↑ ↓ kiezen (ook vanuit het zoekveld), Enter openen, spatie beluisteren, Delete verwijderen */
+  if(lib){const q=e.target.id==='lq';if(field&&!q)return;
+    if(k==='ArrowDown'||k==='ArrowUp'){e.preventDefault();moveSel(k==='ArrowDown'?1:-1);return;}
+    if(k==='Enter'){if(!q&&e.target.closest('button'))return;e.preventDefault();if(lsel)openLick(lsel);return;}
+    if(q)return;
+    if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='z'){e.preventDefault();undo();return;}
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    const L=ST.licks.find(l=>l.id===lsel);
+    if(k==='/'){e.preventDefault();$('#lq').focus();$('#lq').select();}
+    else if(k===' '){if(e.target.closest('button,summary,label'))return;e.preventDefault();if(L)playStart('pre',L);}
+    else if(k==='Delete'){if(L){e.preventDefault();delLick(L.id);}}
+    return;}   /* S: menu Look */
+  if(field)return;
+  if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='z'){e.preventDefault();undo();return;}
   if(e.ctrlKey||e.metaKey||e.altKey)return;
-  const L=lick(),k=e.key;
+  const L=lick();
   if(k===' '){if(e.target.closest&&e.target.closest('button,summary,label'))return;e.preventDefault();if(PL)stopPlay();else if(!REC)playStart('prog');}
   else if(k==='r'||k==='R'){e.preventDefault();recStart(false);}
   else if(k==='ArrowLeft'||k==='ArrowRight'){if(!L.notes.length)return;e.preventDefault();const dir=k==='ArrowLeft'?-1:1;
@@ -1056,9 +1350,10 @@ $('#rRoot').innerHTML=ROOTN.map((n,i)=>'<option value="'+i+'">'+n+'</option>').j
 $('#rQual').innerHTML=QORDER.map(q=>'<option value="'+q+'">'+QUAL[q].lbl+'</option>').join('');
 fillPre();
 $('#pLad').innerHTML=[0,1,2,4,5,10].map(v=>'<option value="'+v+'">'+(v?'+'+v+' BPM each round':'Same tempo')+'</option>').join('');
-applyNeck();renderAll();
-/* schil: kolom rechts (open/dicht bewaard), en de eigen regel in het menu S */
-if(hasROOM)ROOM.column($('#col'),S.colOpen,o=>{S.colOpen=o;save();});
+applyNeck();
+/* schil: kolom rechts (open/dicht bewaard; in de Library alleen dicht getoond), en de eigen regel in het menu S */
+if(hasROOM)ROOM.column($('#col'),S.view==='lick'&&S.colOpen,o=>{S.colOpen=o;save();});
+setView(S.view,true);
 if(hasLOOK)LOOK.add([{k:'neckW',t:'range',l:'Neck size (Lick Lab, %)',min:60,max:100,step:5,def:100,get:()=>S.neckW,set:v=>{S.neckW=clamp(Math.round(v),60,100);save();applyNeck();}}]);
 /* oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden}}, zelfde vorm als fretTrainer.log.
    Tijd telt zolang er opgenomen of afgespeeld wordt, of de laatste invoer (muis, toets) minder dan 60 s geleden is (start bij openen).
@@ -1087,7 +1382,7 @@ addEventListener('pagehide',logSave);document.addEventListener('visibilitychange
 /* rec-lampje (cassettedeck, shared/rail.js): tijd uit het eigen logboek; rec = opnemen of afspelen (daarnaast brandt het lampje bij recente invoer) */
 if(hasROOM&&ROOM.status)ROOM.status({log:LOGKEY,rec:()=>!!REC||!!(PL&&!PL.loading),time:()=>logSecs(LOG[dayKey()])});
 /* testhaakje */
-window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,
+window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,setView,openLick,libList,fixLick,
   get rec(){return REC;},get play(){return PL;},audio};
 })();
 </script>
