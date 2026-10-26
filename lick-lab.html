@@ -263,6 +263,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
 .col .vals{display:flex;align-items:center;gap:8px}
 .col .vals input[type=range]{width:110px}
 .col .vals .cap{min-width:52px;text-align:right;white-space:nowrap}
+#ampSl.off{opacity:.55}   /* amp uit: schuiven blijven bruikbaar (bewegen = weer aan) */
 .col .row .act.sm{flex:none}
 .col #gDev{max-width:170px;font-size:13px}
 .meter{position:relative;display:inline-block;height:10px;width:150px;border-radius:5px;background:rgba(90,55,25,.14);overflow:hidden;vertical-align:middle}
@@ -363,6 +364,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
                 <button type="button" class="act sm" id="libExp" title="This lick as a .json file">Export</button>
                 <button type="button" class="act sm" id="libImp">Import</button>
                 <button type="button" class="act sm" id="libTake" title="The audio of this lick as a plain sound file">Download take</button>
+                <button type="button" class="act sm" id="libTakeA" title="The take through the amp settings, as a .wav file">Download with amp</button>
               </div>
             </div>
           </div>
@@ -429,6 +431,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
       <label class="tempo" for="pBpm"><span>Tempo</span><input type="range" id="pBpm" min="30" max="240" step="1"><b class="bpm" id="pBpmV"></b></label>
       <label class="tg"><input type="checkbox" role="switch" id="pLoop"><i></i><span>Loop</span></label>
       <span class="seg glass" id="srcSeg" role="group" aria-label="What plays the lick" hidden><button type="button" data-v="notes" title="The notes, on the guitar sound">Notes</button><button type="button" data-v="take">Take</button><button type="button" data-v="both" title="Your take and the notes together">Both</button></span>
+      <label class="tg" id="ampTg" title="Amp on the take (off = the dry DI recording)" hidden><input type="checkbox" role="switch" id="ampQ"><i></i><span>Amp</span></label>
       <span class="swhy" id="srcWhy" aria-live="polite"></span>
       <div class="knx" id="kNx" aria-live="polite" hidden></div>
       <span class="stat" id="pNow" aria-live="polite"></span>
@@ -477,6 +480,14 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
     <div id="audBox"></div>
     <input type="file" id="audFile" accept=".json,application/json" hidden>
 
+    <h3 id="ampH">Amp</h3>
+    <div class="row stk"><span>Preset</span><span class="seg" id="ampPre" role="group" aria-label="Amp preset"><button type="button" data-p="off" title="The dry DI recording, as it was recorded">Off</button><button type="button" data-p="clean" title="Clean jazz: round, a touch of mid scoop, 12-inch speaker">Clean</button><button type="button" data-p="warm" title="Warm: darker, more low-mids, 15-inch speaker">Warm</button><button type="button" data-p="bright" title="Bright clean: more sparkle, less drive">Bright</button></span></div>
+    <div id="ampSl"></div>
+    <div class="row"><span>Speaker</span><span class="seg" id="ampCab" role="group" aria-label="Speaker"><button type="button" data-c="12">12″</button><button type="button" data-c="15" title="Darker, rounder">15″</button></span></div>
+    <p class="note" id="ampNote"></p>
+    <div class="row"><span>Monitor through amp</span><label class="tg"><input type="checkbox" role="switch" id="ampMon" aria-label="Monitor through amp"><i></i></label></div>
+    <p class="note" id="ampMonN">Hear your input through the amp. The browser adds a noticeable delay, so the Scarlett’s Direct Monitor is better for playing. With a microphone: headphones (feedback). Switches off when you leave the page.</p>
+
     <h3 id="inpH">Input</h3>
     <div class="row"><button type="button" class="act pri sm" id="gConn">Connect</button><select id="gDev" aria-label="Audio input" hidden></select></div>
     <div class="row"><span>Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span></div>
@@ -503,6 +514,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
   <button type="button" role="menuitem" data-m="dup">Duplicate (variant)</button>
   <button type="button" role="menuitem" data-m="exp">Export this lick</button>
   <button type="button" role="menuitem" data-m="take">Download take</button>
+  <button type="button" role="menuitem" data-m="takeA">Download with amp</button>
   <button type="button" role="menuitem" data-m="del" class="dang">Delete</button>
 </div>
 <input type="file" id="libFile" accept=".json,application/json" hidden>
@@ -563,13 +575,23 @@ function parseChord(tok){const t=String(tok).replace(/♯/g,'#').replace(/♭/g,
 const chordName=c=>ROOTN[c.root]+QUAL[c.q].lbl;
 
 /* ═══════════ 2. OPSLAG ═══════════ */
+/* fase 4: versterker-presets (drive 0–100, bass/mid/treble in dB, verb 0–100, lvl in dB, cab = speaker 12"|15");
+   'custom' = een schuif veranderd; uit = amp.on false (preset blijft staan) */
+const AMP_PRE={clean:{drive:15,bass:2,mid:-2,treble:0,verb:25,lvl:0,cab:'12'},warm:{drive:30,bass:3,mid:2.5,treble:-5,verb:20,lvl:0,cab:'15'},
+  bright:{drive:8,bass:-1.5,mid:-1,treble:4,verb:30,lvl:0,cab:'12'}},
+  AMP_NM={clean:'Clean jazz',warm:'Warm',bright:'Bright clean',custom:'Custom'},
+  AMP_RNG=[['drive',0,100,1],['bass',-12,12,.5],['mid',-12,12,.5],['treble',-12,12,.5],['verb',0,100,1],['lvl',-12,6,.5]];
+function fixAmp(a){const o=Object.assign({on:true,preset:'clean'},AMP_PRE.clean);if(!a||typeof a!=='object')return o;
+  if(typeof a.on==='boolean')o.on=a.on;if(AMP_NM[a.preset])o.preset=a.preset;if(['12','15'].includes(a.cab))o.cab=a.cab;
+  AMP_RNG.forEach(([k,lo,hi,st])=>{if(a[k]!==null&&a[k]!==''&&Number.isFinite(+a[k]))o[k]=clamp(Math.round(+a[k]/st)*st,lo,hi);});return o;}
 const DEF_SET={lat:.04,latCal:false,ptempo:80,ladder:0,loop:true,swing:true,follow:true,labels:'deg',
   hold:50,snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false,
   colOpen:true,neckW:100,   /* schil: kolom rechts open; breedte van de hals in % (menu S → Neck size) */
   view:'lib',lsort:'new',lstat:'',ltag:'',   /* weergave lib|lick; Library: sortering, filter op status en op één tag ('' = alle) */
   hmode:'own',korder:'fourths',kplay:'lp',kreps:1,recBand:true,   /* own = eigen akkoorden in een toonsoort | prog = over de progressie (Martino);
                                                                       12 toonsoorten: volgorde, lp = luisteren + zelf | p = alleen zelf, rondes per toonsoort; band tijdens opnemen */
-  src:'take',pAsk:false};   /* fase 3: wat de lick speelt notes|take|both; pAsk = al eens gevraagd om de opslag te beschermen (navigator.storage.persist) */
+  src:'take',pAsk:false,   /* fase 3: wat de lick speelt notes|take|both; pAsk = al eens gevraagd om de opslag te beschermen (navigator.storage.persist) */
+  amp:Object.assign({on:true,preset:'clean'},AMP_PRE.clean)};   /* fase 4: versterker op de take (zie fixAmp) */
 const STATS=['new','learning','known'],STATN={new:'New',learning:'Learning',known:'Known'};
 const SORTS=[['new','Newest'],['name','Name A–Z'],['last','Recently practised'],['least','Least recently practised'],['keys','Fewest keys done']];
 const KORD=[['fourths','Cycle of fourths'],['chrom','Chromatic, up'],['random','Random'],['todo','Keys not done yet']];
@@ -627,7 +649,7 @@ function hydrate(o){const st={v:1,licks:[],cur:'',set:JSON.parse(JSON.stringify(
     if(!STATS.includes(st.set.lstat))st.set.lstat='';st.set.ltag=st.set.ltag.slice(0,24);
     if(!['own','prog'].includes(st.set.hmode))st.set.hmode='own';if(!KORD.some(o=>o[0]===st.set.korder))st.set.korder='fourths';
     if(!['lp','p'].includes(st.set.kplay))st.set.kplay='lp';st.set.kreps=clamp(Math.round(st.set.kreps)||1,1,4);
-    if(!['notes','take','both'].includes(st.set.src))st.set.src='take';}
+    if(!['notes','take','both'].includes(st.set.src))st.set.src='take';st.set.amp=fixAmp(o.set.amp);}
   st.cur=typeof o.cur==='string'?o.cur:'';return st;}
 let ST;{const raw=(()=>{try{return localStorage.getItem(KEY);}catch(e){return null;}})();
   try{ST=hydrate(raw?JSON.parse(raw):null);}catch(e){try{localStorage.setItem(KEY+'.bad',raw);}catch(x){}ST=hydrate(null);}}   /* onleesbare data niet stil overschrijven */
@@ -847,9 +869,71 @@ function chain(){const out=actx.createGain();out.gain.value=1;out.connect(actx.d
     pg=GTR.bus(actx,comp,{verb,wetScale:1/.16,gain:GTR_COMP}).vol;}                   /* comping: tweede gitaarbus in plaats van de piano */
   else{gt=actx.createGain();gt.gain.value=1;gt.connect(comp);const gs=actx.createGain();gs.gain.value=.12;gt.connect(gs).connect(verb);}
   const ck=actx.createGain();ck.gain.value=1;ck.connect(out);
-  /* fase 3: eigen bus voor de take (de droge DI-opname), met een vleugje galm; fase 4 zet hier de versterker tussen (take → amp → comp) */
-  const tk=actx.createGain();tk.gain.value=1;tk.connect(comp);const tks=actx.createGain();tks.gain.value=.1;tk.connect(tks).connect(verb);
-  return{out,piano:pg,bass:bg,gtr:gt,click:ck,take:tk};}
+  /* fase 3: eigen bus voor de take (de droge DI-opname); fase 4: take → versterker → comp (uit = droog, met het vleugje galm van fase 3) */
+  const tk=actx.createGain();tk.gain.value=1;const amp=ampBuild(actx,comp,verb);tk.connect(amp.in);amp.set(S.amp,true);
+  return{out,piano:pg,bass:bg,gtr:gt,click:ck,take:tk,amp};}
+/* ═══════════ fase 4: VERSTERKER voor de take (re-amping bij afspelen; de opname zelf blijft droog) ═══════════
+   in ─ droog ─────────────────────────────────────────────────────────────────────────────────→ uit (+ vleugje galm, zoals fase 3)
+      ─ nat → drive → hoogdoorlaat 90 Hz → WaveShaper (buis-curve, 4× oversampling) → DC-blok → bass (laagschap 120 Hz) · mid (piek 550 Hz)
+        · treble (hoogschap 2,6 kHz) → speakerkast 12" of 15" (Convolver, berekende impulsrespons) → + kamergalm (GTR.ir) → niveau → uit
+   Aan/uit = kruisfade droog/nat; alle regelaars met setTargetAtTime (geen tikken). De natte tak wordt even luid gemaakt als de droge:
+   ampMakeup() rekent de frequentiekarakteristiek van klankregeling + kast uit, gewogen met een gitaarspectrum en LUFS-achtige weging,
+   plus de compressie van de drive en de energie van de galm. Alleen gewone nodes (ook in Firefox en in een OfflineAudioContext). */
+const AK=4,AMP_F=Array.from({length:48},(_,i)=>50*Math.pow(160,i/47));   /* AK = bereik van de curve (±4); 48 frequenties 50 Hz–8 kHz */
+const AMP_W=AMP_F.map(f=>{const r=(f/38)**4,k=r/(1+r)*(1+2.5*(f/1500)**2)/(1+(f/1500)**2),g=(f/80)**2/(1+(f/80)**2)/(1+(f/700)**2);return k*g;});
+/* buis-achtig: lineair tot de knik, daarboven zacht afgerond (tanh); de positieve kant knikt later en gaat hoger dan de negatieve
+   (asymmetrisch = even boventonen als je hem opendraait). Pieken van de take liggen bij drive 0 op 0,27 en bij 15 op 0,46: nog lineair */
+const ampSat=u=>{const s=u<0?-1:1,a=s>0?.55:.45,m=s>0?1:.85,x=Math.abs(u);return s*(x<=a?x:a+(m-a)*Math.tanh((x-a)/(m-a)));};
+let ACURVE=null;
+function ampCurve(){if(!ACURVE){const n=4097;ACURVE=new Float32Array(n);for(let i=0;i<n;i++)ACURVE[i]=ampSat((i/(n-1)*2-1)*AK)/AK;}return ACURVE;}
+const ampDrive=v=>.6*Math.pow(20,v/100);   /* drive 0–100 → versterking vóór de curve (0,6–12) */
+/* biquad-coëfficiënten zoals de Web Audio-spec (Audio EQ Cookbook; shelves met S = 1, Q hier lineair); |H| op frequentie f */
+function rbj(t,f,Q,g,sr){const A=Math.pow(10,g/40),w=2*Math.PI*f/sr,c=Math.cos(w),sn=Math.sin(w),al=t[1]==='s'?sn/Math.SQRT2:sn/(2*Q),sa=2*Math.sqrt(A)*al;
+  const k={lp:[(1-c)/2,1-c,(1-c)/2,1+al,-2*c,1-al],hp:[(1+c)/2,-(1+c),(1+c)/2,1+al,-2*c,1-al],pk:[1+al*A,-2*c,1-al*A,1+al/A,-2*c,1-al/A],
+    ls:[A*((A+1)-(A-1)*c+sa),2*A*((A-1)-(A+1)*c),A*((A+1)-(A-1)*c-sa),(A+1)+(A-1)*c+sa,-2*((A-1)+(A+1)*c),(A+1)+(A-1)*c-sa],
+    hs:[A*((A+1)+(A-1)*c+sa),-2*A*((A-1)+(A+1)*c),A*((A+1)+(A-1)*c-sa),(A+1)-(A-1)*c+sa,2*((A-1)-(A+1)*c),(A+1)-(A-1)*c-sa]}[t];
+  const a0=k[3];return[k[0]/a0,k[1]/a0,k[2]/a0,k[4]/a0,k[5]/a0];}
+function rbjMag(co,f,sr){const w=2*Math.PI*f/sr,c1=Math.cos(w),s1=Math.sin(w),c2=Math.cos(2*w),s2=Math.sin(2*w);
+  const nr=co[0]+co[1]*c1+co[2]*c2,ni=-(co[1]*s1+co[2]*s2),dr=1+co[3]*c1+co[4]*c2,di=-(co[3]*s1+co[4]*s2);return Math.sqrt((nr*nr+ni*ni)/(dr*dr+di*di));}
+function rbjRun(co,x){let x1=0,x2=0,y1=0,y2=0;for(let i=0;i<x.length;i++){const v=x[i],y=co[0]*v+co[1]*x1+co[2]*x2-co[3]*y1-co[4]*y2;x2=x1;x1=v;y2=y1;y1=y;x[i]=y;}}
+/* speakerkast: een korte impulsrespons (40 ms) = impuls + een vleugje kastruis (vaste toevalsreeks, dus elke keer dezelfde kast),
+   gefilterd als een gesloten 12" (resonantie 105 Hz, dip 1,9 kHz, weg boven ±5 kHz) of een donkerdere 15" (90 Hz, dip 1,6 kHz, weg boven ±4,2 kHz);
+   genormaliseerd op 1 kHz. CABM = |H| op AMP_F (voor de luidheid) */
+const CAB={'12':{tau:.0025,f:[['hp',70,.7,0],['pk',105,1.4,2.5],['pk',1900,1.2,-3],['pk',3000,1.6,1.5],['lp',5000,.9,0],['lp',5000,.55,0]]},
+  '15':{tau:.0035,f:[['hp',55,.7,0],['pk',90,1.3,3],['pk',1600,1.1,-3.5],['pk',2600,1.6,1],['lp',4200,.9,0],['lp',4200,.55,0]]}};
+const CABB=new Map(),CABM=new Map();
+function cabIR(c,k){const key=c.sampleRate+'|'+k;if(CABB.has(key))return CABB.get(key);
+  const sr=c.sampleRate,n=Math.round(sr*.04),h=new Float32Array(n),C=CAB[k];let s=12345;const rnd=()=>(s=(s*1664525+1013904223)>>>0)/2147483648-1;
+  h[0]=1;for(let i=1;i<n;i++)h[i]=rnd()*.03*Math.exp(-i/(sr*C.tau));
+  C.f.forEach(([t,f,Q,g])=>rbjRun(rbj(t,f,Q,g,sr),h));
+  const mag=f=>{let re=0,im=0;const w=2*Math.PI*f/sr;for(let i=0;i<n;i++){re+=h[i]*Math.cos(w*i);im-=h[i]*Math.sin(w*i);}return Math.hypot(re,im);};
+  const g1=mag(1000);for(let i=0;i<n;i++)h[i]/=g1;CABM.set(key,AMP_F.map(f=>mag(f)/g1));
+  const b=c.createBuffer(1,n,sr);b.getChannelData(0).set(h);CABB.set(key,b);return b;}
+/* kamergalm: dezelfde korte kamer als de gitaar (GTR.ir), anders een eenvoudige; RE = energie van de impulsrespons (galm-aandeel gelijk houden) */
+const ROOMS=new WeakMap();
+function roomIR(c){if(ROOMS.has(c))return ROOMS.get(c);let b=null;try{if(typeof GTR!=='undefined')b=GTR.ir(c);}catch(e){}
+  if(!b){const sr=c.sampleRate,n=Math.floor(sr*1),lp=[0,0];b=c.createBuffer(2,n,sr);
+    for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<n;i++){lp[ch]=lp[ch]*.6+(Math.random()*2-1)*.4;d[i]=lp[ch]*Math.exp(-8*i/sr);}}}
+  let e=0;const d=b.getChannelData(0);for(let i=0;i<d.length;i++)e+=d[i]*d[i];const r={b,e:Math.max(1e-6,e)};ROOMS.set(c,r);return r;}
+/* luidheid: nat (klank + kast, gewogen) ÷ droog; drive: de curve drukt de luide stukken samen (geschat op ±9 dB onder de piek van de take) */
+function ampMakeup(a,sr){const cm=CABM.get(sr+'|'+a.cab)||AMP_F.map(()=>1),F=[rbj('hp',90,.707,0,sr),rbj('ls',120,0,a.bass,sr),rbj('pk',550,.7,a.mid,sr),rbj('hs',2600,0,a.treble,sr)];
+  let num=0,den=0;AMP_F.forEach((f,i)=>{let h=cm[i];F.forEach(co=>h*=rbjMag(co,f,sr));num+=AMP_W[i]*h*h;den+=AMP_W[i];});
+  const d=ampDrive(a.drive),x=TAKE_LVL*d*.35,cs=ampSat(x)/x;return 1/(Math.sqrt(num/den)*cs);}
+function ampBuild(c,dest,dverb){const G=v=>{const g=c.createGain();g.gain.value=v;return g;},B=(t,f,q)=>{const b=c.createBiquadFilter();b.type=t;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
+  const inp=G(1),dry=G(1),wet=G(0),pre=G(1),hp=B('highpass',90,-3),sh=c.createWaveShaper(),dc=B('highpass',22,-3),post=G(1),
+    ls=B('lowshelf',120),pk=B('peaking',550,.7),hs=B('highshelf',2600),sum=G(1),room=c.createConvolver(),rw=G(0),lv=G(1),R=roomIR(c);
+  sh.curve=ampCurve();sh.oversample='4x';room.buffer=R.b;
+  inp.connect(dry).connect(dest);if(dverb){const s=G(.1);dry.connect(s).connect(dverb);}
+  inp.connect(wet).connect(pre).connect(hp).connect(sh).connect(dc).connect(post).connect(ls).connect(pk).connect(hs);
+  const cab=['12','15'].map(k=>{const v=c.createConvolver();v.normalize=false;v.buffer=cabIR(c,k);const x=G(0);hs.connect(v);v.connect(x).connect(sum);return x;});
+  sum.connect(lv);sum.connect(room).connect(rw).connect(lv);lv.connect(dest);
+  return{in:inp,out:lv,set(a,now){const t=c.currentTime,P=(p,v)=>{if(now){p.cancelScheduledValues(0);p.setValueAtTime(v,t);}else{p.cancelScheduledValues(t);p.setTargetAtTime(v,t,.03);}};
+    const d=ampDrive(a.drive),wr=a.verb/100*Math.sqrt(.8/R.e),mk=ampMakeup(a,c.sampleRate)/Math.sqrt(1+.5*wr*wr*R.e);   /* galm telt half: zijn staart is donker en zachter dan de directe klank */
+    P(dry.gain,a.on?0:1);P(wet.gain,a.on?1:0);P(pre.gain,d/AK);P(post.gain,AK/d);P(ls.gain,a.bass);P(pk.gain,a.mid);P(hs.gain,a.treble);
+    cab.forEach((x,i)=>P(x.gain,a.cab===(i?'15':'12')?1:0));P(rw.gain,wr);P(lv.gain,mk*Math.pow(10,a.lvl/20));}};}
+/* regelaar veranderd: meteen (glad) in wat nu speelt en in de monitor (AMON = live meeluisteren door de amp, zie Amp) */
+let AMON=null;
+function ampLive(){if(PL&&PL.mix&&PL.mix.amp)PL.mix.amp.set(S.amp);if(AMON)AMON.amp.set(Object.assign({},S.amp,{on:true}));}
 /* takes: blob → AudioBuffer (op de samplerate van de AudioContext); de laatste paar blijven bewaard voor afspelen en Detect notes */
 const TAKE_LVL=.45,TBUF=new Map();
 function decodeBlob(b){return b.arrayBuffer().then(ab=>new Promise((res,rej)=>actx.decodeAudioData(ab,res,rej)));}
@@ -1291,7 +1375,7 @@ function syncTransport(){const m=PL&&PL.mode,own=hmode(lick())==='own',lab=(k,t)
   $('#btnOne').textContent=own?lab('key','▶ This key'):lab('one','▶ This chord');
   $('#btnProg').title=own?'Space · every key: listen, then your turn':'Space';$('#keySave').disabled=!!(REC||PL);syncSrc();}
 /* Notes · Take · Both op de plank (alleen als de lick een take heeft), met de reden als de take hier niet past */
-function syncSrc(){const L=lick(),ok=hasTake(L);$('#srcSeg').hidden=!L.take;
+function syncSrc(){const L=lick(),ok=hasTake(L);$('#srcSeg').hidden=!L.take;$('#ampTg').hidden=!ok;$('#ampQ').checked=S.amp.on;
   $$('#srcSeg [data-v]').forEach(b=>{b.setAttribute('aria-pressed',S.src===b.dataset.v);if(b.dataset.v==='notes')return;b.disabled=!ok;
     b.title=ok?(b.dataset.v==='take'?'Your recorded audio (only in the recorded key and tempo)':'Your take and the notes together'):'The audio of this take is not in this browser';});
   let w='';
@@ -1312,14 +1396,14 @@ let toastT=0;
 function toast(t,err,act){const el=$('#toast');el.textContent=t;
   if(act){const b=document.createElement('button');b.type='button';b.className='lnk tact';b.textContent=act.l;b.onclick=()=>{el.className='toast';act.fn();};el.append(b);}
   el.className='toast on'+(err?' err':'')+(act?' act':'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',act?7000:err?5200:3400);}
-function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderKeys();renderChips();renderView();renderPractice();renderAudio();syncUndo();}
+function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderKeys();renderChips();renderView();renderPractice();renderAudio();renderAmp();syncUndo();}
 /* kop van de weergave Lick: naam, "variant of …", status, vorige/volgende; daarna de details in de kolom */
 function renderHead(){const L=lick(),par=L.parent&&ST.licks.find(x=>x.id===L.parent);
   if(document.activeElement!==$('#lkName'))$('#lkName').value=L.name;
   $('#lkPar').innerHTML=par?'variant of <button type="button" class="lnk" data-open="'+esc(par.id)+'">'+esc(par.name)+'</button>':'';
   $('#lkStat').innerHTML=STATS.map(v=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.status===v)+'"><i></i>'+STATN[v]+'</button>').join('');
   const a=navList(),i=a.indexOf(L);$('#lkPrev').disabled=i<=0;$('#lkNext').disabled=i<0||i>=a.length-1;
-  $('#libDel').disabled=ST.licks.length<2;$('#libTake').disabled=!hasTake(L);renderDet();}
+  $('#libDel').disabled=ST.licks.length<2;$('#libTake').disabled=$('#libTakeA').disabled=!hasTake(L);renderDet();}
 function renderDet(){const L=lick(),has=t=>L.tags.some(x=>x.toLowerCase()===t.toLowerCase());
   $('#dTags').innerHTML=L.tags.map((t,i)=>'<span class="tagx">'+esc(t)+'<button type="button" data-i="'+i+'" aria-label="Remove tag '+esc(t)+'" title="Remove">×</button></span>').join('');
   $('#dTagList').innerHTML=allTags().filter(x=>!has(x.t)).map(x=>'<option value="'+esc(x.t)+'"></option>').join('');
@@ -1436,7 +1520,7 @@ function expLicks(list,file){const blob=new Blob([JSON.stringify({app:'lickLab',
 const expOne=L=>expLicks([L],'lick-'+(L.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lick')+'.json');
 /* menu ⋯ van een rij: vast op het scherm onder de knop; rowMenu(null) = dicht */
 let rmL=null;
-function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;return;}m.hidden=false;m.querySelector('[data-m="take"]').hidden=!hasTake(L);
+function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;return;}m.hidden=false;m.querySelector('[data-m="take"]').hidden=m.querySelector('[data-m="takeA"]').hidden=!hasTake(L);
   const r=btn.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
   m.style.left=clamp(r.right-w,8,innerWidth-w-8)+'px';m.style.top=(r.bottom+6+h>innerHeight-8?r.top-h-6:r.bottom+6)+'px';m.querySelector('button').focus();}
 function renderSetup(){const L=lick(),busy=!!(REC||CAL);
@@ -1651,13 +1735,13 @@ function libMenu(o){const m=$('#libMenu'),b=$('#libMenuB');o=o==null?m.hidden:o;
 $('#libMenuB').addEventListener('click',()=>libMenu());
 document.addEventListener('pointerdown',e=>{if(!$('#libMenu').hidden&&!e.target.closest('.menu'))libMenu(false);
   if(!$('#rowMenu').hidden&&!e.target.closest('#rowMenu,.lmore'))rowMenu(null);});
-['#libNew','#libDup','#libDel','#libUndo','#libExp','#libImp','#libTake'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
+['#libNew','#libDup','#libDel','#libUndo','#libExp','#libImp','#libTake','#libTakeA'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
 $('#libNew').addEventListener('click',newLick);
 $('#libDup').addEventListener('click',()=>dupLick(ST.cur,true));
 $('#libDel').addEventListener('click',()=>delLick(ST.cur));
 $('#libUndo').addEventListener('click',undo);
 $('#libExp').addEventListener('click',()=>expOne(lick()));
-$('#libTake').addEventListener('click',()=>dlTake(lick()));
+$('#libTake').addEventListener('click',()=>dlTake(lick()));$('#libTakeA').addEventListener('click',()=>dlAmp(lick()));
 $('#lExp').addEventListener('click',()=>expLicks(ST.licks,'licks-'+new Date().toISOString().slice(0,10)+'.json'));
 ['#libImp','#lImp'].forEach(s=>$(s).addEventListener('click',()=>{$('#libFile').value='';$('#libFile').click();}));
 /* importeren: elke lick door fixLick (ook de bibliotheekvelden); een id die al bestaat krijgt een nieuwe, en varianten
@@ -1711,7 +1795,7 @@ $('#lRows').addEventListener('click',e=>{
   else if(a.dataset.act==='stat'){L.status=STATS[(STATS.indexOf(L.status)+1)%STATS.length];save();renderList();}
   else if(a.dataset.act==='more'){if(rmL===L&&!$('#rowMenu').hidden)rowMenu(null);else rowMenu(L,a);}});
 $('#rowMenu').addEventListener('click',e=>{const b=e.target.closest('[data-m]'),L=rmL;if(!b||!L)return;rowMenu(null);
-  ({open:()=>openLick(L.id),dup:()=>dupLick(L.id,false),exp:()=>expOne(L),take:()=>dlTake(L),del:()=>delLick(L.id)})[b.dataset.m]();});
+  ({open:()=>openLick(L.id),dup:()=>dupLick(L.id,false),exp:()=>expOne(L),take:()=>dlTake(L),takeA:()=>dlAmp(L),del:()=>delLick(L.id)})[b.dataset.m]();});
 $('#rowMenu').addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();e.stopPropagation();
   const bs=$$('#rowMenu button'),i=bs.indexOf(document.activeElement);bs[mod(i+(e.key==='ArrowDown'?1:-1),bs.length)].focus();});
 $('#scroll').addEventListener('scroll',()=>{if(!$('#rowMenu').hidden)rowMenu(null);},{passive:true});
@@ -1837,7 +1921,7 @@ document.addEventListener('keydown',e=>{const lib=S.view==='lib',field=e.target.
   else if(k==='a'||k==='A'){S.add=!S.add;save();renderView();}});
 
 /* ═══════════ 13. AUDIO: kolom rechts (deze take, opslag, Export/Import audio) ═══════════ */
-let PERS=null,EST=null,DETB=false;   /* navigator.storage.persisted() en .estimate() (als de browser ze kent); DETB = Detect notes bezig */
+let PERS=null,EST=null,DETB=false,AMPB=false;   /* navigator.storage.persisted() en .estimate() (als de browser ze kent); DETB = Detect notes bezig; AMPB = Download with amp bezig */
 const canPersist=()=>!!(navigator.storage&&navigator.storage.persist&&navigator.storage.persisted);
 const fmtMB=b=>b<1e6?(b?Math.max(1,Math.round(b/1e3)):0)+' KB':(b/1e6).toFixed(b<1e7?1:0)+' MB';
 const fmtDur=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
@@ -1854,6 +1938,7 @@ function renderAudio(){const L=lick(),box=$('#audBox');
   if(!MR_MIME)o+='<p class="note">This browser can’t record audio (MediaRecorder): only the notes are recorded. Takes still play.</p>';
   o+='<div class="row"><span>This lick</span><span class="cap">'+(m?fmtDur(Math.max(0,tk.dur-Math.max(0,tk.at)))+' · '+tk.bpm+' BPM · '+dShort(tk.made):tk?'take missing':'no take yet')+'</span></div>';
   if(m)o+='<div class="prow"><button type="button" class="act sm" id="audDl" title="The take as a plain sound file">Download take</button>'
+    +'<button type="button" class="act sm" id="audDlA" title="The take through the amp settings (below), as a .wav file"'+(AMPB?' disabled':'')+'>'+(AMPB?'Rendering…':'Download with amp')+'</button>'
     +'<button type="button" class="act sm" id="audDet" title="Finds the notes in the take again (Undo brings back the old notes)"'+(DETB||REC||PL?' disabled':'')+'>'+(DETB?'Listening…':'Detect notes')+'</button></div>';
   else o+='<p class="note">'+(tk?'The audio isn’t in this browser. Import audio (below, from an audio export) brings it back.':'Record keeps the audio of what you play, next to the notes.')+'</p>';
   o+='<div class="row"><span>Stored</span><span class="cap">'+all.length+' take'+(all.length===1?'':'s')+' · '+fmtMB(size)+'</span></div>';
@@ -1874,6 +1959,54 @@ const slug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').
 async function dlTake(L){if(!hasTake(L)){toast(L.take?'The take of this lick isn’t in this browser. Import audio brings it back.':'This lick has no take yet.',!!L.take);return;}
   const b=await TK.blob(L.take.id).catch(()=>null);if(!b){toast('The take could not be read.',true);return;}
   const t=b.type||L.take.mime;dlBlob(b,'lick-'+slug(L.name)+'-take.'+(/ogg/.test(t)?'ogg':/webm/.test(t)?'webm':/mp4|aac/.test(t)?'m4a':'audio'));}
+/* ═══ fase 4: sectie Amp (kolom rechts) + schakelaar Amp op de plank; regelaars gelden overal waar een take speelt ═══ */
+const AMP_L={drive:'Drive',bass:'Bass',mid:'Mid',treble:'Treble',verb:'Reverb',lvl:'Level'};
+const ampTxt=(k,v)=>k==='drive'||k==='verb'?String(v):(v>0?'+':v<0?'−':'')+Math.abs(v)+' dB';
+$('#ampSl').innerHTML=AMP_RNG.map(([k,lo,hi,st])=>'<div class="row"><label for="amp_'+k+'">'+AMP_L[k]+'</label><span class="vals"><input type="range" id="amp_'+k+'" data-k="'+k+'" min="'+lo+'" max="'+hi+'" step="'+st+'"><span class="cap" id="amp_'+k+'V"></span></span></div>').join('');
+function renderAmp(){const A=S.amp;
+  $$('#ampPre [data-p]').forEach(b=>b.setAttribute('aria-pressed',A.on?b.dataset.p===A.preset:b.dataset.p==='off'));
+  $$('#ampCab [data-c]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===A.cab));
+  AMP_RNG.forEach(([k])=>{const i=$('#amp_'+k);if(document.activeElement!==i)i.value=A[k];$('#amp_'+k+'V').textContent=ampTxt(k,A[k]);});
+  $('#ampSl').classList.toggle('off',!A.on);$('#ampQ').checked=A.on;$('#ampMon').checked=!!AMON;
+  $('#ampNote').textContent=!A.on?'Off: takes play dry, as recorded (DI). A preset or a slider switches the amp on.'
+    :AMP_NM[A.preset]+'. Your takes play through the amp; the recording itself stays dry. The guitar sound and the band don’t go through it.';}
+function ampChange(){save();ampLive();renderAmp();syncSrc();}
+$('#ampPre').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=b.dataset.p;
+  if(p==='off')S.amp.on=false;else Object.assign(S.amp,AMP_PRE[p],{on:true,preset:p});ampChange();});
+$('#ampCab').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b||S.amp.cab===b.dataset.c&&S.amp.on)return;Object.assign(S.amp,{cab:b.dataset.c,on:true,preset:'custom'});ampChange();});
+/* schuiven: meteen horen (glad), bewaren bij loslaten */
+$('#ampSl').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;S.amp[k]=+e.target.value;S.amp.preset='custom';S.amp.on=true;ampLive();renderAmp();syncSrc();});
+$('#ampSl').addEventListener('change',e=>{if(e.target.dataset.k)save();});
+$('#ampQ').addEventListener('change',e=>{S.amp.on=e.target.checked;ampChange();});
+/* Monitor through amp: de ingang (IN.tap, het gekozen kanaal) live door een eigen amp naar de luidsprekers. Niet bewaard (start altijd uit);
+   uit als de pagina de focus verliest, het tabblad verborgen raakt of de ingang stopt */
+function monSet(o){if(o&&!AMON){const tap=IN.on?IN.tap():null;if(!tap){toast('Connect the input first (Input, below).',true);renderAmp();return;}
+    const f=actx.createGain();f.gain.value=0;f.connect(actx.destination);const amp=ampBuild(actx,f,null);tap.node.connect(amp.in);amp.set(Object.assign({},S.amp,{on:true}),true);
+    f.gain.setTargetAtTime(1,actx.currentTime,.05);AMON={tap,amp,f,iv:setInterval(()=>{if(!IN.on)monSet(false);},1000)};}
+  else if(!o&&AMON){const m=AMON;AMON=null;clearInterval(m.iv);m.f.gain.setTargetAtTime(0,actx.currentTime,.03);setTimeout(()=>{m.tap.off();try{m.f.disconnect();}catch(e){}},250);}
+  renderAmp();}
+$('#ampMon').addEventListener('change',e=>monSet(e.target.checked));
+addEventListener('blur',()=>monSet(false));document.addEventListener('visibilitychange',()=>{if(document.hidden)monSet(false);});
+/* Download with amp: de take door de huidige amp-instellingen (ook als de amp uit staat) in een OfflineAudioContext, op −1 dBFS gezet,
+   als 16-bit WAV "<naam> (amp).wav"; de take zelf verandert niet */
+function wavOf(b,k){const nc=b.numberOfChannels,n=b.length,sr=b.sampleRate,ab=new ArrayBuffer(44+n*nc*2),v=new DataView(ab),ch=[...Array(nc)].map((_,i)=>b.getChannelData(i));
+  const W=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
+  W(0,'RIFF');v.setUint32(4,36+n*nc*2,true);W(8,'WAVE');W(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nc,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*nc*2,true);v.setUint16(32,nc*2,true);v.setUint16(34,16,true);W(36,'data');v.setUint32(40,n*nc*2,true);
+  let o=44;for(let i=0;i<n;i++)for(let c=0;c<nc;c++){const x=clamp(ch[c][i]*k,-1,1);v.setInt16(o,Math.round(x<0?x*32768:x*32767),true);o+=2;}
+  return new Blob([ab],{type:'audio/wav'});}
+async function ampRender(L){const b=await takeBuf(L.take.id);if(!b)return null;
+  const tk=L.take,m=TK.meta.get(tk.id),sr=b.sampleRate,OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext,oc=new OAC(2,Math.ceil(b.length+sr*1.2),sr);
+  const src=oc.createBufferSource(),g=oc.createGain();src.buffer=b;g.gain.value=TAKE_LVL/Math.max(.05,m&&m.pk||.5);
+  if(tk.ch>=0&&b.numberOfChannels>1){const sp=oc.createChannelSplitter(b.numberOfChannels);src.connect(sp);sp.connect(g,Math.min(tk.ch,b.numberOfChannels-1));}else src.connect(g);
+  const amp=ampBuild(oc,oc.destination,null);g.connect(amp.in);amp.set(Object.assign({},S.amp,{on:true}),true);src.start(0);return oc.startRendering();}
+async function dlAmp(L){if(!hasTake(L)){toast(L.take?'The take of this lick isn’t in this browser. Import audio brings it back.':'This lick has no take yet.',!!L.take);return;}
+  if(AMPB)return;if(!(window.OfflineAudioContext||window.webkitOfflineAudioContext)){toast('This browser can’t render audio offline.',true);return;}
+  AMPB=true;renderAudio();
+  try{const out=await ampRender(L);if(!out){toast('The take could not be read.',true);return;}
+    let pk=0;for(let c=0;c<out.numberOfChannels;c++){const d=out.getChannelData(c);for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>pk)pk=a;}}
+    dlBlob(wavOf(out,pk>1e-4?.891/pk:1),(L.name.replace(/[\/:*?"<>|\u0000-\u001f]+/g,'-').trim().slice(0,80)||'Lick')+' (amp).wav');}
+  catch(e){toast('The take could not be rendered.',true);}finally{AMPB=false;renderAudio();}}
 /* "nu opnemen, later uitzoeken": de take uitpakken en dezelfde herkenning als live erover laten lopen (IN.detect), dan net als na het opnemen
    op het raster en de hals zetten; Undo brengt de oude noten terug */
 async function detectTake(){const L=lick(),tk=L.take;if(!hasTake(L)||DETB||REC)return;stopPlay();DETB=true;renderAudio();
@@ -1914,7 +2047,7 @@ async function impAudio(txt){let o=null;try{o=JSON.parse(txt);}catch(e){}
   renderAll();refreshEst();
   toast((add?'Imported '+add+' take'+(add===1?'':'s'):'No new takes')+(skip?' · '+skip+' already here':'')+(bad?' · '+bad+' unreadable, skipped':'')+'.',!add&&bad>0);}
 $('#audBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
-  ({audDl:()=>dlTake(lick()),audDet:detectTake,audPers:askPersist,audExp:expAudio,audImp:()=>{$('#audFile').value='';$('#audFile').click();}})[b.id]?.();});
+  ({audDl:()=>dlTake(lick()),audDlA:()=>dlAmp(lick()),audDet:detectTake,audPers:askPersist,audExp:expAudio,audImp:()=>{$('#audFile').value='';$('#audFile').click();}})[b.id]?.();});
 $('#audFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f||!TK.ok)return;const r=new FileReader();
   r.onload=()=>impAudio(String(r.result));r.onerror=()=>toast('That file could not be read.',true);r.readAsText(f);});
 /* Notes · Take · Both; bij wisselen tijdens het spelen de take alvast uitpakken, dan doet hij vanaf het volgende stuk mee */
