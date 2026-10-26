@@ -22,6 +22,9 @@
    Own chords = de lick met zijn eigen akkoorden in een gekozen toonsoort (dezelfde vorm verschoven, niets bewaard tot "Save in this
    key"), met "12 keys" = per toonsoort luisteren (lick + band) en dan zelf spelen (alleen de band), geoefende toonsoorten in keys;
    Over a progression = de oude Martino-weergave hierboven, alleen voor licks over één akkoord.
+   Fase 3: opnemen bewaart ook de audio (take, droog, het gekozen kanaal) in IndexedDB ('practiceRoom.lickAudio'); op de lick alleen
+   een verwijzing (take). Afspelen: Notes · Take · Both (de take alleen in de opgenomen toonsoort en het opnametempo), eigen bus
+   voor de take (fase 4: versterker), golfvorm onder de tab, Export/Import audio apart van de gewone back-up.
    Schil (icoonbalk, achtergrond = de versterker, kolom rechts, transportplank): shared/room.css + shared/rail.js;
    toets S = geheim menu (shared/look.js). Daglicht: geen thema-knop meer.
    Twee weergaven (knoppen in de kop, bewaard in set.view): Library = de lijst van al je licks (zoeken, tags, status,
@@ -275,6 +278,17 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
 .toast.err{background:#b3361f;border-color:#b3361f;color:#fff6e6}
 .toast.act{pointer-events:auto}   /* met knop (Undo) */
 .toast .tact{margin-left:12px;font-weight:700}
+
+/* ── fase 3: de opname (take) van een lick: golfvorm onder de tab, speelkop, icoontje in de lijst, bron op de plank ── */
+.wv{fill:none;stroke:var(--mut2);stroke-width:1.4;stroke-linecap:round;opacity:.7}
+.wv.off{opacity:.28}
+.tph{stroke:#b3361f;stroke-width:1.6;pointer-events:none}
+.ltk{display:inline-block;width:15px;height:11px;margin-right:6px;vertical-align:-1px;fill:none;stroke:var(--onx);stroke-width:1.6;stroke-linecap:round}
+.ltk.miss{stroke:var(--mut2);opacity:.6}
+.tray .seg.glass button{padding:5px 10px;font-size:13px}
+.tray .seg.glass button:disabled{opacity:.4;cursor:default}
+.swhy{font-size:12.5px;color:var(--gmut);white-space:nowrap}
+.col .prow{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 8px}
 @media (prefers-reduced-motion:reduce){.act.rec.on{animation:none}.toast{transition:none}}
 </style>
 </head>
@@ -298,6 +312,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
           <span class="hl"><b>3 · Own chords:</b> pick a <b>Key</b>. The whole shape slides along the neck with the same fingering, the chords follow. <b>Save in this key</b> makes it the recorded key. <b>▶ 12 keys</b>: per key the band plays it with the lick (listen), then without (your turn); finished keys light up in the ring.</span>
           <span class="hl"><b>Over a progression</b> (one-chord licks): the shape slides to each chord. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> picks any other degree.</span>
           <span class="hl"><b>4 · Practise</b> with guitar chords, bass and click. In the side panel you can add a few BPM per round (in 12 keys: per key).</span>
+          <span class="hl"><b>Take:</b> Record also keeps the audio of what you played (dry, the chosen input channel). In the play bar pick <b>Notes</b> (guitar sound), <b>Take</b> (your audio) or <b>Both</b>. The take fits only the key and tempo you recorded it in; anywhere else the notes play. The audio stays in this browser: use <b>Export audio</b> (side panel, Audio) to keep a copy.</span>
           <span class="hl">First time? Press <b>Calibrate timing</b> (side panel) and play a short muted note on each of the last eight clicks, so your notes land on the grid.</span>
         </i></span>
         <div class="grow"></div>
@@ -314,6 +329,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
           <span class="grow"></span>
           <button type="button" class="act sm" id="lImp" title="Add licks from a .json file">Import</button>
           <button type="button" class="act sm" id="lExp" title="All licks as one .json file">Export all</button>
+          <button type="button" class="act rec" id="lRec" title="New lick: record straight away (one bar count-in)">● Record</button>
           <button type="button" class="act pri" id="lNew">+ New lick</button>
           <span class="help l wide" tabindex="0" aria-label="Library keys">?<i>Click a lick (or <span class="kbd">Enter</span>) to open it. <span class="kbd">▶</span> listens to it at its own tempo, without the band. The status dot (new · learning · known) changes with a click; a tag filters the list.<br>Keys: <span class="kbd">/</span> search · <span class="kbd">↑ ↓</span> choose · <span class="kbd">Enter</span> open · <span class="kbd">Space</span> listen · <span class="kbd">Delete</span> delete (Undo brings it back) · <span class="kbd">Ctrl Z</span> undo.</i></span>
         </div>
@@ -346,6 +362,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
                 <button type="button" class="act sm" id="libUndo" title="Ctrl+Z">Undo</button>
                 <button type="button" class="act sm" id="libExp" title="This lick as a .json file">Export</button>
                 <button type="button" class="act sm" id="libImp">Import</button>
+                <button type="button" class="act sm" id="libTake" title="The audio of this lick as a plain sound file">Download take</button>
               </div>
             </div>
           </div>
@@ -411,6 +428,8 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
       <button type="button" class="gb" id="btnOne">▶ This chord</button>
       <label class="tempo" for="pBpm"><span>Tempo</span><input type="range" id="pBpm" min="30" max="240" step="1"><b class="bpm" id="pBpmV"></b></label>
       <label class="tg"><input type="checkbox" role="switch" id="pLoop"><i></i><span>Loop</span></label>
+      <span class="seg glass" id="srcSeg" role="group" aria-label="What plays the lick" hidden><button type="button" data-v="notes" title="The notes, on the guitar sound">Notes</button><button type="button" data-v="take">Take</button><button type="button" data-v="both" title="Your take and the notes together">Both</button></span>
+      <span class="swhy" id="srcWhy" aria-live="polite"></span>
       <div class="knx" id="kNx" aria-live="polite" hidden></div>
       <span class="stat" id="pNow" aria-live="polite"></span>
       <span class="help l" tabindex="0" aria-label="Keys">?<i>Keys: <span class="kbd">R</span> record · <span class="kbd">Space</span> play (Own chords: 12 keys) ·<span class="kbd">Esc</span> stop · <span class="kbd">← →</span> select a note · <span class="kbd">Shift ← →</span> move it · <span class="kbd">S</span> other string (with a note selected; otherwise the Look menu) · <span class="kbd">Delete</span> · <span class="kbd">A</span> add notes · <span class="kbd">Ctrl Z</span> undo.</i></span>
@@ -454,6 +473,10 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
     <div class="row"><span>Timing</span><button type="button" class="act sm" id="btnCal">Calibrate timing</button></div>
     <p class="note" id="latV"></p>
 
+    <h3 id="audH">Audio</h3>
+    <div id="audBox"></div>
+    <input type="file" id="audFile" accept=".json,application/json" hidden>
+
     <h3 id="inpH">Input</h3>
     <div class="row"><button type="button" class="act pri sm" id="gConn">Connect</button><select id="gDev" aria-label="Audio input" hidden></select></div>
     <div class="row"><span>Channel</span><span class="seg" id="gCh" role="group" aria-label="Channel"></span></div>
@@ -470,6 +493,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
     <h3>Backup</h3>
     <p class="note" style="margin-bottom:10px">All Practice Room apps.</p>
     <div id="prBackup" data-app="Lick Lab" data-btn="act sm"></div>
+    <p class="prb-msg" id="audBk"></p>
   </aside>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -478,6 +502,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
   <button type="button" role="menuitem" data-m="open">Open</button>
   <button type="button" role="menuitem" data-m="dup">Duplicate (variant)</button>
   <button type="button" role="menuitem" data-m="exp">Export this lick</button>
+  <button type="button" role="menuitem" data-m="take">Download take</button>
   <button type="button" role="menuitem" data-m="del" class="dang">Delete</button>
 </div>
 <input type="file" id="libFile" accept=".json,application/json" hidden>
@@ -542,8 +567,9 @@ const DEF_SET={lat:.04,latCal:false,ptempo:80,ladder:0,loop:true,swing:true,foll
   hold:50,snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false,
   colOpen:true,neckW:100,   /* schil: kolom rechts open; breedte van de hals in % (menu S → Neck size) */
   view:'lib',lsort:'new',lstat:'',ltag:'',   /* weergave lib|lick; Library: sortering, filter op status en op één tag ('' = alle) */
-  hmode:'own',korder:'fourths',kplay:'lp',kreps:1,recBand:true};   /* own = eigen akkoorden in een toonsoort | prog = over de progressie (Martino);
+  hmode:'own',korder:'fourths',kplay:'lp',kreps:1,recBand:true,   /* own = eigen akkoorden in een toonsoort | prog = over de progressie (Martino);
                                                                       12 toonsoorten: volgorde, lp = luisteren + zelf | p = alleen zelf, rondes per toonsoort; band tijdens opnemen */
+  src:'take',pAsk:false};   /* fase 3: wat de lick speelt notes|take|both; pAsk = al eens gevraagd om de opslag te beschermen (navigator.storage.persist) */
 const STATS=['new','learning','known'],STATN={new:'New',learning:'Learning',known:'Known'};
 const SORTS=[['new','Newest'],['name','Name A–Z'],['last','Recently practised'],['least','Least recently practised'],['keys','Fewest keys done']];
 const KORD=[['fourths','Cycle of fourths'],['chrom','Chromatic, up'],['random','Random'],['todo','Keys not done yet']];
@@ -563,6 +589,14 @@ function fixHarm(h,root,q){let tot=0;
   const out=(Array.isArray(h)?h:[]).filter(c=>c&&isInt(c.root,0,11)&&QUAL[c.q]&&isInt(c.b,1,16)).slice(0,16)
     .filter(c=>(tot+=c.b)<=64).map(c=>({root:c.root,q:c.q,b:c.b}));
   return out.length?out:[{root,q,b:4}];}
+/* fase 3: de take (opname) van de lick; de audio zelf staat in IndexedDB (TK), hier alleen de verwijzing (ontbreekt = null, oude licks).
+   id, mime, dur = lengte (s), at = waar tel 1 van maat 1 in de opname valt (s), bpm = opnametempo, made, ch = welk kanaal van een
+   stereo-opname (−1 = mono), sh = halve tonen dat de noten sindsdien verschoven zijn (Save in this key, octaaf): de take past als sh + d ≡ 0 */
+const TAKE_ID=/^t[a-z0-9]{4,40}$/,TAKE_MIME=/^audio\/[\w.+-]{1,40}(\s*;[\w\s=.,+"-]{0,60})?$/;
+function fixTake(t){if(!t||typeof t!=='object'||typeof t.id!=='string'||!TAKE_ID.test(t.id))return null;
+  return{id:t.id,mime:typeof t.mime==='string'&&TAKE_MIME.test(t.mime)?t.mime:'audio/ogg',dur:Number.isFinite(+t.dur)?clamp(+t.dur,0,3600):0,
+    at:Number.isFinite(+t.at)?clamp(+t.at,-5,600):0,bpm:isInt(t.bpm,30,240)?t.bpm:70,made:Number.isFinite(+t.made)&&+t.made>0?+t.made:Date.now(),
+    ch:isInt(t.ch,-1,1)?t.ch:-1,sh:isInt(t.sh,-48,48)?t.sh:0};}
 function fixLick(l){if(!l||typeof l!=='object')return null;
   const L={id:typeof l.id==='string'&&l.id?l.id:newId(),name:typeof l.name==='string'&&l.name.trim()?l.name.slice(0,60):'Lick',
     root:isInt(l.root,0,11)?l.root:9,q:QUAL[l.q]?l.q:'m7',pos:isInt(l.pos,0,14)?l.pos:5,bpm:isInt(l.bpm,30,240)?l.bpm:70,
@@ -572,6 +606,7 @@ function fixLick(l){if(!l||typeof l!=='object')return null;
     parent:typeof l.parent==='string'?l.parent.slice(0,40):''};
   L.harm=fixHarm(l.harm,L.root,L.q);L.root=L.harm[0].root;L.q=L.harm[0].q;
   L.ko=Array.isArray(l.ko)&&l.ko.length===12&&l.ko.every(v=>isInt(v,-2,2))?l.ko.slice():Array(12).fill(0);
+  L.take=fixTake(l.take);
   if(Array.isArray(l.notes))L.notes=l.notes.filter(n=>n&&isInt(n.t,-16,999)&&isInt(n.s,0,5)&&isInt(n.f,0,MAXF))
     .map(n=>({t:n.t,d:isInt(n.d,1,64)?n.d:1,s:n.s,f:n.f,lock:!!n.lock})).sort((a,b)=>a.t-b.t)
     .filter((n,i,a)=>!i||a[i-1].t!==n.t);
@@ -591,7 +626,8 @@ function hydrate(o){const st={v:1,licks:[],cur:'',set:JSON.parse(JSON.stringify(
     if(!['lib','lick'].includes(st.set.view))st.set.view='lib';if(!SORTS.some(s=>s[0]===st.set.lsort))st.set.lsort='new';
     if(!STATS.includes(st.set.lstat))st.set.lstat='';st.set.ltag=st.set.ltag.slice(0,24);
     if(!['own','prog'].includes(st.set.hmode))st.set.hmode='own';if(!KORD.some(o=>o[0]===st.set.korder))st.set.korder='fourths';
-    if(!['lp','p'].includes(st.set.kplay))st.set.kplay='lp';st.set.kreps=clamp(Math.round(st.set.kreps)||1,1,4);}
+    if(!['lp','p'].includes(st.set.kplay))st.set.kplay='lp';st.set.kreps=clamp(Math.round(st.set.kreps)||1,1,4);
+    if(!['notes','take','both'].includes(st.set.src))st.set.src='take';}
   st.cur=typeof o.cur==='string'?o.cur:'';return st;}
 let ST;{const raw=(()=>{try{return localStorage.getItem(KEY);}catch(e){return null;}})();
   try{ST=hydrate(raw?JSON.parse(raw):null);}catch(e){try{localStorage.setItem(KEY+'.bad',raw);}catch(x){}ST=hydrate(null);}}   /* onleesbare data niet stil overschrijven */
@@ -612,10 +648,51 @@ function undo(){const u=UNDO.pop();if(!u){toast('Nothing to undo.');return;}stop
     ST.cur=ST.licks.some(l=>l.id===u.prev)?u.prev:ST.licks[Math.max(0,j-1)].id;}lsel=ST.cur;sel=null;save();renderAll();markSel(true);toast('Undone.');}
 const syncUndo=()=>{$('#libUndo').disabled=!UNDO.length;};
 
+/* ═══════════ 2b. OPNAMES (IndexedDB) ═══════════
+   Audio is te groot voor localStorage: database 'practiceRoom.lickAudio', store 'takes' = {id, blob} en store 'meta' = {id, mime,
+   size, dur, at, bpm, made, ch, pk = hoogste piek (0–1), peaks = Uint8Array (PPS per seconde, 0–255 t.o.v. pk, voor de golfvorm),
+   lick = id van de lick bij het opnemen, gone = sinds wanneer geen lick er meer naar verwijst (0 = in gebruik)}. Twee stores, zodat
+   opruimen alleen de kleine meta herschrijft. Zonder IndexedDB (Firefox via file://, privévenster) werkt alles zoals vroeger, zonder audio. */
+const PPS=100,GONE_MS=14*864e5,AEKEY='practiceRoom.lastAudioExport';   /* AEKEY: datum laatste Export audio (gaat mee in de gewone back-up) */
+const TK=(function(){
+  const meta=new Map();let db=null,ok=false,done=false;
+  const ready=new Promise(res=>{let r;const fail=()=>{done=true;res(false);};
+    try{if(!window.indexedDB){fail();return;}r=indexedDB.open('practiceRoom.lickAudio',1);}catch(e){fail();return;}
+    r.onupgradeneeded=()=>{const d=r.result;['takes','meta'].forEach(n=>{if(!d.objectStoreNames.contains(n))d.createObjectStore(n,{keyPath:'id'});});};
+    r.onerror=e=>{if(e&&e.preventDefault)e.preventDefault();fail();};
+    r.onsuccess=()=>{db=r.result;db.onversionchange=()=>db.close();
+      try{const q=db.transaction('meta','readonly').objectStore('meta').getAll();
+        q.onsuccess=()=>{(q.result||[]).forEach(m=>{if(m&&typeof m.id==='string')meta.set(m.id,m);});ok=true;done=true;res(true);};q.onerror=fail;}catch(e){fail();}};});
+  /* één transactie; fn krijgt hem en geeft eventueel een request terug, waarvan het resultaat na afloop telt */
+  const tx=(stores,mode,fn)=>new Promise((res,rej)=>{try{const t=db.transaction(stores,mode),q=fn(t);
+    t.oncomplete=()=>res(q&&'result'in q?q.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('aborted'));}catch(e){rej(e);}});
+  async function put(m,blob){if(!ok)throw new Error('no store');await tx(['takes','meta'],'readwrite',t=>{t.objectStore('takes').put({id:m.id,blob});t.objectStore('meta').put(m);});meta.set(m.id,m);}
+  async function blob(id){if(!ok||!meta.has(id))return null;const r=await tx(['takes'],'readonly',t=>t.objectStore('takes').get(id));return r&&r.blob instanceof Blob?r.blob:null;}
+  /* opruimen: een take waar geen lick naar verwijst (dit tabblad, de opslag op schijf, Undo) krijgt een datum (gone); pas na 14 dagen
+     zonder verwijzing gaat hij weg. Een verwijzing (later, bv. na een import) haalt de datum weer weg. refs = null: niets doen. */
+  async function sweep(refs){if(!ok||!refs)return;const now=Date.now(),upd=[],del=[];
+    meta.forEach(m=>{const used=refs.has(m.id);if(used&&m.gone)upd.push(Object.assign({},m,{gone:0}));else if(!used&&!m.gone)upd.push(Object.assign({},m,{gone:now}));
+      else if(!used&&now-m.gone>GONE_MS)del.push(m.id);});
+    if(!upd.length&&!del.length)return;
+    await tx(['takes','meta'],'readwrite',t=>{upd.forEach(m=>t.objectStore('meta').put(m));del.forEach(id=>{t.objectStore('meta').delete(id);t.objectStore('takes').delete(id);});});
+    upd.forEach(m=>meta.set(m.id,m));del.forEach(id=>meta.delete(id));}
+  return{ready,put,blob,sweep,meta,get ok(){return ok;},get done(){return done;}};})();
+/* alle take-id's waar nog iets naar verwijst: de licks hier, de Undo-stapel, en wat er nu op schijf staat (een tweede tabblad);
+   is de opslag onleesbaar, dan null (dan ruimen we niets op). Ook wat in KEY+'.bad' staat telt mee. */
+function takeRefs(){const s=new Set(),add=l=>{if(l&&l.take&&typeof l.take.id==='string')s.add(l.take.id);},grab=t=>(String(t).match(/"id":"t[a-z0-9]{4,40}"/g)||[]).forEach(x=>s.add(x.slice(6,-1)));
+  ST.licks.forEach(add);UNDO.forEach(u=>grab(u.data));
+  try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(!o||!Array.isArray(o.licks))return null;o.licks.forEach(add);}
+    const bad=localStorage.getItem(KEY+'.bad');if(bad)grab(bad);}catch(e){return null;}
+  return s;}
+const hasTake=L=>!!(L&&L.take&&TK.ok&&TK.meta.has(L.take.id));            /* de audio is er */
+const takeMiss=L=>!!(L&&L.take&&TK.done&&!hasTake(L));                     /* verwijzing zonder audio (andere browser, nog niet geïmporteerd) */
+/* lengte van een lick zonder noten (alleen een take): de maten van de opname */
+const takeBars=L=>L.take&&L.take.dur?clamp(Math.ceil((L.take.dur-L.take.at-.4)/(240/L.take.bpm)),1,16):0;
+
 /* ═══════════ 3. RITME EN VINGERZETTING ═══════════ */
 const SWING=.64;   /* swing: de tweede achtste valt op 64% van de tel */
 function tOf(i,sub,spb){if(sub===2&&S.swing){const b=Math.floor(i/2);return spb*(b+(i-b*2?SWING:0));}return i*spb/sub;}
-function lickBars(L){const bar=4*L.sub;if(!L.notes.length)return L.bars||1;
+function lickBars(L){const bar=4*L.sub;if(!L.notes.length)return L.bars||takeBars(L)||1;
   return Math.max(L.bars||1,Math.ceil(Math.max(...L.notes.map(n=>n.t+1))/bar));}
 const minT=L=>L.notes.length?Math.min(0,L.notes[0].t):0;
 /* hoe goed past fret f in de positie (wijsvinger op fret lo, vak van 4 frets; 0 = open positie) */
@@ -770,7 +847,16 @@ function chain(){const out=actx.createGain();out.gain.value=1;out.connect(actx.d
     pg=GTR.bus(actx,comp,{verb,wetScale:1/.16,gain:GTR_COMP}).vol;}                   /* comping: tweede gitaarbus in plaats van de piano */
   else{gt=actx.createGain();gt.gain.value=1;gt.connect(comp);const gs=actx.createGain();gs.gain.value=.12;gt.connect(gs).connect(verb);}
   const ck=actx.createGain();ck.gain.value=1;ck.connect(out);
-  return{out,piano:pg,bass:bg,gtr:gt,click:ck};}
+  /* fase 3: eigen bus voor de take (de droge DI-opname), met een vleugje galm; fase 4 zet hier de versterker tussen (take → amp → comp) */
+  const tk=actx.createGain();tk.gain.value=1;tk.connect(comp);const tks=actx.createGain();tks.gain.value=.1;tk.connect(tks).connect(verb);
+  return{out,piano:pg,bass:bg,gtr:gt,click:ck,take:tk};}
+/* takes: blob → AudioBuffer (op de samplerate van de AudioContext); de laatste paar blijven bewaard voor afspelen en Detect notes */
+const TAKE_LVL=.45,TBUF=new Map();
+function decodeBlob(b){return b.arrayBuffer().then(ab=>new Promise((res,rej)=>actx.decodeAudioData(ab,res,rej)));}
+function takeBuf(id){if(!audio())return Promise.resolve(null);
+  if(!TBUF.has(id)){TBUF.set(id,TK.blob(id).then(b=>b?decodeBlob(b):null).catch(()=>null).then(b=>{if(!b)TBUF.delete(id);return b;}));
+    while(TBUF.size>6)TBUF.delete(TBUF.keys().next().value);}
+  return TBUF.get(id);}
 function playSample(s,t,gain,out,rate,len,rel){const src=actx.createBufferSource(),g=actx.createGain();src.buffer=s.buf;src.playbackRate.value=rate||1;
   g.gain.value=gain;src.connect(g).connect(out);src.start(Math.max(t,actx.currentTime),s.off);
   if(len){const end=Math.min(t+len,t+(s.buf.duration-s.off)/(rate||1)-.05);g.gain.setValueAtTime(gain,end);g.gain.setTargetAtTime(0,end,rel||.05);src.stop(end+(rel||.05)*6);}}
@@ -823,14 +909,7 @@ function nearBass(pc,ref){let best=null;for(let m=28;m<=43;m++)if(mod(m,12)===pc
 const IN=(function(){
   const G=Object.assign({dev:'',ch:'auto',gate:-48,gauto:true,stable:90,a4:440},read(GKEY)||{});
   const saveG=()=>{const cur=read(GKEY)||{};write(GKEY,Object.assign(cur,{dev:G.dev,ch:G.ch,gate:G.gate,gauto:G.gauto}));};
-  let ctx=null,stream=null,src=null,an=[],bufs=[],on=false,raf=0;
-  let cand=null,armed=true,last=null,peakHold=0,loud=0,lastOn=-9,attackAt=null,sounding=null,pend=null,missed=0;
-  /* automatische gevoeligheid: de ruisvloer is het zachtste niveau dat we zien (stijgt langzaam, ~0,25 dB/s, zodat hij
-     een hardere brom volgt); de drempel ligt 18 dB daarboven, tussen -66 dB (lager telt het loslaten van een snaar mee)
-     en -36 dB. Een vaste -48 dB lag maar 2-10 dB onder een zacht
-     gespeelde noot, waardoor uitklinkende noten en zachte aanslagen wegvielen. */
-  let nf=1e-3,nfT=0,autoGate=-48;
-  const gate=()=>G.gauto?autoGate:G.gate;
+  let ctx=null,stream=null,src=null,split=null,an=[],bufs=[],on=false,raf=0,peakHold=0,loud=0;
   const noteL=new Set(),onsetL=new Set();
   let D=null,C=null;
   function yin(x,sr){const N=x.length,maxT=Math.min(Math.floor(sr/62),N>>1),minT=Math.max(2,Math.floor(sr/1500)),W=N-maxT;
@@ -850,14 +929,14 @@ const IN=(function(){
     catch(e){if(G.dev&&(e.name==='OverconstrainedError'||e.name==='NotFoundError')){G.dev='';saveG();return connect();}
       status(e.name==='NotAllowedError'?'Permission was refused. Allow the microphone for this page in the address bar, then press Connect again.':'Could not open the input: '+e.message,true);return false;}
     ctx=audio();if(ctx.state==='suspended')await ctx.resume();
-    src=ctx.createMediaStreamSource(stream);const sp=ctx.createChannelSplitter(2);src.connect(sp);an=[];bufs=[];
+    src=ctx.createMediaStreamSource(stream);const sp=split=ctx.createChannelSplitter(2);src.connect(sp);an=[];bufs=[];
     for(let i=0;i<2;i++){const a=ctx.createAnalyser();a.fftSize=4096;a.smoothingTimeConstant=0;sp.connect(a,i);an.push(a);bufs.push(new Float32Array(a.fftSize));}
-    on=true;cand=null;armed=true;last=null;nf=1e-3;nfT=0;loud=0;
+    on=true;LIVE.reset();loud=0;
     const tr=stream.getAudioTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{};await fillDevices(st.deviceId);
     status('Listening to '+(tr?tr.label:'audio input')+' · '+Math.round(ctx.sampleRate/1000)+' kHz');
     $('#gConn').textContent='Stop';syncUI();loop();return true;}
   function stop(quiet){on=false;cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;
-    if(src)try{src.disconnect();}catch(e){}src=null;$('#gConn').textContent='Connect';endNote(ctx?ctx.currentTime:0);syncUI();
+    if(src)try{src.disconnect();}catch(e){}src=null;split=null;$('#gConn').textContent='Connect';LIVE.end(ctx?ctx.currentTime:0);syncUI();
     if(!quiet){status('Stopped.');show(null);}}
   async function fillDevices(cur){try{const list=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
     const sel=$('#gDev');sel.innerHTML=list.map((d,i)=>'<option value="'+esc(d.deviceId)+'">'+esc(d.label||'Input '+(i+1))+'</option>').join('');
@@ -867,40 +946,68 @@ const IN=(function(){
     for(let b=nb-1;b>=0;b--){const st=n-(nb-b)*B;let s=0;for(let i=st;i<st+B;i++)s+=x[i]*x[i];if(Math.sqrt(s/B)>=thr)k=b;else if(k>=0)break;}
     if(k<0)k=nb-4;return now-((nb-k)*B)/sr;}
   const rmsOf=(x,a,b)=>{let s=0;for(let i=a;i<b;i++)s+=x[i]*x[i];return Math.sqrt(s/(b-a));};
-  function endNote(t){if(sounding&&sounding.end==null)sounding.end=t;sounding=null;}
-  /* een aanslag zonder herkende noot (te kort, of de toonhoogte bleef wankelen): neem de toonhoogte die na de aanslag
-     het vaakst gemeten werd, op het tijdstip van de aanslag */
-  function rescue(){const P=pend;pend=null;if(!P||P.fired)return;let best=null,bn=0;P.votes.forEach((n,m)=>{if(n>bn){bn=n;best=m;}});
-    if(best!=null&&bn>=2){armed=false;last={m:best};cand={m:best,t0:performance.now(),at:P.at,fired:true};fire(best,P.at,true);}else missed++;}
-  function loop(){if(!on)return;raf=requestAnimationFrame(loop);const now=ctx.currentTime,sr=ctx.sampleRate;
+  /* de herkenning zelf, los van de ingang: live (ui = meter en noot tonen) of offline op een opname (Detect notes from take).
+     step() krijgt per beeld de nieuwste 4096 samples van één kanaal, de tijd t (s) en een klok in ms voor "Note must hold". */
+  function det(ui,emitNote,emitOnset){
+    let cand=null,armed=true,last=null,lastOn=-9,attackAt=null,sounding=null,pend=null,missed=0;
+    /* automatische gevoeligheid: de ruisvloer is het zachtste niveau dat we zien (stijgt langzaam, ~0,25 dB/s, zodat hij
+       een hardere brom volgt); de drempel ligt 18 dB daarboven, tussen -66 dB (lager telt het loslaten van een snaar mee)
+       en -36 dB. Een vaste -48 dB lag maar 2-10 dB onder een zacht
+       gespeelde noot, waardoor uitklinkende noten en zachte aanslagen wegvielen. */
+    let nf=1e-3,nfT=0,autoGate=-48;
+    const gate=()=>G.gauto?autoGate:G.gate;
+    function endNote(t){if(sounding&&sounding.end==null)sounding.end=t;sounding=null;}
+    function fire(m,at,rescued){endNote(at);const ev={m,at,end:null,rescued:!!rescued};sounding=ev;emitNote(ev);}
+    /* een aanslag zonder herkende noot (te kort, of de toonhoogte bleef wankelen): neem de toonhoogte die na de aanslag
+       het vaakst gemeten werd, op het tijdstip van de aanslag */
+    function rescue(ms){const P=pend;pend=null;if(!P||P.fired)return;let best=null,bn=0;P.votes.forEach((n,m)=>{if(n>bn){bn=n;best=m;}});
+      if(best!=null&&bn>=2){armed=false;last={m:best};cand={m:best,t0:ms,at:P.at,fired:true};fire(best,P.at,true);}else missed++;}
+    function step(x,rms,peak,now,ms,sr){const N=x.length,db=20*Math.log10(rms||1e-9);
+      nf=Math.min(Math.max(rms,1e-6),nf*(1+.03*Math.min(1,now-nfT)));nfT=now;
+      const ag=Math.round(Math.max(-66,Math.min(-36,20*Math.log10(nf)+18)));if(ag!==autoGate){autoGate=ag;if(ui&&G.gauto)showGate();}
+      const gdb=gate(),gl=Math.pow(10,gdb/20);
+      if(ui)meter(db,peak,gdb);
+      /* aanslag: de nieuwste ~10 ms zijn duidelijk luider dan ~45 ms eerder (zelfde buffer, dus geen geheugen dat
+         achterloopt); één keer per aanslag, ook als de vorige noot nog klinkt */
+      const eNew=rmsOf(x,N-512,N),eOld=rmsOf(x,N-2560,N-2048);
+      if(eNew>gl&&eNew>eOld*1.7&&now-lastOn>.07){rescue(ms);const t=onsetTime(x,Math.max(eOld*1.7,gl),now,sr);
+        lastOn=now;attackAt=t;armed=true;cand=null;pend={at:t,t:now,votes:new Map(),fired:false};emitOnset(t);}
+      if(pend&&now-pend.t>.32)rescue(ms);
+      /* toonhoogte elk frame (niet om het andere): bij snelle 16den haalt een noot zo vaker "Note must hold" */
+      if(db<gdb){rescue(ms);armed=true;cand=null;endNote(now);if(ui)show(null,true);return;}
+      if(now-lastOn<.025)return;   /* vlak na de aanslag: het venster bevat nog de vorige noot */
+      /* toonhoogte op de laatste 2048 samples (~45 ms): reageert snel op een nieuwe noot, ook bij legato */
+      const h=new Float32Array(1024);for(let k=0;k<1024;k++)h[k]=(x[N-2048+2*k]+x[N-2047+2*k])/2;
+      const r=yin(h,sr/2);
+      if(!r||r.f<62||r.f>1500){if(ui)show(null,true);return;}
+      let mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf);
+      if(last&&!armed&&[12,19,24,-12].includes(m-last.m)){mf-=m-last.m;m=last.m;}
+      if(pend&&!pend.fired&&r.conf>.6)pend.votes.set(m,(pend.votes.get(m)||0)+1);
+      if(r.conf<.8){if(ui)show(null,true);return;}
+      const cents=Math.round((mf-m)*100);
+      if(!cand||cand.m!==m)cand={m,t0:ms,at:armed&&attackAt!=null&&now-attackAt<.35?attackAt:now-.03,fired:last&&last.m===m&&!armed};
+      const stable=ms-cand.t0>=S.hold;if(ui)show({m,cents},false,stable);
+      if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m};attackAt=null;if(pend)pend.fired=true;fire(m,cand.at);}}
+    return{step,end:endNote,fire,gate,reset(){cand=null;armed=true;last=null;nf=1e-3;nfT=0;},get missed(){return missed;},resetMissed(){missed=0;}};}
+  const LIVE=det(true,ev=>noteL.forEach(fn=>{try{fn(ev);}catch(e){}}),t=>onsetL.forEach(fn=>{try{fn(t);}catch(e){}}));
+  const gate=()=>LIVE.gate();
+  function loop(){if(!on)return;raf=requestAnimationFrame(loop);
     const lv=an.map((a,i)=>{a.getFloatTimeDomainData(bufs[i]);const b=bufs[i];let p=0;for(let k=0;k<b.length;k++){const q=b[k]<0?-b[k]:b[k];if(q>p)p=q;}return{rms:rmsOf(b,b.length-2048,b.length),peak:p};});
-    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0],db=20*Math.log10(L.rms||1e-9),x=bufs[ci],N=x.length;
-    nf=Math.min(Math.max(L.rms,1e-6),nf*(1+.03*Math.min(1,now-nfT)));nfT=now;
-    const ag=Math.round(Math.max(-66,Math.min(-36,20*Math.log10(nf)+18)));if(ag!==autoGate){autoGate=ag;if(G.gauto)showGate();}
-    const gdb=gate(),gl=Math.pow(10,gdb/20);
-    meter(db,L.peak,gdb);
-    /* aanslag: de nieuwste ~10 ms zijn duidelijk luider dan ~45 ms eerder (zelfde buffer, dus geen geheugen dat
-       achterloopt); één keer per aanslag, ook als de vorige noot nog klinkt */
-    const eNew=rmsOf(x,N-512,N),eOld=rmsOf(x,N-2560,N-2048);
-    if(eNew>gl&&eNew>eOld*1.7&&now-lastOn>.07){rescue();const t=onsetTime(x,Math.max(eOld*1.7,gl),now,sr);
-      lastOn=now;attackAt=t;armed=true;cand=null;pend={at:t,t:now,votes:new Map(),fired:false};onsetL.forEach(fn=>{try{fn(t);}catch(e){}});}
-    if(pend&&now-pend.t>.32)rescue();
-    /* toonhoogte elk frame (niet om het andere): bij snelle 16den haalt een noot zo vaker "Note must hold" */
-    if(db<gdb){rescue();armed=true;cand=null;endNote(now);show(null,true);return;}
-    if(now-lastOn<.025)return;   /* vlak na de aanslag: het venster bevat nog de vorige noot */
-    /* toonhoogte op de laatste 2048 samples (~45 ms): reageert snel op een nieuwe noot, ook bij legato */
-    const h=new Float32Array(1024);for(let k=0;k<1024;k++)h[k]=(x[N-2048+2*k]+x[N-2047+2*k])/2;
-    const r=yin(h,sr/2);
-    if(!r||r.f<62||r.f>1500){show(null,true);return;}
-    let mf=69+12*Math.log2(r.f/G.a4),m=Math.round(mf);
-    if(last&&!armed&&[12,19,24,-12].includes(m-last.m)){mf-=m-last.m;m=last.m;}
-    if(pend&&!pend.fired&&r.conf>.6)pend.votes.set(m,(pend.votes.get(m)||0)+1);
-    if(r.conf<.8){show(null,true);return;}
-    const cents=Math.round((mf-m)*100);
-    if(!cand||cand.m!==m)cand={m,t0:performance.now(),at:armed&&attackAt!=null&&now-attackAt<.35?attackAt:now-.03,fired:last&&last.m===m&&!armed};
-    const stable=performance.now()-cand.t0>=S.hold;show({m,cents},false,stable);
-    if(stable&&!cand.fired&&(armed||!last||last.m!==m)){cand.fired=true;armed=false;last={m};attackAt=null;if(pend)pend.fired=true;fire(m,cand.at);}}
-  function fire(m,at,rescued){endNote(at);const ev={m,at,end:null,rescued:!!rescued};sounding=ev;noteL.forEach(fn=>{try{fn(ev);}catch(e){}});}
+    const ci=G.ch==='1'?0:G.ch==='2'?1:(lv[1]&&lv[1].rms>lv[0].rms?1:0),L=lv[ci]||lv[0];
+    LIVE.step(bufs[ci],L.rms,L.peak,ctx.currentTime,performance.now(),ctx.sampleRate);}
+  /* offline: dezelfde herkenning over een uitgepakte opname (kanaal ch), in beelden van 1/60 s zoals live; in stukjes van 2 s
+     zodat de pagina blijft reageren. Geeft de noten {m, at, end} met tijden in seconden in de opname. */
+  function detect(buf,ch){const d=buf.getChannelData(ch>=0&&ch<buf.numberOfChannels?ch:0),sr=buf.sampleRate,hop=Math.round(sr/60),out=[],W=4096;
+    const D2=det(false,ev=>out.push(ev),()=>{});let pos=W;
+    return new Promise(res=>{const run=()=>{const stop=Math.min(d.length,pos+2*sr);
+      for(;pos<=stop;pos+=hop){const x=d.subarray(pos-W,pos);let p=0;for(let k=0;k<W;k++){const q=x[k]<0?-x[k]:x[k];if(q>p)p=q;}D2.step(x,rmsOf(x,W-2048,W),p,pos/sr,pos/sr*1000,sr);}
+      if(pos>d.length||stop>=d.length){D2.end(d.length/sr);res(out);}else setTimeout(run,0);};
+      if(d.length<W)res(out);else run();});}
+  /* aftakking voor de take: het gekozen kanaal mono, of bij Auto beide kanalen (stereo; na het opnemen kiezen we het luidste) */
+  function tap(){if(!on||!split)return null;const ch=G.ch==='1'?0:G.ch==='2'?1:-1;
+    const node=ch>=0?ctx.createGain():ctx.createChannelMerger(2);
+    if(ch>=0)split.connect(node,ch);else{split.connect(node,0,0);split.connect(node,1,1);}
+    const sp=split;return{node,n:ch>=0?1:2,off(){try{sp.disconnect(node);}catch(e){}try{node.disconnect();}catch(e){}}};}
   /* te zacht: de hardste piek van de laatste paar seconden blijft onder -20 dBFS terwijl je speelt */
   function meter(db,peak,gdb){const i=$('#gMeter i'),pct=Math.max(0,Math.min(100,(db+72)/72*100));peakHold=Math.max(peak,peakHold*.96);loud=Math.max(peak,loud*.999);
     i.style.width=pct+'%';i.className=peakHold>.98?'clip':peakHold>.7?'hot':'';
@@ -928,24 +1035,75 @@ const IN=(function(){
   if(!window.isSecureContext&&location.protocol!=='file:')status('Audio inputs only work on https or from a file on your computer.',true);
   return{connect,stop,get on(){return on;},
     onNote(fn){noteL.add(fn);return()=>noteL.delete(fn);},onOnset(fn){onsetL.add(fn);return()=>onsetL.delete(fn);},
-    get missed(){return missed;},resetMissed(){missed=0;},
-    _fire:(m,at)=>fire(m,at),_onset:t=>onsetL.forEach(fn=>fn(t))};   /* _fire/_onset: alleen voor testen */
+    get missed(){return LIVE.missed;},resetMissed(){LIVE.resetMissed();},tap,detect,
+    _fire:(m,at)=>LIVE.fire(m,at),_onset:t=>onsetL.forEach(fn=>fn(t))};   /* _fire/_onset: alleen voor testen */
 })();
 
 /* ═══════════ 8. OPNEMEN ═══════════ */
 let REC=null;
-async function recStart(into){if(REC){recStop();return;}stopPlay();if(CAL)return;
+/* fresh = altijd een nieuwe lick (Record in de Library); anders een nieuwe als deze al noten of een take heeft, into = over deze heen */
+async function recStart(into,fresh){if(REC){recStop();return;}stopPlay();if(CAL)return;
   if(!IN.on&&!(await IN.connect()))return;
   /* band tijdens het opnemen: de eigen akkoorden van de lick (opgenomen toonsoort), met de schakelaars Chords en Bass */
   const withBand=S.recBand&&(S.snd.piano||S.snd.bass);
   if(withBand&&!SND&&window.BACKING_SOUNDS&&audio()){$('#recL').textContent='Loading sounds…';await loadSounds();if(REC||PL||CAL)return;}
   let L=lick(),created=null;
-  if(!into&&L.notes.length){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now(),tags:[],src:'',note:'',status:'new',last:0,keys:0,ko:null,parent:''}));
+  if(!into&&(fresh||L.notes.length||L.take)){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now(),tags:[],src:'',note:'',status:'new',last:0,keys:0,ko:null,parent:'',take:null}));
     created={id:N.id,prev:L.id};ST.licks.push(N);ST.cur=N.id;L=N;}
   const a=audio(),spb=60/L.bpm,t0=a.currentTime+.15+4*spb;
   REC={id:L.id,into:!!into,created,t0,spb,end:L.bars?t0+L.bars*4*spb:t0+16*4*spb,beat:-4,ev:[],raf:0,mix:withBand?chain():null,hb:t0,
-    off:IN.onNote(ev=>{if(REC&&ev.at>REC.t0-4*REC.spb-.05){REC.ev.push(ev);streamAdd(ev.m);}})};
+    off:IN.onNote(ev=>{if(REC&&ev.at>REC.t0-4*REC.spb-.05){REC.ev.push(ev);streamAdd(ev.m);}}),tr:takeRec()};
   IN.resetMissed();REC.iv=setInterval(recTick,25);recTick();$('#stream').innerHTML='';sel=null;S.sel=-1;renderAll();recUI();}
+/* ── de take: tegelijk met de noten de droge audio van het gekozen kanaal opnemen (MediaRecorder op een aftakking in de
+   AudioContext). Formaat: ogg/opus (Firefox), anders webm/opus, ~128 kbps. Zonder IndexedDB of MediaRecorder: null, en alles
+   werkt zoals vroeger. c0 = ruwe schatting van de klok (AudioContext) bij het begin van de opname; ons = de aanslagen die de
+   herkenning live zag, om de opname daarna precies op de klok te leggen. ── */
+const MR_MIME=(()=>{if(typeof MediaRecorder==='undefined'||!MediaRecorder.isTypeSupported)return '';
+  return['audio/ogg;codecs=opus','audio/webm;codecs=opus','audio/ogg','audio/webm'].find(t=>{try{return MediaRecorder.isTypeSupported(t);}catch(e){return false;}})||'';})();
+function takeRec(){if(!TK.ok||!MR_MIME||!audio())return null;const tap=IN.tap();if(!tap)return null;
+  let mr,dest;try{dest=actx.createMediaStreamDestination();try{dest.channelCount=tap.n;}catch(e){}tap.node.connect(dest);
+    mr=new MediaRecorder(dest.stream,{mimeType:MR_MIME,audioBitsPerSecond:128000});}catch(e){tap.off();return null;}
+  const chunks=[],o={c0:actx.currentTime,ons:[],n:tap.n,mime:MR_MIME,fin:false},offOn=IN.onOnset(t=>o.ons.push(t));
+  const end=()=>{offOn();tap.off();try{dest.disconnect();}catch(e){}};
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+  mr.onstart=()=>{o.mime=mr.mimeType||MR_MIME;};   /* c0 blijft de tijd van start(): 'start' komt pas ~70 ms later binnen */
+  /* klaar: de blob (of null); annuleren = weggooien */
+  o.finish=()=>new Promise(res=>{o.fin=true;if(mr.state==='inactive'){end();res(null);return;}
+    mr.onstop=()=>{end();const b=new Blob(chunks,{type:o.mime});res(b.size?b:null);};mr.onerror=()=>{end();res(null);};try{mr.stop();}catch(e){end();res(null);}});
+  o.cancel=()=>{if(o.fin)return;o.fin=true;mr.onstop=null;try{if(mr.state!=='inactive')mr.stop();}catch(e){}end();};
+  try{mr.start(1000);}catch(e){end();return null;}return o;}
+/* een uitgepakte opname: hoogste piek en de pieken voor de golfvorm (PPS per seconde, 0–255) */
+function peaksOf(d,sr){const W=Math.max(1,Math.round(sr/PPS));let pk=0;for(let i=0;i<d.length;i++){const a=d[i]<0?-d[i]:d[i];if(a>pk)pk=a;}
+  const peaks=new Uint8Array(Math.ceil(d.length/W));
+  for(let k=0;k<peaks.length;k++){let m=0;for(let i=k*W,z=Math.min(d.length,i+W);i<z;i++){const a=d[i]<0?-d[i]:d[i];if(a>m)m=a;}peaks[k]=pk?Math.round(255*m/pk):0;}
+  return{pk,peaks};}
+/* de opname op de klok leggen: zoek de verschuiving c (rond de schatting, ±0,5 s, in blokjes van 128 samples) waarbij de aanslagen die
+   de herkenning live zag (klok van de AudioContext) het best samenvallen met waar de energie in de opname sterk stijgt */
+function alignTake(d,sr,ons,c0){const B=128,nb=Math.floor(d.length/B);if(!ons.length||nb<8)return c0;
+  const lg=new Float32Array(nb),on=new Float32Array(nb);
+  for(let b=0;b<nb;b++){let s=0;for(let i=b*B;i<b*B+B;i++)s+=d[i]*d[i];lg[b]=Math.log10(Math.sqrt(s/B)+1e-5);}
+  for(let b=3;b<nb;b++)on[b]=Math.max(0,lg[b]-lg[b-3]);
+  const k=sr/B,span=Math.round(.5*k);let best=0,bc=c0;
+  for(let j=-span;j<=span;j++){const c=c0+j/k;let sc=0;
+    ons.forEach(t=>{const i=Math.round((t-c)*k);let m=0;for(let q=Math.max(3,i-1);q<=Math.min(nb-1,i+2);q++)if(on[q]>m)m=on[q];sc+=m;});
+    if(sc>best){best=sc;bc=c;}}
+  return best>.15*ons.length?bc:c0;}
+/* na het opnemen: uitpakken voor lengte, kanaal (stereo bij Auto: het luidste), pieken en de plek van tel 1 (at) in de opname.
+   Een noot op invoertijd τ hoort bij muziektijd τ − S.lat (zoals bij de noten); in de opname ligt τ op τ − c0, dus tel 1 op t0 + S.lat − c0 */
+async function makeTake(blob,o,R){const id='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  let buf=null;try{buf=await decodeBlob(blob);}catch(e){}
+  let ch=-1,pk=0,peaks=null,c0=o.c0;const dur=buf?buf.duration:Math.max(0,R.end+.35-o.c0);
+  if(buf){let d=buf.getChannelData(0);
+    if(o.n===2&&buf.numberOfChannels>1){const d1=buf.getChannelData(1),e=x=>{let s=0;for(let i=0;i<x.length;i+=4)s+=x[i]*x[i];return s;};if(e(d1)>e(d)){d=d1;ch=1;}else ch=0;}
+    ({pk,peaks}=peaksOf(d,buf.sampleRate));c0=alignTake(d,buf.sampleRate,o.ons,o.c0);}
+  const m={id,mime:o.mime,size:blob.size,dur,at:R.t0+S.lat-c0,bpm:Math.round(60/R.spb),made:Date.now(),ch,pk,peaks,lick:R.id,gone:0};
+  if(buf&&pk<.003)return Object.assign(m,{quiet:true});   /* stil (niets aangesloten): niet bewaren */
+  await TK.put(m,blob);if(buf)TBUF.set(id,Promise.resolve(buf));return m;}
+/* de take aan de lick hangen, maar alleen als het nog dezelfde lick is (na Undo niet: de take blijft dan ongebruikt en wordt opgeruimd) */
+function attachTake(L,m){if(!m||m.quiet||ST.licks.find(l=>l.id===L.id)!==L)return false;
+  L.take=fixTake({id:m.id,mime:m.mime,dur:m.dur,at:m.at,bpm:m.bpm,made:m.made,ch:m.ch,sh:0});save();return true;}
+function takeErr(e){const full=e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||''));
+  toast('The take could not be saved'+(full?': the browser storage is full. Export audio and remove old licks':'')+'. The notes are kept.',true);}
 function recTick(){const R=REC;if(!R)return;const now=actx.currentTime;
   while(R.t0+R.beat*R.spb<Math.min(now+.15,R.end-.01)){click(R.t0+R.beat*R.spb,mod(R.beat,4)===0,R.beat<0);R.beat++;}
   const L=R.mix&&ST.licks.find(l=>l.id===R.id);
@@ -956,21 +1114,35 @@ function fadeMix(mix){try{const g=mix.out.gain;g.cancelScheduledValues(actx.curr
 /* stoppen: tijdens het aftellen = annuleren, daarna = houden wat er is (de laatste noot krijgt nog even de tijd) */
 function recStop(){const R=REC;if(!R)return;const now=actx.currentTime;
   if(now<R.t0-.05){recEnd(R);toast('Recording cancelled.');return;}R.end=Math.min(R.end,now);setTimeout(()=>{if(REC===R)recFinish();},350);}
-function recEnd(R){REC=null;clearInterval(R.iv);R.off();cancelAnimationFrame(R.raf);if(R.mix)fadeMix(R.mix);
-  if(R.created){const L=ST.licks.find(l=>l.id===R.created.id);if(L&&!L.notes.length){ST.licks.splice(ST.licks.indexOf(L),1);ST.cur=R.created.prev;}}
-  recUI();save();renderAll();}
+function recEnd(R){REC=null;clearInterval(R.iv);R.off();cancelAnimationFrame(R.raf);if(R.mix)fadeMix(R.mix);if(R.tr)R.tr.cancel();
+  if(R.created)dropEmpty(R.created);recUI();save();renderAll();}
+/* een net gemaakte lick zonder noten en zonder take weer weghalen */
+function dropEmpty(c){const L=ST.licks.find(l=>l.id===c.id);if(L&&!L.notes.length&&!L.take){ST.licks.splice(ST.licks.indexOf(L),1);if(ST.cur===c.id)ST.cur=c.prev;}}
 function recFinish(){const R=REC;if(!R)return;
   const L=ST.licks.find(l=>l.id===R.id);if(!L){recEnd(R);return;}
+  const tp=R.tr?R.tr.finish().then(b=>b?makeTake(b,R.tr,R):null):null;   /* de take komt pas even later binnen */
   const raw=R.ev.filter(e=>e.at-S.lat<R.end+.05).map(e=>({m:e.m,x:(e.at-S.lat-R.t0)/R.spb,e:e.end!=null?(Math.min(e.end,R.end)-S.lat-R.t0)/R.spb:null}))
     .filter(r=>r.x>=-4.3&&r.m>=40&&r.m<=OPEN[5]+MAXF);
   const q=raw.length?quantizeRaw(raw,L.sub,L.bars):[];
-  if(!q.length){recEnd(R);$('#recL').textContent='No notes heard';toast('No notes heard. Check the input level (Input below) and play a little louder.',true);return;}
+  const none=()=>{$('#recL').textContent='No notes heard';toast('No notes heard. Check the input level (Input below) and play a little louder.',true);};
+  if(!q.length){
+    if(!tp){recEnd(R);none();return;}
+    /* geen noten herkend, maar misschien wel een take: "nu opnemen, later uitzoeken" */
+    const made=R.created;R.created=null;recEnd(R);$('#recL').textContent='Saving the take…';
+    tp.then(m=>{if(!m||m.quiet||ST.licks.find(l=>l.id===L.id)!==L){if(made){dropEmpty(made);save();renderAll();}none();return;}
+      if(R.into)pushUndo(L);else if(made)pushUndo(L,{added:L.id,prev:made.prev});
+      if(R.into){L.notes=[];L.raw=null;}   /* opnieuw opgenomen: de oude noten horen bij de oude take (Undo brengt ze terug) */
+      attachTake(L,m);L.last=Date.now();sel=null;save();renderAll();$('#recL').textContent='Take saved';
+      toast('No notes recognised, but the take is saved. Listen to it, or try Detect notes (side panel, Audio).');takeSaved();})
+     .catch(e=>{if(made){dropEmpty(made);save();renderAll();}takeErr(e);});
+    return;}
   if(R.into)pushUndo(L);else if(R.created)pushUndo(L,{added:L.id,prev:R.created.prev});
   finger(q,L.pos);L.raw=raw;L.notes=q.map(n=>({t:n.t,d:n.d,s:n.s,f:n.f,lock:false}));L.last=Date.now();R.created=null;   /* opnemen telt als oefenen */
+  if(R.into)L.take=null;   /* de oude take hoort bij de oude noten (Undo brengt beide terug); de nieuwe komt zo */
   recEnd(R);$('#recL').textContent=q.length+' notes';
-  const miss=IN.missed,res=R.ev.filter(e=>e.rescued).length;
+  const miss=IN.missed;
   toast('Recorded '+q.length+' notes'+(miss?'. '+miss+' attack'+(miss===1?'':'s')+' had no clear pitch: let the notes ring a little longer, or turn the input up.':R.into?'. Undo brings back the previous version.':'. Check the fingering below.'),miss>0);
-  void res;}
+  if(tp)tp.then(m=>{if(attachTake(L,m)){renderAll();takeSaved();}}).catch(takeErr);}
 function recUI(){const R=REC,bs=$$('#beats i');if(!R){bs.forEach(b=>b.className='');$('#btnRec').classList.remove('on');$('#btnRec').textContent='● Record';return;}
   R.raf=requestAnimationFrame(recUI);const now=actx.currentTime-(actx.outputLatency||0),b=Math.floor((now-R.t0)/R.spb),bi=mod(b,4);
   bs.forEach((el,i)=>el.className=now>=R.t0-4*R.spb&&i===bi?(b<0?'cnt':'on'):'');
@@ -1002,16 +1174,33 @@ let PL=null;
    'pre' = ▶ in de Library: lick L één keer in zijn eigen tempo, alleen de gitaar, zonder aftellen */
 function playStart(mode,L){L=L||lick();const pre=mode==='pre',own=mode==='key'||mode==='k12';
   if(PL){const same=PL.mode===mode&&(!pre||PL.L===L);stopPlay();if(same)return;}if(REC||CAL)return;if(!audio())return;
-  if(!L.notes.length){toast(pre?'“'+L.name+'” has no notes yet.':'This lick has no notes yet. Record one first.');return;}
+  if(!L.notes.length&&!hasTake(L)){toast(pre?'“'+L.name+'” has no notes yet.':'This lick has no notes yet. Record one first.');return;}
   if(mode==='k12'&&!k12List(L).length){toast('All 12 keys are done. Pick another order, or Reset keys (side panel, 12 keys).');return;}
-  const go=()=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i);
+  /* tb = de uitgepakte take (fase 3): in de Library altijd als die er is, in de weergave Lick bij Take of Both */
+  const go=tb=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i);
+    if(!L.notes.length&&!tb){toast('The take of “'+L.name+'” could not be played.',true);return;}
     const list=pre?[-1]:mode==='one'?[S.sel]:mode==='key'?[{live:true}]:mode==='k12'?k12List(L):cs.length?cs:[-1];
-    const bpm=pre?L.bpm:clamp(S.ptempo,30,240),spb=60/bpm,t0=actx.currentTime+.12,mix=chain();
+    const bpm=pre?(tb&&!mod(L.take.sh,12)?L.take.bpm:L.bpm):clamp(S.ptempo,30,240),spb=60/bpm,t0=actx.currentTime+.12,mix=chain();
     if(!pre){for(let b=0;b<4;b++)click(t0+b*spb,b===0,true,mix.click);L.last=Date.now();save();}
-    PL={mode,own,L:pre?L:null,mix,list,k:0,t:pre?t0-tOf(minT(L),L.sub,spb):t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false};
+    PL={mode,own,L:pre?L:null,mix,list,k:0,t:pre?t0-tOf(minT(L),L.sub,spb):t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false,tb:tb||null,ph:null};
     if(mode==='k12')showKNx(PL,list[0],true);
     sched();PL.iv=setInterval(sched,40);PL.raf=requestAnimationFrame(visLoop);syncTransport();syncPre();};
-  if(pre||SND||!window.BACKING_SOUNDS)go();else{PL={loading:true,mode};syncTransport();loadSounds().then(()=>{if(PL&&PL.loading){PL=null;go();}});}}
+  const needSnd=!pre&&!SND&&!!window.BACKING_SOUNDS,want=hasTake(L)&&(pre||S.src!=='notes');
+  if(!needSnd&&!want)go(null);
+  else{PL={loading:true,mode,L:pre?L:null};syncTransport();syncPre();
+    Promise.all([needSnd?loadSounds():null,want?takeBuf(L.take.id):null]).then(([,tb])=>{if(PL&&PL.loading&&PL.mode===mode&&PL.L===(pre?L:null)){PL=null;go(tb);}});}}
+/* speelt de take in dit stuk: hij is er, Take/Both (of de Library), dezelfde toonhoogte (sh + d ≡ 0) en hetzelfde tempo als de opname */
+const takeFits=(L,d,bpm)=>hasTake(L)&&!mod(L.take.sh+d,12)&&bpm===L.take.bpm;
+const useTake=(p,L,d)=>!!p.tb&&(p.mode==='pre'||S.src!=='notes')&&takeFits(L,d,p.bpm);
+/* de take op zijn plek: tel 1 van de opname (take.at) valt op T, de opmaat begint iets eerder; aan het eind van de ronde kort wegsterven.
+   Via de eigen bus mix.take (fase 4: versterker); luidheid gelijkgetrokken op de hoogste piek van de opname */
+function playTake(p,L,T,spb,dur){const tk=L.take,b=p.tb,m=TK.meta.get(tk.id),lead=-tOf(minT(L),L.sub,spb)+.05,now=actx.currentTime,end=T+dur;
+  let when=T-lead,off=tk.at-lead;if(off<0){when-=off;off=0;}if(when<now){off+=now-when;when=now;}
+  if(off>=b.duration||when>=end)return;
+  const src=actx.createBufferSource(),g=actx.createGain(),lv=TAKE_LVL/Math.max(.05,m&&m.pk||.5);src.buffer=b;
+  if(tk.ch>=0&&b.numberOfChannels>1){const sp=actx.createChannelSplitter(b.numberOfChannels);src.connect(sp);sp.connect(g,Math.min(tk.ch,b.numberOfChannels-1));}else src.connect(g);
+  g.gain.setValueAtTime(lv,when);g.gain.setValueAtTime(lv,end);g.gain.setTargetAtTime(0,end,.05);g.connect(p.mix.take);
+  src.start(when,off);src.stop(end+.4);p.vis.push({at:when,kind:'tk',T,spb,end,id:L.id});}
 /* 12 toonsoorten: de grondtonen in de gekozen volgorde, beginnend bij de toonsoort die nu te zien is ("not done yet" = in kwarten,
    zonder de toonsoorten die al aan staan); per toonsoort S.kreps rondes van luisteren (lick + band) en zelf spelen (alleen de band) */
 function keyOrder(L,start){const cur=start??keyPc(L,keyN(L));let ks=Array.from({length:12},(_,i)=>mod(cur+(S.korder==='chrom'?i:5*i),12));
@@ -1034,15 +1223,19 @@ function sched(){const p=PL;if(!p||p.loading)return;const L=p.L||lick();
 /* Martino: de lick over akkoord ci van de progressie (of het opgenomen akkoord), met band */
 function segment(p,L,ci,T,spb){const pre=p.mode==='pre',c=ci<0?refChord(L):chordAt(ci),P=place(L,c),mx=p.mix,bars=lickBars(L);
   p.vis.push({at:T,kind:'seg',ci});
+  const lk=S.snd.lick||pre,tk=lk&&useTake(p,L,P.d),nt=lk&&(!tk||(!pre&&S.src==='both'));
+  if(tk)playTake(p,L,T,spb,bars*4*spb);
   L.notes.forEach((n,j)=>{const at=T+tOf(n.t,L.sub,spb),len=tOf(n.t+n.d,L.sub,spb)-tOf(n.t,L.sub,spb),f=n.f+P.d;
-    if((S.snd.lick||pre)&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
+    if(nt&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
   if(pre)return;   /* beluisteren: geen band */
   band(mx,[Object.assign({o:0,b:bars*4},c)],T,spb,bars,true);}
 /* eigen akkoorden: één keer de lick (of alleen de band) in toonsoort it.n; it.live = de toonsoort die nu te zien is (▶ This key) */
 function segOwn(p,L,it,T,spb){if(it.live)it={n:keyN(L),lick:S.snd.lick,ph:'key',live:true};
   const P=placeKey(L,it.n),bars=segBars(L);p.vis.push({at:T,kind:'seg',it,bpm:p.bpm});
+  const tk=it.lick&&useTake(p,L,P.d),nt=!tk||S.src==='both';   /* take in de opgenomen toonsoort en het opnametempo, anders de noten */
+  if(tk)playTake(p,L,T,spb,bars*4*spb);
   if(it.lick)L.notes.forEach((n,j)=>{const at=T+tOf(n.t,L.sub,spb),len=tOf(n.t+n.d,L.sub,spb)-tOf(n.t,L.sub,spb),f=n.f+P.d;
-    if(f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,p.mix.gtr);p.vis.push({at,kind:'note',it,j});});
+    if(nt&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,p.mix.gtr);p.vis.push({at,kind:'note',it,j});});
   band(p.mix,timeline(L,it.n),T,spb,bars,true);
   if(it.done)p.vis.push({at:T+bars*4*spb-.05,kind:'kdone',key:it.key});}
 /* de band over akkoorden op een tijdlijn ({root,q,o,b} in tellen): per stuk akkoord binnen een maat een aanslag op zijn eerste tel en,
@@ -1058,8 +1251,9 @@ function band(mx,tl,T,spb,bars,clk){const sw=S.swing?SWING:.5;let bassRef=36;
       o+=b;}});
   if(clk&&S.snd.click)for(let q=0;q<bars*4;q++)click(T+q*spb,q%4===0,false,mx.click);}
 function visLoop(){const p=PL;if(!p||p.loading)return;p.raf=requestAnimationFrame(visLoop);
-  const now=actx.currentTime-(actx.outputLatency||0);p.vis.sort((a,b)=>a.at-b.at);
+  const now=actx.currentTime-(actx.outputLatency||0);p.vis.sort((a,b)=>a.at-b.at);phDraw(p,now);
   while(p.vis.length&&p.vis[0].at<=now){const e=p.vis.shift();
+    if(e.kind==='tk'){p.ph=e;continue;}
     if(p.mode==='pre'){if(e.kind==='end'){stopPlay();return;}continue;}   /* beluisteren in de lijst: niets op de hals tonen */
     if(e.kind==='count')$('#pNow').textContent='Count-in…';
     else if(e.kind==='seg'&&e.it){p.cur=e.it;p.shown=e.bpm;followKey(e.it);showKNx(p,e.it);if(!e.it.lick)$$('.pl').forEach(x=>x.classList.remove('pl'));}
@@ -1069,6 +1263,11 @@ function visLoop(){const p=PL;if(!p||p.loading)return;p.raf=requestAnimationFram
     else if(e.kind==='kdone'){const L=lick();L.keys|=1<<e.key;L.last=Date.now();save();renderKeys();}
     else if(e.kind==='round'){p.round=e.round;}
     else if(e.kind==='end'){stopPlay();return;}}}
+/* speelkop over de golfvorm van de take (de tab draagt zijn maten in data-*), alleen terwijl de take van deze lick klinkt */
+function phDraw(p,now){const el=$('#tabPh'),h=p&&p.ph,svg=el&&el.ownerSVGElement;if(!el)return;
+  if(!h||h.id!==lick().id||now>h.end+.05||now<h.T-2){el.style.visibility='hidden';return;}
+  const s=svg.dataset,x=+s.x0+((now-h.T)/h.spb*+s.sub-+s.t0)*+s.cw;
+  el.setAttribute('x1',x.toFixed(1));el.setAttribute('x2',x.toFixed(1));el.style.visibility=x<+s.x0||x>+s.x1?'hidden':'visible';}
 /* eigen akkoorden: de hals volgt de toonsoort die speelt (Neck follows the chord) */
 function followKey(it){const L=lick();if(!S.follow||keyN(L)===it.n)return;KV[L.id]=it.n;sel=null;renderKeys();renderView();}
 /* op de transportplank: welke toonsoort nu (luisteren of jij), welke daarna, hoever */
@@ -1083,14 +1282,24 @@ function showKNx(p,it,count){const L=lick(),el=$('#kNx');
   $$('#kRing .kd').forEach(g=>{g.classList.toggle('now',+g.dataset.k===it.key);g.classList.toggle('nx',!!nx&&+g.dataset.k===nx.key);});}
 function follow(ci){if(S.follow&&PL&&PL.mode==='prog'&&S.sel!==ci){S.sel=ci;sel=null;renderChips();renderView();}}
 function stopPlay(){const p=PL;PL=null;if(p&&!p.loading){clearInterval(p.iv);cancelAnimationFrame(p.raf);fadeMix(p.mix);}
-  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';$('#kNx').hidden=true;
+  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';$('#kNx').hidden=true;phDraw(null);
   $$('#keySeg .now,#keySeg .nx,#kRing .now,#kRing .nx').forEach(e=>e.classList.remove('now','nx'));syncTransport();syncPre();}
 function stopAll(){stopPlay();if(REC)recStop();}
 /* knoppen op de plank: Own chords = ▶ 12 keys (spatie) en ▶ This key; over een progressie = ▶ Play progression en ▶ This chord */
 function syncTransport(){const m=PL&&PL.mode,own=hmode(lick())==='own',lab=(k,t)=>m===k?(PL.loading?'Loading sounds…':'■ Stop'):t;
   $('#btnProg').textContent=own?lab('k12','▶ 12 keys'):lab('prog','▶ Play progression');
   $('#btnOne').textContent=own?lab('key','▶ This key'):lab('one','▶ This chord');
-  $('#btnProg').title=own?'Space · every key: listen, then your turn':'Space';$('#keySave').disabled=!!(REC||PL);}
+  $('#btnProg').title=own?'Space · every key: listen, then your turn':'Space';$('#keySave').disabled=!!(REC||PL);syncSrc();}
+/* Notes · Take · Both op de plank (alleen als de lick een take heeft), met de reden als de take hier niet past */
+function syncSrc(){const L=lick(),ok=hasTake(L);$('#srcSeg').hidden=!L.take;
+  $$('#srcSeg [data-v]').forEach(b=>{b.setAttribute('aria-pressed',S.src===b.dataset.v);if(b.dataset.v==='notes')return;b.disabled=!ok;
+    b.title=ok?(b.dataset.v==='take'?'Your recorded audio (only in the recorded key and tempo)':'Your take and the notes together'):'The audio of this take is not in this browser';});
+  let w='';
+  if(L.take&&!ok)w=TK.ok?'Take missing: Import audio (side panel)':TK.done?'No audio storage here':'';
+  else if(ok&&S.src!=='notes'){const V=viewOf(L),bpm=L.take.bpm;
+    if(mod(L.take.sh+V.d,12))w='Take only '+(V.own?'in':'over')+' <span class="mus">'+esc(V.own?keyLabel(L,keyPc(L,mod(-L.take.sh,12))):chordName({root:mod(L.root-L.take.sh,12),q:L.q}))+'</span> · notes here';
+    else if(S.ptempo!==bpm&&!(PL&&PL.mode==='pre'))w='Take only at '+bpm+' BPM · notes now';}
+  $('#srcWhy').innerHTML=w;}
 const playMain=()=>playStart(hmode(lick())==='own'?'k12':'prog'),playOne=()=>playStart(hmode(lick())==='own'?'key':'one');
 function hiNote(j){$$('.pl').forEach(e=>e.classList.remove('pl'));
   const t=$('#tab .nt[data-i="'+j+'"]');if(t)t.classList.add('pl');$$('#board .dot').forEach(d=>{if((' '+d.dataset.js+' ').includes(' '+j+' '))d.classList.add('pl');});}
@@ -1103,14 +1312,14 @@ let toastT=0;
 function toast(t,err,act){const el=$('#toast');el.textContent=t;
   if(act){const b=document.createElement('button');b.type='button';b.className='lnk tact';b.textContent=act.l;b.onclick=()=>{el.className='toast';act.fn();};el.append(b);}
   el.className='toast on'+(err?' err':'')+(act?' act':'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',act?7000:err?5200:3400);}
-function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderKeys();renderChips();renderView();renderPractice();syncUndo();}
+function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderKeys();renderChips();renderView();renderPractice();renderAudio();syncUndo();}
 /* kop van de weergave Lick: naam, "variant of …", status, vorige/volgende; daarna de details in de kolom */
 function renderHead(){const L=lick(),par=L.parent&&ST.licks.find(x=>x.id===L.parent);
   if(document.activeElement!==$('#lkName'))$('#lkName').value=L.name;
   $('#lkPar').innerHTML=par?'variant of <button type="button" class="lnk" data-open="'+esc(par.id)+'">'+esc(par.name)+'</button>':'';
   $('#lkStat').innerHTML=STATS.map(v=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.status===v)+'"><i></i>'+STATN[v]+'</button>').join('');
   const a=navList(),i=a.indexOf(L);$('#lkPrev').disabled=i<=0;$('#lkNext').disabled=i<0||i>=a.length-1;
-  $('#libDel').disabled=ST.licks.length<2;renderDet();}
+  $('#libDel').disabled=ST.licks.length<2;$('#libTake').disabled=!hasTake(L);renderDet();}
 function renderDet(){const L=lick(),has=t=>L.tags.some(x=>x.toLowerCase()===t.toLowerCase());
   $('#dTags').innerHTML=L.tags.map((t,i)=>'<span class="tagx">'+esc(t)+'<button type="button" data-i="'+i+'" aria-label="Remove tag '+esc(t)+'" title="Remove">×</button></span>').join('');
   $('#dTagList').innerHTML=allTags().filter(x=>!has(x.t)).map(x=>'<option value="'+esc(x.t)+'"></option>').join('');
@@ -1160,18 +1369,21 @@ function ringSVG(L,big,cur){const R=big?38:10.5,r=big?10:2.8,C=R+r+1.5,W=2*C;
 /* de akkoordrij in de lijst: één blokje per maat (hoogstens 4, daarna …), titel = de toonsoort */
 function harmHTML(l){const f=keyFlat(l,0),bars=harmText(l.harm,f).split(' | ');
   return bars.slice(0,4).map(b=>'<span class="hc mus">'+esc(b)+'</span>').join('')+(bars.length>4?'<span class="hm">…</span>':'');}
+/* klein golfje voor de naam: deze lick heeft een take (vaag = de audio staat niet in deze browser) */
+function takeIcon(l){if(!l.take)return '';const ok=hasTake(l),t=ok?'Has a take (audio)':TK.ok?'Take missing: import your audio export':'Take (no audio storage here)';
+  return '<svg class="ltk'+(ok?'':' miss')+'" viewBox="0 0 16 12" role="img" aria-label="'+t+'"><title>'+t+'</title><path d="M1.5 6h0M4.5 3.5v5M7.5 1v10M10.5 3v6M13.5 5v2"/></svg>';}
 /* één rij */
 function rowHTML(l){const par=l.parent&&ST.licks.find(x=>x.id===l.parent),on=l.id===lsel;
   const sub=[l.src?esc(l.src):'',par?'variant of '+esc(par.name):''].filter(Boolean).join(' · ');
   return '<div class="lr'+(on?' on':'')+'" role="option" id="lr-'+esc(l.id)+'" data-id="'+esc(l.id)+'" aria-selected="'+on+'">'
     +'<button type="button" class="ib lplay" data-act="play" title="Listen (Space)" aria-label="Listen to '+esc(l.name)+'">▶</button>'
-    +'<div class="lname"><b>'+esc(l.name)+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'
+    +'<div class="lname"><b>'+takeIcon(l)+esc(l.name)+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'
     +'<div class="lmini">'+miniSVG(l)+'</div>'
     +'<div class="lhar" title="'+esc(keyName(l,0))+'">'+harmHTML(l)+'</div>'
     +'<div class="lring" title="'+nKeys(l)+' of 12 keys practised">'+ringSVG(l,false)+'</div>'
     +'<div class="ltg">'+l.tags.map(t=>'<button type="button" data-tag="'+esc(t)+'" title="Show only this tag">'+esc(t)+'</button>').join('')+'</div>'
     +'<div><button type="button" class="lst" data-act="stat" data-s="'+l.status+'" title="Click to change the status"><i></i>'+STATN[l.status]+'</button></div>'
-    +'<div class="ln">'+(l.notes.length?lickBars(l):'–')+'</div>'
+    +'<div class="ln">'+(l.notes.length||l.take?lickBars(l):'–')+'</div>'
     +'<div class="ln" title="'+esc(new Date(l.made).toLocaleString())+'">'+dShort(l.made)+'</div>'
     +'<div class="ln"'+(l.last?' title="'+esc(new Date(l.last).toLocaleString())+'"':'')+'>'+ago(l.last)+'</div>'
     +'<button type="button" class="ib lmore" data-act="more" aria-label="More for '+esc(l.name)+'" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></svg></button></div>';}
@@ -1191,8 +1403,8 @@ function markSel(scroll){if(S.view!=='lib')return;$$('#lRows .lr').forEach(r=>{c
   $('#lGrid').setAttribute('aria-activedescendant',lsel?'lr-'+lsel:'');}
 function moveSel(d){const a=libList();if(!a.length)return;const i=a.findIndex(l=>l.id===lsel);lsel=a[clamp(i<0?0:i+d,0,a.length-1)].id;markSel(true);}
 /* ▶ in de lijst: speelt deze rij? */
-function syncPre(){$$('#lRows .lplay').forEach(b=>{const on=!!(PL&&PL.mode==='pre'&&PL.L&&PL.L.id===b.closest('.lr').dataset.id);
-  b.classList.toggle('on',on);b.textContent=on?'■':'▶';b.title=on?'Stop (Space)':'Listen (Space)';});}
+function syncPre(){$$('#lRows .lplay').forEach(b=>{const id=b.closest('.lr').dataset.id,on=!!(PL&&PL.mode==='pre'&&PL.L&&PL.L.id===id);
+  b.classList.toggle('on',on);b.textContent=on?'■':'▶';b.title=on?'Stop (Space)':hasTake(ST.licks.find(l=>l.id===id))?'Listen to the take (Space)':'Listen (Space)';});}
 
 /* ── weergave wisselen: Library ↔ Lick. Stopt afspelen en opnemen; in de Library geen transportplank en de kolom dicht
    (alleen getoond, niet bewaard: terug in Lick staat hij weer zoals jij hem liet) ── */
@@ -1224,7 +1436,7 @@ function expLicks(list,file){const blob=new Blob([JSON.stringify({app:'lickLab',
 const expOne=L=>expLicks([L],'lick-'+(L.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lick')+'.json');
 /* menu ⋯ van een rij: vast op het scherm onder de knop; rowMenu(null) = dicht */
 let rmL=null;
-function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;return;}m.hidden=false;
+function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;return;}m.hidden=false;m.querySelector('[data-m="take"]').hidden=!hasTake(L);
   const r=btn.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
   m.style.left=clamp(r.right-w,8,innerWidth-w-8)+'px';m.style.top=(r.bottom+6+h>innerHeight-8?r.top-h-6:r.bottom+6)+'px';m.querySelector('button').focus();}
 function renderSetup(){const L=lick(),busy=!!(REC||CAL);
@@ -1236,8 +1448,8 @@ function renderSetup(){const L=lick(),busy=!!(REC||CAL);
   $('#rBars').innerHTML=[[1,'1 bar'],[2,'2 bars'],[4,'4 bars'],[0,'Until I stop']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.bars===v)+'">'+l+'</button>').join('');
   if(!CAL)$('#latV').textContent=S.latCal?'Offset '+Math.round(S.lat*1000)+' ms (measured)':'Offset '+Math.round(S.lat*1000)+' ms (estimate: calibrate once)';
   ['#hText','#rPos','#rBpm','#btnCal'].forEach(s=>$(s).disabled=busy);$$('#rSub button,#rBars button').forEach(b=>b.disabled=busy);
-  $('#btnReRec').hidden=!L.notes.length||!!REC;$('#btnReRec').disabled=busy;
-  if(!REC){$('#btnRec').textContent=L.notes.length?'● Record new lick':'● Record';$('#btnRec').classList.remove('on');}}
+  $('#btnReRec').hidden=!(L.notes.length||L.take)||!!REC;$('#btnReRec').disabled=busy;
+  if(!REC){$('#btnRec').textContent=L.notes.length||L.take?'● Record new lick':'● Record';$('#btnRec').classList.remove('on');}}
 /* soort harmonie (Own chords · Over a progression), toonsoortkeuze, Save in this key, kring van geoefende toonsoorten */
 function renderKeys(){const L=lick(),own=hmode(L)==='own',one=oneChord(L),n=keyN(L),cur=keyPc(L,n),k=keyOf(L);
   $$('#hMode [data-v]').forEach(b=>{b.setAttribute('aria-pressed',(b.dataset.v==='own')===own);
@@ -1259,7 +1471,7 @@ function renderView(){const L=lick(),V=viewOf(L),P=V.P,flat=V.flat,br=boxRange(L
   let info;
   const where=(L.pos?'position '+br[0]+' (frets '+br[0]+'–'+br[1]+')':'open position')+' · '+L.notes.length+' notes · '+lickBars(L)+' bar'+(lickBars(L)===1?'':'s')+(L.sub===2&&S.swing?' · swing':'');
   if(V.own){const nm='<b class="mus">'+esc(keyName(L,V.n))+'</b>';
-    if(!L.notes.length)info=nm+'. No notes yet. Set up the harmony and position above and press <b>Record</b>, or switch on <b>Add notes</b> and click the neck.';
+    if(!L.notes.length)info=nm+'. No notes yet. '+(L.take?'There is a take: try <b>Detect notes</b> (side panel, Audio), or':'Set up the harmony and position above and press <b>Record</b>, or')+' switch on <b>Add notes</b> and click the neck.';
     else if(!V.n)info=nm+' (as recorded) · '+where+'.';
     else{info=nm+' · recorded '+esc(keyOf(L).one?keyName(L,0):'in '+keyName(L,0).split(' in ')[1])+' · same fingering, '+(P.d>0?'+':'−')+Math.abs(P.d)+' fret'+(Math.abs(P.d)===1?'':'s')+'.';
       if(!P.fit)info+=' <span class="warn">It doesn’t fit on the neck (frets 0–'+MAXF+') in this key; notes off the neck are left out.</span>';}}
@@ -1276,6 +1488,7 @@ function renderView(){const L=lick(),V=viewOf(L),P=V.P,flat=V.flat,br=boxRange(L
   else{const w=deg(P.x,fam),as=L.q==='m7'||QUAL[L.q].fam==='min'?nn(lr,flat)+'m':nn(lr,flat)+QUAL[L.q].lbl;
     info='Over <b>'+esc(c.label)+'</b>: play your '+esc(lickName)+' lick as <b>'+esc(as)+'</b>, starting from '+esc(nn(lr,flat))+(P.x===0?', the root':', the '+esc(w))+' of '+esc(c.label)+'. Same fingering, '+dTxt+'.';
     if(!P.fit)info+=' <span class="warn">It doesn’t fit on the neck (frets 0–'+MAXF+') here; notes off the neck are left out.</span>';}}
+  if(takeMiss(L))info+=' <span class="warn">'+(TK.ok?'The take of this lick is not in this browser: Import audio (side panel) brings it back.':'Takes can’t be stored here, so the take of this lick can’t play.')+'</span>';
   $('#viewInfo').innerHTML=info;
   $('#tab').innerHTML=tabSVG(L,V);$('#board').innerHTML=boardSVG(L,V);
   /* smal scherm: het fretbord naar de vorm scrollen */
@@ -1339,8 +1552,15 @@ function fillPre(){STP=stProgs();
 function tabSVG(L,V){const sub=L.sub,bar=4*sub,ns=L.notes,flat=V.flat,P=V;
   const t0=Math.min(0,ns.length?Math.floor(ns[0].t/sub)*sub:0),t1=V.bars*bar,cw=sub===4?22:sub===3?27:32,X0=30;
   const yC=14,yD=V.own?32:14,y0=yD+20,gs=15,yS=y0+5*gs,st0=yS+12,st1=st0+22,H=st1+22,W=X0+(t1-t0)*cw+10;
+  const wm=L.take&&TK.meta.get(L.take.id),wh=wm&&wm.peaks&&wm.peaks.length?34:0,HT=H+(wh?wh+8:0),x1=X0+(t1-t0)*cw;   /* golfvorm van de take eronder */
   const xs=t=>X0+(t-t0+.5)*cw,ys=s=>y0+(5-s)*gs;
-  let o='<svg class="tabsvg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tab of the lick '+esc(V.own?keyName(L,V.n):'over '+V.c.label)+'">';
+  let o='<svg class="tabsvg" width="'+W+'" height="'+HT+'" viewBox="0 0 '+W+' '+HT+'" role="img" aria-label="Tab of the lick '+esc(V.own?keyName(L,V.n):'over '+V.c.label)+'"'
+    +' data-x0="'+X0+'" data-x1="'+x1+'" data-t0="'+t0+'" data-cw="'+cw+'" data-sub="'+sub+'">';
+  /* de take, lineair in de tijd op de tellen van de tab (opnametempo): tel b ligt op X0 + (b·sub − t0)·cw, net als de aanslag van een noot */
+  if(wh){const pk=wm.peaks,spbT=60/L.take.bpm,at=L.take.at,yc=H+4+wh/2,fit=!mod(L.take.sh+V.d,12),tt=x=>((x-X0)/cw+t0)/sub*spbT+at;let d='';
+    for(let x=X0+1;x<x1;x+=2){let m=0;for(let k=Math.max(0,Math.floor(tt(x-1)*PPS)),z=Math.min(pk.length,Math.ceil(tt(x+1)*PPS));k<z;k++)if(pk[k]>m)m=pk[k];
+      const h=Math.max(.4,Math.sqrt(m/255)*wh/2);d+='M'+x+' '+(yc-h).toFixed(1)+'V'+(yc+h).toFixed(1);}
+    o+='<text class="tsn" x="12" y="'+(yc+4)+'" text-anchor="middle">♪</text><path class="wv'+(fit?'':' off')+'" d="'+d+'"><title>'+(fit?'Your take':'Your take (recorded in another key: the notes play here)')+'</title></path>';}
   if(V.own)V.tl.forEach(c=>{const x=X0+(c.o*sub-t0)*cw;o+='<line class="tchl" x1="'+x+'" y1="'+(yC+4)+'" x2="'+x+'" y2="'+(yC-10)+'"/><text class="tch" x="'+(x+4)+'" y="'+yC+'">'+esc(cName(c,flat))+'</text>';});
   for(let t=t0;t<t1;t++)if(mod(t,sub)===0&&mod(t,bar)!==0)o+='<line class="tbeat" x1="'+(X0+(t-t0)*cw)+'" y1="'+y0+'" x2="'+(X0+(t-t0)*cw)+'" y2="'+yS+'"/>';
   for(let s=0;s<6;s++)o+='<line class="tl" x1="'+X0+'" y1="'+ys(s)+'" x2="'+(X0+(t1-t0)*cw)+'" y2="'+ys(s)+'"/><text class="tsn" x="12" y="'+(ys(s)+4)+'" text-anchor="middle">'+SNAME[s]+'</text>';
@@ -1362,6 +1582,7 @@ function tabSVG(L,V){const sub=L.sub,bar=4*sub,ns=L.notes,flat=V.flat,P=V;
       if(sub===3)o+='<text class="tup" x="'+((xsg[0]+xsg[g.length-1])/2)+'" y="'+(st1+13)+'" text-anchor="middle">3</text>';}
     else{const n=g[0],x=xsg[0],onBeat=mod(n.t,sub)===0;
       if(!(onBeat&&n.d>=sub)){const fl=sub===4&&(mod(n.t,2)===1||n.d<2)?2:1;for(let k=0;k<fl;k++)o+='<path class="stem" fill="none" d="M'+x+' '+(st1-k*5)+' l7 -6"/>';}}});
+  if(wh)o+='<line id="tabPh" class="tph" x1="0" y1="'+(y0-4)+'" x2="0" y2="'+(HT-2)+'" style="visibility:hidden"/>';   /* speelkop (phDraw) */
   return o+'</svg>';}
 
 /* ── fretbord: de vorm op de hals, het vak van je positie, klikbare vakjes ── */
@@ -1412,7 +1633,7 @@ function shapeMove(L,ds,ko){if(!L.notes.length||L.notes.some(n=>n.s+ds<0||n.s+ds
 function moveShape(ds,ko){const L=lick(),mv=shapeMove(L,ds,ko);
   if(!mv){toast(ds?'The lick doesn’t fit one string '+(ds<0?'lower':'higher')+'.':'The lick doesn’t fit an octave '+(ko<0?'lower':'higher')+' on the neck.',true);return;}
   edit(L=>{L.notes.forEach((n,i)=>{n.s+=ds;n.f=mv.fs[i];});L.pos=clamp(L.pos+mv.d,0,14);
-    if(mv.k&&L.raw)L.raw.forEach(r=>{r.m+=mv.k;});});
+    if(mv.k&&L.raw)L.raw.forEach(r=>{r.m+=mv.k;});if(mv.k&&L.take)L.take.sh=clamp(L.take.sh+mv.k,-48,48);});
   const fr=(mv.d>0?'+':'−')+Math.abs(mv.d)+' fret'+(Math.abs(mv.d)===1?'':'s');
   toast(ds?'One string '+(ds<0?'lower':'higher')+(mv.k?', an octave '+(mv.k>0?'higher':'lower'):', same notes')+' · '+fr+'.':'An octave '+(ko<0?'lower':'higher')+' · '+fr+'.');}
 function delNote(){const L=lick();if(sel==null)return;edit(L=>{L.notes.splice(sel,1);fixDur(L);if(sel>=L.notes.length)sel=L.notes.length?L.notes.length-1:null;});}
@@ -1430,12 +1651,13 @@ function libMenu(o){const m=$('#libMenu'),b=$('#libMenuB');o=o==null?m.hidden:o;
 $('#libMenuB').addEventListener('click',()=>libMenu());
 document.addEventListener('pointerdown',e=>{if(!$('#libMenu').hidden&&!e.target.closest('.menu'))libMenu(false);
   if(!$('#rowMenu').hidden&&!e.target.closest('#rowMenu,.lmore'))rowMenu(null);});
-['#libNew','#libDup','#libDel','#libUndo','#libExp','#libImp'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
+['#libNew','#libDup','#libDel','#libUndo','#libExp','#libImp','#libTake'].forEach(s=>$(s).addEventListener('click',()=>libMenu(false)));
 $('#libNew').addEventListener('click',newLick);
 $('#libDup').addEventListener('click',()=>dupLick(ST.cur,true));
 $('#libDel').addEventListener('click',()=>delLick(ST.cur));
 $('#libUndo').addEventListener('click',undo);
 $('#libExp').addEventListener('click',()=>expOne(lick()));
+$('#libTake').addEventListener('click',()=>dlTake(lick()));
 $('#lExp').addEventListener('click',()=>expLicks(ST.licks,'licks-'+new Date().toISOString().slice(0,10)+'.json'));
 ['#libImp','#lImp'].forEach(s=>$(s).addEventListener('click',()=>{$('#libFile').value='';$('#libFile').click();}));
 /* importeren: elke lick door fixLick (ook de bibliotheekvelden); een id die al bestaat krijgt een nieuwe, en varianten
@@ -1476,6 +1698,8 @@ $('#lSort').innerHTML=SORTS.map(([v,l])=>'<option value="'+v+'">'+l+'</option>')
 $('#lSort').addEventListener('change',e=>{S.lsort=e.target.value;save();renderList();});
 $('#lTags').addEventListener('click',e=>{const b=e.target.closest('[data-tag]');if(!b)return;S.ltag=S.ltag.toLowerCase()===b.dataset.tag.toLowerCase()?'':b.dataset.tag;save();renderList();});
 $('#lNew').addEventListener('click',newLick);
+/* Record in de Library: meteen een nieuwe lick opnemen (aftellen zoals altijd), uitzoeken kan later */
+$('#lRec').addEventListener('click',()=>{setView('lick');recStart(false,true);});
 $('#lRows').addEventListener('click',e=>{
   if(e.target.closest('#lClear')){LQ='';$('#lq').value='';S.ltag='';S.lstat='';save();renderList();return;}
   const tg=e.target.closest('[data-tag]');if(tg){S.ltag=S.ltag.toLowerCase()===tg.dataset.tag.toLowerCase()?'':tg.dataset.tag;save();renderList();return;}
@@ -1487,7 +1711,7 @@ $('#lRows').addEventListener('click',e=>{
   else if(a.dataset.act==='stat'){L.status=STATS[(STATS.indexOf(L.status)+1)%STATS.length];save();renderList();}
   else if(a.dataset.act==='more'){if(rmL===L&&!$('#rowMenu').hidden)rowMenu(null);else rowMenu(L,a);}});
 $('#rowMenu').addEventListener('click',e=>{const b=e.target.closest('[data-m]'),L=rmL;if(!b||!L)return;rowMenu(null);
-  ({open:()=>openLick(L.id),dup:()=>dupLick(L.id,false),exp:()=>expOne(L),del:()=>delLick(L.id)})[b.dataset.m]();});
+  ({open:()=>openLick(L.id),dup:()=>dupLick(L.id,false),exp:()=>expOne(L),take:()=>dlTake(L),del:()=>delLick(L.id)})[b.dataset.m]();});
 $('#rowMenu').addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();e.stopPropagation();
   const bs=$$('#rowMenu button'),i=bs.indexOf(document.activeElement);bs[mod(i+(e.key==='ArrowDown'?1:-1),bs.length)].focus();});
 $('#scroll').addEventListener('scroll',()=>{if(!$('#rowMenu').hidden)rowMenu(null);},{passive:true});
@@ -1545,7 +1769,7 @@ function saveKey(){const L=lick(),n=keyN(L);if(!n||REC)return;const P=placeKey(L
   if(!P.fit){toast('The lick doesn’t fit on the neck in this key: try Octave ↓ / ↑ first.',true);return;}
   stopPlay();const from=keyName(L,0);KV[L.id]=0;
   edit(L=>{L.notes.forEach(x=>{x.f+=P.d;});L.pos=clamp(L.pos+P.d,0,14);L.harm=L.harm.map(c=>trC(c,n));L.root=L.harm[0].root;L.q=L.harm[0].q;
-    if(L.raw)L.raw.forEach(r=>{r.m+=P.d;});L.ko=Array(12).fill(0);});
+    if(L.raw)L.raw.forEach(r=>{r.m+=P.d;});if(L.take)L.take.sh=clamp(L.take.sh+P.d,-48,48);L.ko=Array(12).fill(0);});
   toast('Saved '+keyName(lick(),0)+' (was '+from+'). Undo brings back the old key.');}
 /* eigen akkoorden typen: geldig = meteen opslaan (één Undo-stap per keer bewerken), anders rood met de foute woorden */
 function harmInput(el){const L=lick(),r=parseHarm(el.value);el.classList.toggle('bad',!!r.bad.length||!r.harm.length);
@@ -1569,7 +1793,7 @@ $('#pPre').addEventListener('change',e=>{const v=e.target.value,i=+v.slice(1);e.
   else return;
   stopPlay();S.prog=txt;S.over=[];S.sel=0;sel=null;save();renderAll();});
 ['pointerdown','focus'].forEach(ev=>$('#pPre').addEventListener(ev,fillPre));
-$('#pBpm').addEventListener('input',e=>{S.ptempo=clamp(Math.round(+e.target.value)||80,30,240);$('#pBpmV').textContent=S.ptempo+' BPM';});
+$('#pBpm').addEventListener('input',e=>{S.ptempo=clamp(Math.round(+e.target.value)||80,30,240);$('#pBpmV').textContent=S.ptempo+' BPM';syncSrc();});
 $('#pBpm').addEventListener('change',()=>save());
 $('#pLad').addEventListener('change',e=>{S.ladder=+e.target.value;save();});
 $('#pSwing').addEventListener('change',e=>{S.swing=e.target.checked;save();renderView();});
@@ -1612,6 +1836,91 @@ document.addEventListener('keydown',e=>{const lib=S.view==='lib',field=e.target.
   else if(k==='Delete'||k==='Backspace'){if(sel!=null){e.preventDefault();delNote();}}
   else if(k==='a'||k==='A'){S.add=!S.add;save();renderView();}});
 
+/* ═══════════ 13. AUDIO: kolom rechts (deze take, opslag, Export/Import audio) ═══════════ */
+let PERS=null,EST=null,DETB=false;   /* navigator.storage.persisted() en .estimate() (als de browser ze kent); DETB = Detect notes bezig */
+const canPersist=()=>!!(navigator.storage&&navigator.storage.persist&&navigator.storage.persisted);
+const fmtMB=b=>b<1e6?(b?Math.max(1,Math.round(b/1e3)):0)+' KB':(b/1e6).toFixed(b<1e7?1:0)+' MB';
+const fmtDur=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+function lastAudio(){const t=Date.parse(read(AEKEY)||'');if(isNaN(t))return 'No audio export yet';
+  const n=Math.round((new Date().setHours(0,0,0,0)-new Date(t).setHours(0,0,0,0))/864e5);return 'Last audio export: '+(n<=0?'today':n===1?'yesterday':n+' days ago');}
+function refreshEst(){if(navigator.storage&&navigator.storage.estimate)navigator.storage.estimate().then(e=>{EST=e;renderAudio();}).catch(()=>{});}
+function renderAudio(){const L=lick(),box=$('#audBox');
+  $('#audBk').textContent='Audio takes are not in this backup: use Export audio (Audio, above). '+lastAudio()+'.';
+  if(!TK.done){box.innerHTML='<p class="note">Opening the audio store…</p>';return;}
+  if(!TK.ok){box.innerHTML='<p class="note">Audio takes need the browser’s own storage (IndexedDB), which isn’t available here'+(location.protocol==='file:'?' while Lick Lab is opened as a file':'')
+    +'. Recording notes works as usual; open Lick Lab from GitHub Pages to keep the audio too.</p>';return;}
+  const all=[...TK.meta.values()],size=all.reduce((a,m)=>a+(m.size||0),0),used=new Set(ST.licks.map(l=>l.take&&l.take.id)),unused=all.filter(m=>!used.has(m.id)).length;
+  const tk=L.take,m=tk&&TK.meta.get(tk.id);let o='';
+  if(!MR_MIME)o+='<p class="note">This browser can’t record audio (MediaRecorder): only the notes are recorded. Takes still play.</p>';
+  o+='<div class="row"><span>This lick</span><span class="cap">'+(m?fmtDur(Math.max(0,tk.dur-Math.max(0,tk.at)))+' · '+tk.bpm+' BPM · '+dShort(tk.made):tk?'take missing':'no take yet')+'</span></div>';
+  if(m)o+='<div class="prow"><button type="button" class="act sm" id="audDl" title="The take as a plain sound file">Download take</button>'
+    +'<button type="button" class="act sm" id="audDet" title="Finds the notes in the take again (Undo brings back the old notes)"'+(DETB||REC||PL?' disabled':'')+'>'+(DETB?'Listening…':'Detect notes')+'</button></div>';
+  else o+='<p class="note">'+(tk?'The audio isn’t in this browser. Import audio (below, from an audio export) brings it back.':'Record keeps the audio of what you play, next to the notes.')+'</p>';
+  o+='<div class="row"><span>Stored</span><span class="cap">'+all.length+' take'+(all.length===1?'':'s')+' · '+fmtMB(size)+'</span></div>';
+  if(unused||(EST&&EST.quota))o+='<p class="note">'+(EST&&EST.quota?'Browser storage for this page: '+fmtMB(EST.usage||0)+' of '+fmtMB(EST.quota)+'.':'')
+    +(unused?' '+unused+' take'+(unused===1?' is':'s are')+' not used by any lick: removed 14 days after their lick, but kept in an audio export.':'')+'</p>';
+  if(canPersist())o+='<div class="row"><span>Keep safe</span>'+(PERS?'<span class="cap">protected</span>':'<button type="button" class="act sm" id="audPers" title="Asks the browser never to clear the audio by itself (Firefox asks you once)">Protect takes</button>')+'</div>';
+  o+='<div class="prow"><button type="button" class="act sm" id="audExp" title="All takes as one .json file">Export audio</button><button type="button" class="act sm" id="audImp" title="Adds the takes from an audio export (takes already here stay as they are)">Import audio</button></div>';
+  o+='<p class="note">'+lastAudio()+'. The normal backup doesn’t include audio.</p>';
+  box.innerHTML=o;}
+/* het eerste bewaarde take: vragen of de browser de opslag wil beschermen (Firefox laat dan één keer een venstertje zien) */
+function askPersist(){if(!canPersist())return;navigator.storage.persist().then(v=>{PERS=v;renderAudio();
+  toast(v?'Takes protected: the browser won’t clear them by itself.':'Not protected. The takes are saved, but the browser may clear them when the disk is nearly full: Export audio now and then.',!v);}).catch(()=>{});}
+function takeSaved(){renderAudio();refreshEst();if(S.pAsk||!canPersist())return;S.pAsk=true;save();
+  navigator.storage.persisted().then(v=>{PERS=v;renderAudio();if(!v)setTimeout(()=>toast('First take saved. Protect your takes from automatic clean-up? Firefox will ask you once.',false,{l:'Protect',fn:askPersist}),3800);}).catch(()=>{});}
+/* een blob als bestand in Downloads */
+function dlBlob(b,file){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=file;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},3000);}
+const slug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'lick';
+async function dlTake(L){if(!hasTake(L)){toast(L.take?'The take of this lick isn’t in this browser. Import audio brings it back.':'This lick has no take yet.',!!L.take);return;}
+  const b=await TK.blob(L.take.id).catch(()=>null);if(!b){toast('The take could not be read.',true);return;}
+  const t=b.type||L.take.mime;dlBlob(b,'lick-'+slug(L.name)+'-take.'+(/ogg/.test(t)?'ogg':/webm/.test(t)?'webm':/mp4|aac/.test(t)?'m4a':'audio'));}
+/* "nu opnemen, later uitzoeken": de take uitpakken en dezelfde herkenning als live erover laten lopen (IN.detect), dan net als na het opnemen
+   op het raster en de hals zetten; Undo brengt de oude noten terug */
+async function detectTake(){const L=lick(),tk=L.take;if(!hasTake(L)||DETB||REC)return;stopPlay();DETB=true;renderAudio();
+  try{const b=await takeBuf(tk.id);if(!b){toast('The take could not be read.',true);return;}
+    const ev=await IN.detect(b,tk.ch),spb=60/tk.bpm;
+    if(ST.licks.find(l=>l.id===L.id)!==L||L.take!==tk)return;
+    const raw=ev.map(e=>({m:e.m+tk.sh,x:(e.at-tk.at)/spb,e:e.end!=null?(e.end-tk.at)/spb:null})).filter(r=>r.x>=-4.3&&r.m>=40&&r.m<=OPEN[5]+MAXF);
+    const q=raw.length?quantizeRaw(raw,L.sub,L.bars):[];
+    if(!q.length){toast('No clear notes in the take. Add them by hand: switch on Add notes and click the neck.',true);return;}
+    pushUndo(L);finger(q,L.pos);L.raw=raw;L.notes=q.map(n=>({t:n.t,d:n.d,s:n.s,f:n.f,lock:false}));sel=null;save();
+    toast('Found '+q.length+' notes in the take. Check the fingering; Undo brings back the old notes.');}
+  finally{DETB=false;renderAll();}}
+/* Export audio: alle takes in één bestand, de audio als base64 (de gewone back-up kan dit niet: alleen localStorage, en dat formaat blijft gelijk) */
+const u8b64=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s);};
+const b64u8=s=>{const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;};
+const b64Of=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(b);});
+async function expAudio(){if(!TK.ok)return;const ids=[...TK.meta.keys()];if(!ids.length){toast('No takes to export yet.');return;}
+  toast('Preparing the audio file…');const parts=['{"type":"practice-room-lick-audio","v":1,"created":'+JSON.stringify(new Date().toISOString())+',"takes":['];let n=0;
+  try{for(const id of ids){const m=TK.meta.get(id),b=await TK.blob(id);if(!b)continue;const l=ST.licks.find(x=>x.take&&x.take.id===id);
+      parts.push((n++?',':'')+JSON.stringify({id,mime:m.mime,dur:m.dur,at:m.at,bpm:m.bpm,made:m.made,ch:m.ch,pk:m.pk,lick:m.lick,name:l?l.name:'',peaks:m.peaks?u8b64(m.peaks):'',data:await b64Of(b)}));}}
+  catch(e){toast('The audio could not be read: nothing exported.',true);return;}
+  parts.push(']}');dlBlob(new Blob(parts,{type:'application/json'}),'practice-room-lick-audio-'+dayKey()+'.json');
+  write(AEKEY,new Date().toISOString());renderAudio();toast('Exported '+n+' take'+(n===1?'':'s')+'.');}
+/* Import audio: alleen een echt bestand van Export audio; elke take apart gecontroleerd, een id die er al is blijft zoals hij is */
+function fixMeta(t){if(!t||typeof t!=='object'||typeof t.id!=='string'||!TAKE_ID.test(t.id)||typeof t.mime!=='string'||!TAKE_MIME.test(t.mime)
+    ||typeof t.data!=='string'||t.data.length<8||t.data.length>9e7||!/^[A-Za-z0-9+/]+={0,2}$/.test(t.data))return null;
+  const r=fixTake(t);let peaks=null;if(typeof t.peaks==='string'&&t.peaks&&t.peaks.length<8e5){try{peaks=b64u8(t.peaks);}catch(e){}}
+  return{id:r.id,mime:r.mime,size:0,dur:r.dur,at:r.at,bpm:r.bpm,made:r.made,ch:r.ch,pk:Number.isFinite(+t.pk)&&+t.pk>0&&+t.pk<=8?+t.pk:0,
+    peaks:peaks&&peaks.length?peaks:null,lick:typeof t.lick==='string'?t.lick.slice(0,40):'',gone:0};}
+async function impAudio(txt){let o=null;try{o=JSON.parse(txt);}catch(e){}
+  if(!o||o.type!=='practice-room-lick-audio'||o.v!==1||!Array.isArray(o.takes)){toast('That file is not a Lick Lab audio export.',true);return;}
+  let add=0,skip=0,bad=0;
+  for(const t of o.takes){const m=fixMeta(t);if(!m){bad++;continue;}if(TK.meta.has(m.id)){skip++;continue;}
+    let b;try{b=new Blob([b64u8(t.data)],{type:m.mime});}catch(e){bad++;continue;}m.size=b.size;
+    if(!m.peaks||!m.pk){const buf=audio()?await decodeBlob(b).catch(()=>null):null;if(!buf){bad++;continue;}
+      Object.assign(m,peaksOf(buf.getChannelData(m.ch>=0&&m.ch<buf.numberOfChannels?m.ch:0),buf.sampleRate));if(!m.dur)m.dur=buf.duration;}
+    try{await TK.put(m,b);add++;}catch(e){takeErr(e);break;}}
+  renderAll();refreshEst();
+  toast((add?'Imported '+add+' take'+(add===1?'':'s'):'No new takes')+(skip?' · '+skip+' already here':'')+(bad?' · '+bad+' unreadable, skipped':'')+'.',!add&&bad>0);}
+$('#audBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
+  ({audDl:()=>dlTake(lick()),audDet:detectTake,audPers:askPersist,audExp:expAudio,audImp:()=>{$('#audFile').value='';$('#audFile').click();}})[b.id]?.();});
+$('#audFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f||!TK.ok)return;const r=new FileReader();
+  r.onload=()=>impAudio(String(r.result));r.onerror=()=>toast('That file could not be read.',true);r.readAsText(f);});
+/* Notes · Take · Both; bij wisselen tijdens het spelen de take alvast uitpakken, dan doet hij vanaf het volgende stuk mee */
+$('#srcSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b||b.disabled)return;S.src=b.dataset.v;save();syncSrc();
+  const L=lick();if(S.src!=='notes'&&hasTake(L)&&PL&&!PL.loading&&!PL.tb)takeBuf(L.take.id).then(tb=>{if(PL&&!PL.loading&&!PL.tb)PL.tb=tb;});});
+
 /* keuzelijsten die niet veranderen: één keer opbouwen */
 fillPre();
 $('#pLad').innerHTML=[0,1,2,4,5,10].map(v=>'<option value="'+v+'">'+(v?'+'+v+' BPM each round':'Same tempo')+'</option>').join('');
@@ -1619,6 +1928,9 @@ applyNeck();
 /* schil: kolom rechts (open/dicht bewaard; in de Library alleen dicht getoond), en de eigen regel in het menu S */
 if(hasROOM)ROOM.column($('#col'),S.view==='lick'&&S.colOpen,o=>{S.colOpen=o;save();});
 setView(S.view,true);
+/* audio-opslag open: ongebruikte takes opruimen (veilig, zie TK.sweep), dan alles met de takes tekenen */
+TK.ready.then(ok=>(ok?TK.sweep(takeRefs()).catch(()=>{}):null)).then(()=>{renderAll();if(S.view==='lib')markSel();refreshEst();
+  if(TK.ok&&canPersist())navigator.storage.persisted().then(v=>{PERS=v;renderAudio();}).catch(()=>{});});
 if(hasLOOK)LOOK.add([{k:'neckW',t:'range',l:'Neck size (Lick Lab, %)',min:60,max:100,step:5,def:100,get:()=>S.neckW,set:v=>{S.neckW=clamp(Math.round(v),60,100);save();applyNeck();}}]);
 /* oefenlogboek (voor de kalender op Home): {"2026-10-08":{s:seconden}}, zelfde vorm als fretTrainer.log.
    Tijd telt zolang er opgenomen of afgespeeld wordt, of de laatste invoer (muis, toets) minder dan 60 s geleden is (start bij openen).
@@ -1648,7 +1960,7 @@ addEventListener('pagehide',logSave);document.addEventListener('visibilitychange
 if(hasROOM&&ROOM.status)ROOM.status({log:LOGKEY,rec:()=>!!REC||!!(PL&&!PL.loading),time:()=>logSecs(LOG[dayKey()])});
 /* testhaakje */
 window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,setView,openLick,libList,fixLick,
-  parseHarm,harmText,keyOf,keyName,timeline,viewOf,placeKey,k12List,KV,
+  parseHarm,harmText,keyOf,keyName,timeline,viewOf,placeKey,k12List,KV,TK,takeBuf,takeRefs,get mime(){return MR_MIME;},
   get rec(){return REC;},get play(){return PL;},audio};
 })();
 </script>
