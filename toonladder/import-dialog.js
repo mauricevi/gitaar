@@ -85,13 +85,14 @@ function irBars(music){
 /* maten → tekst in ons formaat: secties met |, akkoorden met hun lengte, gelijke akkoorden achter elkaar samengevoegd */
 function irToText(song){
   const{bars,ts}=irBars(song.music),notes={simplified:new Set(),split:0,unknown:new Set()},secs=[];let last=null,cur=null;
-  const add=(sym,len)=>{if(cur.length&&cur[cur.length-1].sym===sym&&cur[cur.length-1].len+len<=4&&[0.5,1,2,3,4].includes(cur[cur.length-1].len+len)){cur[cur.length-1].len+=len;return;}cur.push({sym,len});};
+  const add=(sym,len)=>{if(cur.length&&cur[cur.length-1].sym===sym&&BARS.includes(cur[cur.length-1].len+len)){cur[cur.length-1].len+=len;return;}cur.push({sym,len});};
   bars.forEach(b=>{if(b.sec||!cur){cur=[];secs.push(cur);}
     let ch=b.ch.map(x=>{if(x==null)return last;const c=irChord(x);if(!c){notes.unknown.add(x);return last;}if(c.simple)notes.simplified.add(x+' → '+c.sym);last=c.sym;return c.sym;});
-    if(ch.length>2){notes.split++;ch=[ch[0],ch[ch.length-1]];}           /* 3–4 akkoorden in een maat: eerste en laatste */
+    if(ch.length>4){notes.split++;ch=ch.slice(0,4);}                   /* meer dan 4 akkoorden in een maat: de eerste vier */
     ch=ch.filter(x=>x!=null);if(!ch.length&&last)ch=[last];
-    if(ch.length===1)add(ch[0],1);else if(ch.length===2){add(ch[0],.5);add(ch[1],.5);}});
-  const text=secs.filter(x=>x.length).map(sec=>sec.map(x=>x.sym+(x.len===1?'':'('+(x.len===.5?'½':x.len)+')')).join(' ')).join(' | ');
+    /* per tel: 2 akkoorden = halve maten, 3 = ½ ¼ ¼ (iReal bewaart de plaats niet), 4 = elke tel één */
+    ([[1],[.5,.5],[.5,.25,.25],[.25,.25,.25,.25]][ch.length-1]||[]).forEach((len,i)=>add(ch[i],len));});
+  const text=secs.filter(x=>x.length).map(sec=>sec.map(x=>x.sym+barsTxt(x.len)).join(' ')).join(' | ');
   return{text,ts,notes};}
 const irBandStyle=st=>/bossa|latin|samba|afro|cuban|calypso|rumba|cha/i.test(st)?'bossa':/ballad/i.test(st)?'ballad':'swing';
 

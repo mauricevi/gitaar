@@ -3,10 +3,12 @@
    Een progressie = {id, name, tempo, sections:[{chords:[{sym, root, type, bars, bass, scale}]}]}.
    type = arpeggio-id uit REGISTRY (het akkoord), scale = toonladder-id die je over dat akkoord speelt (grondtoon = grondtoon akkoord).
    Op het bord: B = akkoordtonen, A = toonladder; de positie (fretvenster) blijft staan als je van akkoord wisselt.
-   Invoer: tekst als "Dm7b5 G7b9 Cm7(2) | Ebm7 Ab7 Dbmaj7" → parseText(); '|' begint een nieuwe sectie, (2) = twee maten. */
+   Invoer: tekst als "Dm7b5 G7b9 Cm7(2) | Ebm7 Ab7 Dbmaj7" → parseText(); '|' begint een nieuwe sectie, (2) = twee maten,
+   (½) = halve maat, (1b)/(3b) = één/drie tellen. bars = lengte in maten, in stappen van een tel (¼), van ¼ tot 4. */
 const PT=T.prog,TS=T.sheet;
 const CT='#ff9f0a',ST='#efe8da';                       /* kleur akkoordtoon / toonladdertoon */
-const BARS=[0.5,1,2,3,4];
+const BARS=[.25,.5,.75,1,1.5,2,3,4];                   /* stappen van de −/+ in het akkoordpaneel; via tekst mag elke hele tel tot 4 maten */
+const okBars=b=>Number.isInteger(b*4)&&b>=.25&&b<=4;
 const SYMID={};ARPS.forEach(a=>{SYMID[a.sym.replace(/[()]/g,'')]=a.id;});
 const symOfId=id=>symOf(arpItem(id));
 const newId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -38,12 +40,20 @@ function normQ(q){
   if(q==='sus')q='sus4';if(q==='7sus')q='7sus4';if(q==='9sus')q='9sus4';
   if(q==='maj♯11')q='maj7♯11';
   return q;}
-function parseBars(x){if(x==='½'||x==='1/2'||x==='.5'||x==='0.5')return .5;const n=+x;return BARS.includes(n)?n:Math.min(4,Math.max(1,Math.round(n)||1));}
-const barsTxt=b=>b===1?'':'('+(b===.5?'½':b)+')';
+/* lengte achter het akkoord: 2, ½, 1½, 1/2, 3/4, .5, of tellen: 1b, 3b, 3beats */
+const FRAC={'¼':.25,'½':.5,'¾':.75},BAR_RX=/^(?:\d?[¼½¾]|[13]\/4|1\/2|\d?\.\d+|\d{1,2}b(?:eats?)?|\d)$/i;   /* (13) of (b9) blijft een akkoord */
+function parseBars(x){x=String(x).toLowerCase();let n;
+  if(/b/.test(x))n=parseInt(x,10)/4;
+  else if(/[¼½¾]/.test(x))n=(parseInt(x,10)||0)+FRAC[x.slice(-1)];
+  else if(/\//.test(x))n=x.split('/')[0]/x.split('/')[1];
+  else n=+x;
+  return Number.isFinite(n)&&n>0?Math.min(4,Math.max(.25,Math.round(n*4)/4)):1;}
+/* tekstvorm: halve maten met ½, de rest in tellen (Cm7(3b)) */
+const barsTxt=b=>b===1?'':'('+((b*2)%1?b*4+'b':(Math.floor(b)||'')+(b%1?'½':''))+')';
 function parseChord(tok){
   let t=String(tok).trim(),bars=1;const raw=t;
-  const bm=/(?:\((½|1\/2|0?\.5|\d)\)|[:*](½|1\/2|0?\.5|\d))$/.exec(t);
-  if(bm){bars=parseBars(bm[1]||bm[2]);t=t.slice(0,bm.index);}
+  const bm=/(?:\(([^()]+)\)|[:*]([^:*()]+))$/.exec(t),bx=bm&&(bm[1]||bm[2]);
+  if(bx&&BAR_RX.test(bx)){bars=parseBars(bx);t=t.slice(0,bm.index);}
   let bass='';const sl=/\/([A-G])([#♯b♭]?)$/.exec(t);
   if(sl){bass=sl[1]+(/[#♯]/.test(sl[2])?'♯':sl[2]?'♭':'');t=t.slice(0,sl.index);}
   const m=/^([A-G])([#♯b♭]?)(.*)$/.exec(t);
@@ -137,7 +147,7 @@ function sanitizeProgs(s){
     sections:(Array.isArray(p.sections)&&p.sections.length?p.sections:[{chords:[]}]).map(sec=>({chords:(sec&&Array.isArray(sec.chords)?sec.chords:[])
       .filter(c=>c&&ROOTS[c.root]&&ARPS.some(a=>a.id===c.type))
       .map(c=>({sym:typeof c.sym==='string'&&c.sym?c.sym:ROOTS[c.root].name+symOfId(c.type),root:c.root,type:c.type,
-        bars:BARS.includes(+c.bars)?+c.bars:1,bass:typeof c.bass==='string'?c.bass:'',
+        bars:okBars(+c.bars)?+c.bars:1,bass:typeof c.bass==='string'?c.bass:'',
         scale:SCALES[c.scale]&&SCALES[c.scale].kind!=='arp'?c.scale:'ionian',soff:Number.isInteger(c.soff)?mod(c.soff,12):0,
         fsel:[1,2,3,4,5].includes(c.fsel)?c.fsel:null,moff:Number.isInteger(c.moff)?mod(c.moff,12):null}))}))}));
   const v=s.view;v.mode=oneOf(v.mode,['compare','prog'],'compare');
@@ -304,15 +314,29 @@ function bandPop(){const b=state.pv.band,I=PT.bandItems;
     +'<div class="bsub">'+esc(I.volume)+'</div>'
     +[['piano',I.piano],['bass',I.bass],['drums',I.drums]].map(([k,l])=>'<div class="lrow ins"><span>'+esc(l)+'</span><input type="range" min="0" max="150" step="5" data-vol="'+k+'" aria-label="'+esc(l)+' volume">'+sw(k,l)+'</div>').join('')
     +'<div class="lrow"><span>'+esc(I.fscale)+'<small class="sub">'+esc(I.fscaleSub)+'</small></span>'+sw('fscale',I.fscale)+'</div></div>';}
-const fmtBars=b=>b%1?(Math.floor(b)||'')+'½':String(b);
+const fmtBars=b=>(Math.floor(b)||(b%1?'':'0'))+['','¼','½','¾'][Math.round(b%1*4)];
 function modeUI(pm){
   $('#rows').hidden=pm;$('#progCard').hidden=!pm;
   $('#posBar').hidden=pm;$('#posChips').hidden=pm;$('#hintCmp').hidden=pm;$('#pvBar').hidden=!pm;
   $('#progBar').hidden=!pm;$('#cmpBar').hidden=pm;document.body.dataset.mode=pm?'prog':'compare';}
+const progMeta=p=>{const L=flat(p);return PT.meta(L.length,fmtBars(L.reduce((a,x)=>a+x.c.bars,0)),'');};
 function renderSide(){
   $('#navCmp').setAttribute('aria-pressed',!D.prog);
-  $('#progBtns').innerHTML=state.progs.map(p=>{const on=!!(D.prog&&D.p.id===p.id),n=flat(p).length;
-    return '<button type="button" data-prog="'+esc(p.id)+'" aria-pressed="'+on+'" title="'+esc(p.name+' · '+PT.meta(n,fmtBars(flat(p).reduce((a,x)=>a+x.c.bars,0)),''))+'">'+esc(p.name)+'</button>';}).join('');}
+  const b=$('#songBtn'),p=D.prog?D.p:null;
+  b.setAttribute('aria-pressed',!!p);b.title=p?p.name+' · '+progMeta(p):'';
+  b.innerHTML='<span>'+esc(p?p.name:T.nav.progs)+'</span><i aria-hidden="true">▾</i>';}
+/* ── nummerkeuze: één knop in de kop; klik = lijst op naam met zoekveld (typen = filteren, ↑ ↓ + Enter = openen, Esc = dicht) ── */
+let songHot=0;
+function songMatches(){const q=$('#songQ').value.trim().toLowerCase();
+  return state.progs.filter(p=>!q||p.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));}
+function renderSongs(reset){const L=songMatches(),cur=D&&D.prog?D.p.id:null;
+  if(reset)songHot=Math.max(0,L.findIndex(p=>p.id===cur));
+  songHot=Math.max(0,Math.min(songHot,L.length-1));
+  $('#songList').innerHTML=L.length?L.map((p,i)=>'<button type="button" role="option" data-prog="'+esc(p.id)+'" aria-selected="'+(p.id===cur)+'"'+(i===songHot?' class="hot"':'')+'><b>'+esc(p.name)+'</b><small>'+esc(progMeta(p))+'</small></button>').join('')
+    :'<p class="cap">'+esc(state.progs.length?T.nav.noMatch:T.nav.noProgs)+'</p>';
+  const h=$('#songList .hot');if(h)h.scrollIntoView({block:'nearest'});}
+function openSongs(o){const pop=$('#songPop'),q=$('#songQ');pop.hidden=!o;$('#songBtn').setAttribute('aria-expanded',o);
+  if(o){q.value='';q.placeholder=T.nav.find(state.progs.length);q.setAttribute('aria-label',q.placeholder);renderSongs(true);q.focus();}}
 function renderHead(){
   const pb=$('#progBar');
   if(!D.prog){pb.innerHTML='';headHtml='';$('#hBoard').textContent=T.ui.fretboard;renderCmpTray();return;}
@@ -571,7 +595,7 @@ function act(a,el,ev){
     case 'del':delChord(+el.dataset.i);break;
     case 'remSec':p.sections.splice(+el.dataset.s,1);update();break;
     case 'addSec':p.sections.push({chords:[]});update();{const ins=document.querySelectorAll('.addc');if(ins.length)ins[ins.length-1].focus();}break;
-    case 'barsUp':case 'barsDown':if(c){const i=BARS.indexOf(c.bars);c.bars=BARS[Math.max(0,Math.min(BARS.length-1,i+(a==='barsUp'?1:-1)))];update();}break;
+    case 'barsUp':case 'barsDown':if(c){const b=a==='barsUp'?BARS.find(x=>x>c.bars):[...BARS].reverse().find(x=>x<c.bars);if(b!=null){c.bars=b;update();}}break;
     case 'scale':if(c){c.scale=el.dataset.id;update();}break;
     case 'info':openInfo();break;
     case 'fpick':{const fm=+el.dataset.f,mid=+el.dataset.mid,k=el.dataset.row;     /* vorm gekozen op de vormenkaart */
@@ -604,7 +628,14 @@ function addChords(si,text,input){
   else{const n=$('.addc[data-s="'+si+'"]');if(n)n.focus();}}
 function bindProgUI(){
   $('#navCmp').addEventListener('click',()=>{progStop();editing=false;state.view.mode='compare';update();});
-  $('#progList').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b)openProg(b.dataset.prog);});
+  $('#progList').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b){openSongs(false);openProg(b.dataset.prog);}});
+  $('#songBtn').addEventListener('click',()=>openSongs($('#songPop').hidden));
+  $('#songQ').addEventListener('input',()=>renderSongs(false));
+  $('#songQ').addEventListener('keydown',e=>{const L=songMatches();
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();songHot=mod(songHot+(e.key==='ArrowDown'?1:-1),Math.max(1,L.length));renderSongs(false);}
+    else if(e.key==='Enter'){e.preventDefault();const p=L[songHot];if(p){openSongs(false);openProg(p.id);}}
+    else if(e.key==='Escape'){e.preventDefault();openSongs(false);$('#songBtn').focus();}});
+  document.addEventListener('click',e=>{if(!$('#songPop').hidden&&!e.target.closest('.songw'))openSongs(false);});
   $('#btnNew').addEventListener('click',()=>openSheet('new'));
   document.addEventListener('click',e=>{if(bandOpen&&!e.target.closest('.bandw')){bandOpen=false;if(D&&D.prog)renderHead();}});
   $('.shell').addEventListener('dblclick',e=>{if(!editing&&D&&D.prog&&e.target.closest('.tw .tile')){editing=true;update();}});   /* dubbelklik op een akkoord = bewerkmodus */

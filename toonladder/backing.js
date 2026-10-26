@@ -80,7 +80,7 @@ const FILLS={
     bigs:[[[.33,'tap',46],[.67,'slap',58]],[[0,'btom',50],[.33,'btom',46],[.67,'slap',60]],[[.67,'bopen',44]]],
     smalls:[[[.67,'slap',52]],[[.33,'tap',42],[.67,'slap',52]]]}};
 
-const nBeats=c=>Math.max(2,Math.round(c.bars*4));
+const nBeats=c=>Math.max(1,Math.round(c.bars*4));
 /* maten van de progressie: begintel van elk akkoord, totaal aantal tellen; loopR = gekozen maten om te herhalen */
 function geom(p){const L=flat(p),starts=[];let acc=0;L.forEach(x=>{starts.push(acc);acc+=nBeats(x.c);});return{L,starts,total:acc,bars:Math.ceil(acc/4)};}
 function loopRange(p,G){G=G||geom(p);const r=p.loopR;if(!r||!G.total)return null;
@@ -274,12 +274,13 @@ function voicing(c,prev,avoidTop){
   const root=[...Array(30)].map((_,i)=>48+i).find(m=>{if(mod(m,12)!==rp||m<=best[0]||m>=best[best.length-1]||best.includes(m))return false;
     const lo=Math.max(...best.filter(x=>x<m)),hi=Math.min(...best.filter(x=>x>m));return m-lo>=2&&hi-m>=2&&hi-lo>=5;});
   return root!=null&&!ivs.includes(0)?[...best,root].sort((a,b)=>a-b):best;}
-/* pianoritme voor één akkoord: patronen per maat (4 tellen) of halve maat (2 tellen).
+/* pianoritme voor één akkoord: patronen per maat (4 tellen) of halve maat (2 tellen); een losse tel = één korte aanslag
+   (niet na een push: die viel al vóór de tel).
    Uitkomst: aanslagen met b = positie in tellen vanaf het begin van het akkoord. */
 function compFor(st,n,pushedIn,canPush,lvl=1,memo={}){
   const hits=[],beat=st.grid==='beat',dn=LEVEL[lvl].density;let pushed=pushedIn,off=0;
-  while(off<n){const len=n-off>=4?4:2,last=off+len>=n;
-    let opts=len===4?(pushed&&st.after4?st.after4:st.comp4):(pushed&&st.after2?st.after2:st.comp2);
+  while(off<n){const len=n-off>=4?4:n-off>=2?2:1,last=off+len>=n;
+    let opts=len===4?(pushed&&st.after4?st.after4:st.comp4):len===2?(pushed&&st.after2?st.after2:st.comp2):pushed?[[]]:[[[0,.6]],[[0,.35]]];
     if(last&&!canPush)opts=opts.filter(p=>!p.some(h=>h[1]==='p'));if(!opts.length)opts=[[]];
     const fresh=opts.length>1?opts.filter(x=>x!==memo.last):opts;
     const pat=wpick(fresh,x=>Math.pow(1+x.length,dn));memo.last=pat;pushed=false;
@@ -292,19 +293,19 @@ function compFor(st,n,pushedIn,canPush,lvl=1,memo={}){
 /* "in 2": halve noten (grondtoon/kwint) met af en toe een opmaat 'A' naar het volgende akkoord (Ballad, en Swing in het eerste chorus) */
 function twoFeel(st4,st2,c,nx,n,P,lo,hi){const root=near(ROOTS[c.root].pc,P.prev,lo,hi),f=fifthNear(c,root)<root?fifthNear(c,root)+12:fifthNear(c,root);
   const nr=near(ROOTS[nx.root].pc,root,lo,hi),ev=[];
-  for(let off=0;off<n;off+=4){const len=n-off>=4?4:2,last=off+len>=n;
-    pick(len===4?st4:st2).forEach(([pos,l,k])=>{if(k==='A'&&!last)k='R';
+  for(let off=0;off<n;){const len=n-off>=4?4:n-off>=2?2:1,last=off+len>=n;
+    (len===1?[[0,1,'R']]:pick(len===4?st4:st2)).forEach(([pos,l,k])=>{if(k==='A'&&!last)k='R';
       const m=k==='R'?root:k==='5'?f:k==='O'?(root+12<=52?root+12:root):pick([nr-2,nr-1,nr+1,nr-5>=lo?nr-5:nr+7]);
-      ev.push({b:off+pos,len:l*.95,m,v:100});});}
+      ev.push({b:off+pos,len:l*.95,m,v:100});});off+=len;}
   P.prev=root;return ev;}
 function bassFor(style,c,nx,n,P,lvl=1){
   if(style==='ballad'){
     if(lvl>=2){const line=walkLine(c,nx,n,P.prev);P.prev=line[n-1];return line.map((m,i)=>({b:i,len:.9,m,v:i%2?98:92}));}   /* derde chorus: rustig walken */
     return twoFeel(STYLE.ballad.bass4,STYLE.ballad.bass2,c,nx,n,P,28,40);}
   if(style==='bossa'){const root=near(ROOTS[c.root].pc,P.prev,31,43),f=fifthNear(c,root),ev=[];
-    for(let off=0;off<n;off+=4){ev.push({b:off,len:1.4,m:root,v:100});
+    for(let off=0;off<n;off+=4){ev.push({b:off,len:Math.min(1.4,n-off-.05),m:root,v:100});
       if(n-off>=4){ev.push({b:off+1.5,len:.45,m:Math.random()<.5?root:f,v:100},{b:off+2,len:1.4,m:f,v:100},{b:off+3.5,len:.45,m:f,v:100});}
-      else ev.push({b:off+1.5,len:.45,m:f,v:100});}
+      else if(n-off>=2)ev.push({b:off+1.5,len:.45,m:f,v:100});}
     P.prev=root;return ev;}
   if(lvl===0)return twoFeel(STYLE.swing.two4,STYLE.swing.two2,c,nx,n,P,28,43);                /* swing, eerste chorus: in 2 */
   const line=walkLine(c,nx,n,P.prev),ev=line.map((m,i)=>({b:i,len:.95,m,v:i%2?112:100}));
@@ -363,7 +364,8 @@ function scheduleBeat(t){
   const G=geom(q),R=loopRange(q,G);
   /* naar een positie springen (aangeklikt akkoord, start van een loop): akkoord + tel daarbinnen */
   const seekPos=pos=>{P.ci=chordAtPos(G,pos);P.cb=pos-G.starts[P.ci];P.pos=pos;P.gen=true;P.pushed=false;};
-  if(P.seek!=null){seekPos(Math.min(P.seek,G.total-1));P.seek=null;P.bb=0;if(P.on&&P.started){P.intro=0;P.fillLeft=0;P.crashIn=0;}P.started=true;}
+  if(P.seek!=null){seekPos(Math.min(P.seek,G.total-1));P.seek=null;P.bb=mod(P.pos,4);   /* tel in de maat, ook als het akkoord halverwege begint */
+  if(P.on&&P.started){P.intro=0;P.fillLeft=0;P.crashIn=0;}P.started=true;}
   if(P.ci>=L.length||P.pos>=G.total)seekPos(R?R[0]:0);
   const c=L[P.ci].c,n=nBeats(c),lvl=chorusLvl(G,R),lv=LEVEL[lvl];
   if(P.cb===0||P.gen){                                          /* nieuw akkoord: bas en piano voor het hele akkoord bepalen */

@@ -22,8 +22,22 @@ input[type=range]{width:100%;max-width:200px}
 
 /* ── kop: Compare A / B en de progressies (glazen knoppenrij) ── */
 .plist{max-width:100%}
-.plist #progBtns{display:contents}
 .plist button{max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.top{position:relative;z-index:6}                      /* lijst met nummers valt over het middenvak */
+/* nummerkeuze: één knop met het huidige nummer; de lijst (zoekveld + nummers) klapt eronder open */
+.songw{position:relative;display:inline-flex}
+.plist #songBtn{display:inline-flex;align-items:center;gap:8px;max-width:320px}
+.plist #songBtn span{overflow:hidden;text-overflow:ellipsis}
+.plist #songBtn i{font-style:normal;font-size:11px;opacity:.75}
+.songpop{position:absolute;top:calc(100% + 10px);left:0;z-index:30;width:360px;background:#f9efdc;border:1px solid var(--sep);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:10px;color:var(--tx)}
+.songpop input{width:100%;max-width:none}
+.songlist{display:grid;gap:1px;margin-top:8px;max-height:min(62vh,560px);overflow:auto}
+.songlist .cap{margin:6px 4px}
+.plist .songlist button{display:grid;gap:1px;width:100%;max-width:none;text-align:left;padding:7px 10px;border-radius:9px;color:var(--tx);background:transparent}
+.plist .songlist button b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.plist .songlist button small{font-size:11.5px;color:var(--mut)}
+.plist .songlist button:hover,.plist .songlist button.hot{background:var(--fill);color:var(--tx)}
+.plist .songlist button[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--ac)}
 .plist #navCmp{font-weight:600}
 .plist #btnNew{font-size:17px;line-height:1;padding:6px 13px}
 

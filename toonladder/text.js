@@ -5,7 +5,8 @@
    ════════════════════════════════════════════════════════════════════════════ */
 const TEXT={
   appName:'Practice Room',
-  nav:{home:'Home',fret:'Fretboard Trainer',scales:'Scale Trainer',free:'Free play',compare:'Compare A / B',progs:'Progressions',newProg:'New progression'},
+  nav:{home:'Home',fret:'Fretboard Trainer',scales:'Scale Trainer',free:'Free play',compare:'Compare A / B',progs:'Progressions',newProg:'New progression',
+       find:n=>`Find among ${n} progression${n===1?'':'s'}…`,noMatch:'No progression with that name',noProgs:'No progressions yet: + makes one.'},
   links:{home:'index.html',fret:'fretboard-trainer.html'},
   title:'Compare A / B', sub:'Two scales or chords on one neck, side by side.',
   ui:{settings:'Settings',settingsSub:'Fretboard · colours · display · sound · tuning',
@@ -48,7 +49,7 @@ const TEXT={
        spAuto:'Suggested (depends on the key)',spMore:'More chord types'},
   /* ── progressies ── */
   prog:{meta:(n,b,keys)=>`${n} chords · ${b} bars${keys?' · '+keys:''}`,
-        bars:b=>b===0.5?'½ bar':b===1?'1 bar':b+' bars',
+        bars:b=>b===.5?'½ bar':b===1?'1 bar':(b*2)%1?`${b*4} beat${b===.25?'':'s'}`:`${(Math.floor(b)||'')+(b%1?'½':'')} bars`,
         key:(name,md)=>`${name} ${md==='maj'?'major':'minor'}`, inKey:(r,k)=>`${r} in ${k}`,
         play:'Play',stop:'Stop',band:'Band',loading:'Loading…',
         loopBars:'Loop bars',loopHint:'Drag across the bar numbers above the chords (or from one chord to another) to loop part of the progression; click inside the loop to loop everything again.',barN:n=>`Bar ${n}`,barsRange:(a,b)=>a===b?`bar ${a}`:`bars ${a}–${b}`,loopClear:'Loop the whole progression',
@@ -130,7 +131,7 @@ const TEXT={
         copyOf:n=>`Copy of ${n}`,untitled:'Untitled progression',
         dot:(n,name,f,lab)=>`String ${n} (${name}), fret ${f} · ${lab}`},
   sheet:{newT:'New Progression',editT:'Edit Progression',cancel:'Cancel',save:'Save',start:'Start from',name:'Name',chords:'Chords',
-        help:'Type chord symbols with spaces between them. A bar | starts a new section (A, B, C …). Bars per chord: Cm7(2) is two bars, Cm7(½) half a bar; without a number it is one bar. Write b or ♭, # or ♯.',
+        help:'Type chord symbols with spaces between them. A bar | starts a new section (A, B, C …). Length per chord: Cm7(2) is two bars, Cm7(½) half a bar, Cm7(1b) one beat, Cm7(3b) three beats; without a number it is one bar. Write b or ♭, # or ♯.',
         preview:'Preview · suggested scales',tempo:'Tempo',unknown:t=>`“${t}” isn’t a chord I know.`,use:s=>`Use ${s}`,
         keys:l=>`Keys found: ${l}.`,keep:' Scales you picked stay with chords that don’t change.',
         blank:'Blank',copy:'Copy of current',
@@ -138,7 +139,7 @@ const TEXT={
             how:'In iReal Pro, share a song or playlist as an iReal Pro link or HTML file (for example by e-mail to yourself). Paste the link here, or open the HTML file. Repeats, endings and D.C./D.S. are written out; the chords land in the field below so you can check them before saving.',
             none:'No iReal Pro link found in this text.',found:n=>`${n} songs found. Pick one, or add them all at once.`,all:n=>`Add all ${n}`,
             done:t=>`“${t}” imported.`,style:(st,b)=>`Style: ${st} → band plays ${b}.`,ts:t=>`Time signature ${t}: the band plays it in 4/4.`,
-            simple:l=>`Simplified: ${l}.`,split:n=>`${n} bar${n===1?'':'s'} with 3–4 chords: kept the first and last.`,unknown:l=>`Not recognised (left out): ${l}.`},placeholder:'Dm7b5 G7b9 Cm7(2) | Ebm7 Ab7 Dbmaj7(2)'},
+            simple:l=>`Simplified: ${l}.`,split:n=>`${n} bar${n===1?'':'s'} with more than 4 chords: kept the first four.`,unknown:l=>`Not recognised (left out): ${l}.`},placeholder:'Dm7b5 G7b9 Cm7(2) | Ebm7 Ab7 Dbmaj7(2)'},
   templates:[['ii–V–I major','Dm7 G7 Cmaj7(2)'],['Minor ii–V–i','Dm7b5 G7b9 Cm7(2)'],['Rhythm changes · bridge','D7(2) G7(2) | C7(2) F7(2)'],['Blues in F','F7 Bb7 F7 F7 | Bb7 Bb7 F7 D7 | Gm7 C7 F7 C7']],
   seed:{name:'Minor ii–V–i → D♭',chords:'Dm7b5 G7b9 Cm7 | Ebm7 Ab7 Dbmaj7'}
 };
