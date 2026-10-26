@@ -6,7 +6,8 @@
 const TEXT={
   appName:'Practice Room',
   nav:{home:'Home',fret:'Fretboard Trainer',scales:'Scale Trainer',free:'Free play',compare:'Compare A / B',progs:'Progressions',newProg:'New progression',
-       find:n=>`Find among ${n} progression${n===1?'':'s'}…`,noMatch:'No progression with that name',noProgs:'No progressions yet: + makes one.'},
+       find:n=>`Find among ${n} progression${n===1?'':'s'}…`,noMatch:'No progression with that name',noProgs:'No progressions yet: + makes one.',
+       pick:n=>`Choose a progression (${n} saved)`},
   links:{home:'index.html',fret:'fretboard-trainer.html'},
   title:'Compare A / B', sub:'Two scales or chords on one neck, side by side.',
   ui:{settings:'Settings',settingsSub:'Fretboard · colours · display · sound · tuning',

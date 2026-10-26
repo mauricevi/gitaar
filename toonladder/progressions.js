@@ -323,8 +323,8 @@ const progMeta=p=>{const L=flat(p);return PT.meta(L.length,fmtBars(L.reduce((a,x
 function renderSide(){
   $('#navCmp').setAttribute('aria-pressed',!D.prog);
   const b=$('#songBtn'),p=D.prog?D.p:null;
-  b.setAttribute('aria-pressed',!!p);b.title=p?p.name+' · '+progMeta(p):'';
-  b.innerHTML='<span>'+esc(p?p.name:T.nav.progs)+'</span><i aria-hidden="true">▾</i>';}
+  const n=state.progs.length;b.setAttribute('aria-pressed',!!p);b.title=(p?p.name+' · '+progMeta(p)+' · ':'')+T.nav.pick(n);
+  b.innerHTML='<span>'+esc(p?p.name:T.nav.progs)+'</span><em aria-hidden="true">'+n+'</em><i aria-hidden="true">▾</i>';}   /* getal = aantal opgeslagen progressies */
 /* ── nummerkeuze: één knop in de kop; klik = lijst op naam met zoekveld (typen = filteren, ↑ ↓ + Enter = openen, Esc = dicht) ── */
 let songHot=0;
 function songMatches(){const q=$('#songQ').value.trim().toLowerCase();

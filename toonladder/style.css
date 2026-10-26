@@ -29,6 +29,8 @@ input[type=range]{width:100%;max-width:200px}
 .plist #songBtn{display:inline-flex;align-items:center;gap:8px;max-width:320px}
 .plist #songBtn span{overflow:hidden;text-overflow:ellipsis}
 .plist #songBtn i{font-style:normal;font-size:11px;opacity:.75}
+.plist #songBtn em{font:700 11px/1 "JetBrains Mono",monospace;font-style:normal;padding:3px 7px;border-radius:9px;background:rgba(255,246,230,.2);color:inherit}
+.plist #songBtn[aria-pressed="true"] em{background:rgba(138,67,19,.13)}
 .songpop{position:absolute;top:calc(100% + 10px);left:0;z-index:30;width:360px;background:#f9efdc;border:1px solid var(--sep);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:10px;color:var(--tx)}
 .songpop input{width:100%;max-width:none}
 .songlist{display:grid;gap:1px;margin-top:8px;max-height:min(62vh,560px);overflow:auto}
