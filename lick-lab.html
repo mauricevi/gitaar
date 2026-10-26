@@ -18,6 +18,10 @@
       zelf gekozen ("Play from"). Het octaaf: zo dicht mogelijk bij de opgenomen positie, of een octaaf hoger/lager.
    4. Oefenen: de lick over een progressie, met gitaarakkoorden, bas en klik (backing-sounds.js, mag ontbreken), in een loop en
       eventueel elke ronde een paar BPM sneller.
+   Fase 2: elke lick heeft eigen akkoorden (harm, bv. "Dm7 G7 | Cmaj7"). Twee soorten harmonie in de weergave Lick (set.hmode):
+   Own chords = de lick met zijn eigen akkoorden in een gekozen toonsoort (dezelfde vorm verschoven, niets bewaard tot "Save in this
+   key"), met "12 keys" = per toonsoort luisteren (lick + band) en dan zelf spelen (alleen de band), geoefende toonsoorten in keys;
+   Over a progression = de oude Martino-weergave hierboven, alleen voor licks over één akkoord.
    Schil (icoonbalk, achtergrond = de versterker, kolom rechts, transportplank): shared/room.css + shared/rail.js;
    toets S = geheim menu (shared/look.js). Daglicht: geen thema-knop meer.
    Twee weergaven (knoppen in de kop, bewaard in set.view): Library = de lijst van al je licks (zoeken, tags, status,
@@ -72,6 +76,9 @@ input[type=number]{width:72px;font:600 15px "JetBrains Mono",monospace}
 [data-s="learning"] i,.stseg [data-v="learning"] i{background:#d27a2a}
 [data-s="known"] i,.stseg [data-v="known"] i{background:#6f9868}
 #rPosV{min-width:76px}
+/* eigen akkoorden van de lick (tekstveld in plaats van grondtoon + soort) */
+#hText{width:300px;font:600 15px "JetBrains Mono",monospace}
+#hText.bad{border-color:var(--err);box-shadow:0 0 0 2px rgba(179,54,31,.18)}
 /* menu ⋯ naast de lick */
 .menu{position:relative}
 .mpanel{position:absolute;left:0;top:calc(100% + 8px);z-index:40;width:300px;padding:14px;background:#f9efdc;display:grid;gap:12px}
@@ -90,7 +97,30 @@ input[type=number]{width:72px;font:600 15px "JetBrains Mono",monospace}
 .gnote.on{color:var(--tx)}
 .gnote sub{font-size:.45em;font-weight:600}
 
-/* ── tweede paneel: progressie, akkoordrij, tab, hals, bewerken ── */
+/* ── tweede paneel: eigen akkoorden in een toonsoort, of over een progressie; tab, hals, bewerken ── */
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:10px}
+.hrow .grow{flex:1}
+.kseg button{min-width:38px;padding:5px 8px;font-size:13.5px;font-weight:700}
+.kseg button.now{box-shadow:0 0 0 2px var(--glow2),0 0 12px rgba(255,200,120,.5)}
+.kseg button.nx{outline:2px dashed rgba(196,106,28,.55);outline-offset:-3px}
+.kseg button{position:relative}
+.kseg button.dn::after{content:"";position:absolute;left:50%;bottom:2px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#6f9868}
+#keyDone{white-space:nowrap}
+.col .kring{justify-content:flex-start;gap:16px}
+.krt{display:grid;gap:8px;justify-items:start;font-size:14px}
+.kring svg{display:block}
+.kd{cursor:pointer}
+.kd circle{fill:var(--field);stroke:var(--line2);stroke-width:1}
+.kd text{fill:var(--mut);font:700 9.5px "Bricolage Grotesque",system-ui,sans-serif;pointer-events:none}
+.kd.done circle{fill:#6f9868;stroke:#6f9868}.kd.done text{fill:#fff6e6}
+.kd.cur circle{stroke:var(--tx);stroke-width:2}
+.kd.now circle{stroke:var(--glow);stroke-width:3}
+.kd.nx circle{stroke:var(--glow);stroke-width:1.6;stroke-dasharray:3 2}
+.kd:hover circle{stroke:var(--onx);stroke-width:2}
+.kring .rc{font:700 14px "JetBrains Mono",monospace;fill:var(--tx)}
+.kring .rs{font-size:8px;fill:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.tch{fill:var(--onx);font-size:13px;font-weight:800}
+.tchl{stroke:var(--onx);stroke-width:1.2;opacity:.45}
 .prog{display:flex;align-items:center;gap:10px}
 #pText{flex:1;font:500 15px "JetBrains Mono",monospace}
 #pPre{max-width:230px;color:var(--mut)}
@@ -163,7 +193,7 @@ body[data-view="lib"]{--colw:1560px}
 .lbar .grow{flex:1}
 .ltags{margin-top:12px}
 .chip.ltag{min-height:27px;padding:0 11px;border-radius:999px;font-size:13px;font-weight:600}
-.lgrid{--lcols:40px minmax(190px,1.5fr) 168px minmax(120px,1fr) minmax(120px,1fr) 100px 44px 84px 104px 34px;margin-top:10px;outline:none}
+.lgrid{--lcols:40px minmax(190px,1.5fr) 168px minmax(150px,1.2fr) 34px minmax(110px,1fr) 100px 44px 84px 104px 34px;margin-top:10px;outline:none}
 .lhd,.lr{display:grid;grid-template-columns:var(--lcols);align-items:center;gap:0 14px;padding:0 10px}
 .lhd{padding-top:6px;padding-bottom:7px;border-bottom:1px solid var(--line2);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
 .lr{min-height:58px;border-bottom:1px solid var(--line);cursor:pointer}
@@ -179,6 +209,9 @@ body[data-view="lib"]{--colw:1560px}
 .mbl{stroke:var(--line2);stroke-width:1}
 .lhar,.ltg{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
 .hc{padding:2px 8px;border-radius:7px;background:var(--fill);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap}
+.lhar .hm{font-size:12px;color:var(--mut2);align-self:center}
+.lring svg{display:block}
+.lring .kd circle{stroke:none;fill:var(--line2)}.lring .kd.done circle{fill:#6f9868}
 .ltg button{border:1px solid var(--line);border-radius:999px;background:transparent;padding:1px 8px;font-size:12px;color:var(--mut);white-space:nowrap}
 .ltg button:hover{color:var(--tx);border-color:var(--line2)}
 .lst{border:0;background:none;padding:3px 0;font-size:13px;color:var(--mut);white-space:nowrap}
@@ -210,6 +243,16 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
 .tray .gb{border:1px solid rgba(255,240,220,.4);background:transparent;color:#fff3df;border-radius:12px;padding:8px 16px;font-weight:600}
 .tray .gb:hover{background:rgba(255,243,225,.12)}
 .tray .gb:disabled,.tray .play:disabled{opacity:.45;cursor:default}
+/* 12 toonsoorten: welke nu, welke straks (op het glas) */
+.knx{display:flex;align-items:center;gap:14px;color:var(--gmut);white-space:nowrap}
+.knx[hidden]{display:none}
+.knx span{display:flex;align-items:baseline;gap:7px}
+.knx small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.8}
+.knx b{font:800 24px "Bricolage Grotesque",system-ui,sans-serif;color:#fff6e6;line-height:1}
+.knx .knext b{font-size:17px;color:rgba(255,243,225,.8)}
+.knx em{font-style:normal;font-weight:700;font-size:13px;padding:2px 9px;border-radius:999px;background:rgba(255,243,225,.16);color:#fff3df}
+.knx em.you{background:#f0a24a;color:#3a1c08}
+.knx .kc{font:600 12px "JetBrains Mono",monospace;opacity:.75}
 
 /* ── kolom rechts ── */
 .col .row>:first-child{white-space:nowrap}
@@ -250,10 +293,11 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
         <span class="help dn r xwide" tabindex="0" aria-label="How it works">?<i>
           <span class="hl"><b>Library</b> lists all your licks. Click one to open it; <span class="kbd">Esc</span> in a lick brings you back.</span>
           <span class="hl">Record a lick once, then play it with the same fingering over every chord.</span>
-          <span class="hl"><b>1 · Set up first:</b> the chord you play the lick over, the position (where your index finger sits) and a slow tempo; grid and length are in the side panel. Press <b>Record</b>: one bar of clicks, then play. Notes in the count-in bar become pickups.</span>
-          <span class="hl"><b>2 · Check the fingering.</b> Every note goes on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also move earlier or later, be deleted, or be added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher; <b>Octave ↓ / ↑</b> moves it 12 frets (on another chord only where you play it over that chord).</span>
-          <span class="hl"><b>3 · Pick a chord.</b> The whole shape slides along the neck, so your fingers do exactly the same thing. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> picks any other degree.</span>
-          <span class="hl"><b>4 · Practise</b> over the progression with guitar chords, bass and click. In the side panel you can add a few BPM per round.</span>
+          <span class="hl"><b>1 · Set up first:</b> the lick’s chords (<b>Harmony</b>, e.g. <span class="kbd">Dm7 G7 | Cmaj7</span> or one chord), the position (where your index finger sits) and a slow tempo; grid and length are in the side panel. Press <b>Record</b>: one bar of clicks, then play (the band plays your chords along if <b>Band while recording</b> is on). Notes in the count-in bar become pickups.</span>
+          <span class="hl"><b>2 · Check the fingering.</b> Every note goes on the string that fits your position best. Click a note and press <b>Other string</b> to move it; it stays there. Notes can also move earlier or later, be deleted, or be added by clicking the neck. <b>String ↓ / ↑</b> moves the whole shape one string lower or higher; <b>Octave ↓ / ↑</b> moves it 12 frets (in another key or over another chord only there).</span>
+          <span class="hl"><b>3 · Own chords:</b> pick a <b>Key</b>. The whole shape slides along the neck with the same fingering, the chords follow. <b>Save in this key</b> makes it the recorded key. <b>▶ 12 keys</b>: per key the band plays it with the lick (listen), then without (your turn); finished keys light up in the ring.</span>
+          <span class="hl"><b>Over a progression</b> (one-chord licks): the shape slides to each chord. <b>Auto</b> uses Pat Martino’s minor conversion: a minor lick over a 7 chord starts from its 5 (Am over D7 = D9), over maj7 from its 6 (Am over Cmaj7), over m7♭5 from its ♭3 (Dm over Bm7♭5). <b>Play from</b> picks any other degree.</span>
+          <span class="hl"><b>4 · Practise</b> with guitar chords, bass and click. In the side panel you can add a few BPM per round (in 12 keys: per key).</span>
           <span class="hl">First time? Press <b>Calibrate timing</b> (side panel) and play a short muted note on each of the last eight clicks, so your notes land on the grid.</span>
         </i></span>
         <div class="grow"></div>
@@ -275,7 +319,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
         </div>
         <div class="chips ltags" id="lTags" role="group" aria-label="Filter by tag"></div>
         <div class="lgrid" id="lGrid" role="listbox" tabindex="0" aria-label="Licks">
-          <div class="lhd" aria-hidden="true"><span></span><span>Name</span><span>Shape</span><span>Harmony</span><span>Tags</span><span>Status</span><span>Bars</span><span>Added</span><span>Practised</span><span></span></div>
+          <div class="lhd" aria-hidden="true"><span></span><span>Name</span><span>Shape</span><span>Harmony</span><span title="Keys practised">Keys</span><span>Tags</span><span>Status</span><span>Bars</span><span>Added</span><span>Practised</span><span></span></div>
           <div id="lRows"></div>
         </div>
       </section>
@@ -307,7 +351,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
           </div>
         </div>
         <div class="bar">
-          <div class="f"><span class="lb px">Over</span><select id="rRoot" aria-label="Chord root"></select><select id="rQual" aria-label="Chord quality"></select></div>
+          <div class="f"><label class="lb px" for="hText">Harmony</label><input type="text" id="hText" spellcheck="false" autocomplete="off" placeholder="Dm7 G7 | Cmaj7" title="The lick’s own chords"><span class="help l" tabindex="0" aria-label="How to write the harmony">?<i>The chords the lick goes over, at most 16. <span class="kbd">|</span> is a bar line: chords in one bar share it (two = 2 beats each, four = a beat each); a lone chord fills its bar. Without <span class="kbd">|</span> every chord gets a bar. The last chord lasts until the lick ends.<br>Examples: <span class="kbd">Am7</span> · <span class="kbd">Dm7 G7 | Cmaj7</span> · <span class="kbd">Bm7b5 E7 | Am6</span></i></span></div>
           <div class="f"><label class="lb px" for="rPos">Position</label><input type="range" id="rPos" min="0" max="14" step="1"><span class="cap" id="rPosV"></span></div>
           <div class="f"><label class="lb px" for="rBpm">Tempo</label><input type="number" id="rBpm" min="30" max="240" step="1"><span class="cap">BPM</span><span class="help l" tabindex="0" aria-label="About the tempo">?<i>The recording tempo. Play slowly: the app keeps the rhythm, and you practise faster with the tempo in the play bar.</i></span></div>
         </div>
@@ -323,7 +367,14 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
       </section>
 
       <!-- over welke akkoorden (de progressie), de lick als tab en op de hals, bewerken -->
-      <section class="paper panel" aria-label="Lick over a chord">
+      <section class="paper panel" aria-label="Lick in a key or over a chord">
+        <div class="hrow">
+          <span class="seg" id="hMode" role="group" aria-label="Harmony"><button type="button" data-v="own">Own chords</button><button type="button" data-v="prog">Over a progression</button></span>
+          <span class="f" id="keyBox"><span class="lb px">Key</span><span class="seg kseg" id="keySeg" role="group" aria-label="Key"></span></span>
+          <button type="button" class="act sm" id="keySave" title="Stores the notes and chords in this key (Undo brings the old key back)">Save in this key</button>
+          <span class="cap" id="keyDone"></span>
+        </div>
+        <div id="progBox">
         <div class="prog">
           <label class="lb px" for="pText">Chords</label>
           <input type="text" id="pText" spellcheck="false" autocomplete="off" placeholder="Dm7 G7 Cmaj7 Cmaj7">
@@ -333,6 +384,7 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
         <div class="crow">
           <div class="chips" id="chips" role="group" aria-label="Chord"></div>
           <div class="from" id="fromRow"><label class="cap" for="fromSel">Play from</label><select id="fromSel"></select></div>
+        </div>
         </div>
         <p class="info" id="viewInfo"></p>
         <div class="hsc"><div id="tab"></div></div>
@@ -359,8 +411,9 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
       <button type="button" class="gb" id="btnOne">▶ This chord</button>
       <label class="tempo" for="pBpm"><span>Tempo</span><input type="range" id="pBpm" min="30" max="240" step="1"><b class="bpm" id="pBpmV"></b></label>
       <label class="tg"><input type="checkbox" role="switch" id="pLoop"><i></i><span>Loop</span></label>
+      <div class="knx" id="kNx" aria-live="polite" hidden></div>
       <span class="stat" id="pNow" aria-live="polite"></span>
-      <span class="help l" tabindex="0" aria-label="Keys">?<i>Keys: <span class="kbd">R</span> record · <span class="kbd">Space</span> play · <span class="kbd">Esc</span> stop · <span class="kbd">← →</span> select a note · <span class="kbd">Shift ← →</span> move it · <span class="kbd">S</span> other string (with a note selected; otherwise the Look menu) · <span class="kbd">Delete</span> · <span class="kbd">A</span> add notes · <span class="kbd">Ctrl Z</span> undo.</i></span>
+      <span class="help l" tabindex="0" aria-label="Keys">?<i>Keys: <span class="kbd">R</span> record · <span class="kbd">Space</span> play (Own chords: 12 keys) ·<span class="kbd">Esc</span> stop · <span class="kbd">← →</span> select a note · <span class="kbd">Shift ← →</span> move it · <span class="kbd">S</span> other string (with a note selected; otherwise the Look menu) · <span class="kbd">Delete</span> · <span class="kbd">A</span> add notes · <span class="kbd">Ctrl Z</span> undo.</i></span>
     </footer>
   </main>
 
@@ -385,7 +438,17 @@ textarea:focus{border-color:rgba(196,106,28,.55)}
     <div class="row"><span>Neck follows the chord</span><label class="tg"><input type="checkbox" role="switch" id="pFollow" aria-label="Neck follows the chord"><i></i></label></div>
     <div id="pSnd"></div>
 
+    <h3>12 keys</h3>
+    <div class="row kring" id="kRingBox"><span id="kRing"></span><span class="krt"><span id="kRingT"></span><button type="button" class="act sm" id="kReset">Reset keys</button></span></div>
+    <p class="note">Keys of this lick you practised: a key turns green when its <b>your turn</b> round is finished. Click one to switch it on or off. The ring goes round in fourths.</p>
+    <div class="row"><label for="kOrd">Order</label><select id="kOrd"></select></div>
+    <div class="row"><span>Each key</span><span class="seg" id="kPh" role="group" aria-label="Each key"></span></div>
+    <div class="row"><span>Rounds per key</span><span class="seg" id="kRep" role="group" aria-label="Rounds per key"></span></div>
+    <p class="note">Listen: the band plays the lick. Your turn: the same chords without it. Starts from the key you see.</p>
+
     <h3>Recording</h3>
+    <div class="row"><span>Band while recording</span><label class="tg"><input type="checkbox" role="switch" id="rBand" aria-label="Band while recording"><i></i></label></div>
+    <p class="note">Plays the lick’s chords with the Chords and Bass switches above. With a microphone: use headphones.</p>
     <div class="row"><span>Grid</span><span class="seg" id="rSub" role="group" aria-label="Rhythm grid"></span></div>
     <div class="row stk"><span>Length</span><span class="seg" id="rBars" role="group" aria-label="Length in bars"></span></div>
     <div class="row"><span>Timing</span><button type="button" class="act sm" id="btnCal">Calibrate timing</button></div>
@@ -478,9 +541,12 @@ const chordName=c=>ROOTN[c.root]+QUAL[c.q].lbl;
 const DEF_SET={lat:.04,latCal:false,ptempo:80,ladder:0,loop:true,swing:true,follow:true,labels:'deg',
   hold:50,snd:{lick:true,piano:true,bass:true,click:true},prog:'Dm7 G7 Cmaj7 Cmaj7',over:[],sel:-1,add:false,
   colOpen:true,neckW:100,   /* schil: kolom rechts open; breedte van de hals in % (menu S → Neck size) */
-  view:'lib',lsort:'new',lstat:'',ltag:''};   /* weergave lib|lick; Library: sortering, filter op status en op één tag ('' = alle) */
+  view:'lib',lsort:'new',lstat:'',ltag:'',   /* weergave lib|lick; Library: sortering, filter op status en op één tag ('' = alle) */
+  hmode:'own',korder:'fourths',kplay:'lp',kreps:1,recBand:true};   /* own = eigen akkoorden in een toonsoort | prog = over de progressie (Martino);
+                                                                      12 toonsoorten: volgorde, lp = luisteren + zelf | p = alleen zelf, rondes per toonsoort; band tijdens opnemen */
 const STATS=['new','learning','known'],STATN={new:'New',learning:'Learning',known:'Known'};
-const SORTS=[['new','Newest'],['name','Name A–Z'],['last','Recently practised'],['least','Least recently practised']];
+const SORTS=[['new','Newest'],['name','Name A–Z'],['last','Recently practised'],['least','Least recently practised'],['keys','Fewest keys done']];
+const KORD=[['fourths','Cycle of fourths'],['chrom','Chromatic, up'],['random','Random'],['todo','Keys not done yet']];
 const newId=()=>'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const isInt=(v,a,b)=>Number.isInteger(v)&&v>=a&&v<=b;
 /* tags: ingekorte tekst, ≤ 24 tekens, ≤ 12 per lick, dubbele (hoofdletters tellen niet) vallen weg */
@@ -489,7 +555,14 @@ function fixTags(a){const out=[],seen=new Set();(Array.isArray(a)?a:[]).forEach(
 /* een lick. Bibliotheekvelden (alle met standaard, dus oude licks laden ongewijzigd): tags, src = bron, note = notities,
    status new|learning|known, last = laatst geoefend (ms, 0 = nooit: gezet bij afspelen met de band of opnemen in de
    weergave Lick, niet bij ▶ in de lijst), keys = bitmasker 0–4095 (voor later: welke toonsoorten), parent = id van de lick
-   waar deze een variant van is ('' = geen) */
+   waar deze een variant van is ('' = geen).
+   Fase 2: harm = eigen akkoorden [{root, q, b = tellen}] (≤ 16 akkoorden, ≤ 64 tellen; zonder → één akkoord root/q, dus oude licks
+   blijven gelijk; root/q = altijd het eerste akkoord, voor de Martino-weergave en oudere versies), keys = bit per grondtoon van de
+   toonsoort (0 = C) die geoefend is, ko = per toonsoort (zelfde index) een octaafkeuze −2…2 t.o.v. de plek die het dichtst bij de opname ligt */
+function fixHarm(h,root,q){let tot=0;
+  const out=(Array.isArray(h)?h:[]).filter(c=>c&&isInt(c.root,0,11)&&QUAL[c.q]&&isInt(c.b,1,16)).slice(0,16)
+    .filter(c=>(tot+=c.b)<=64).map(c=>({root:c.root,q:c.q,b:c.b}));
+  return out.length?out:[{root,q,b:4}];}
 function fixLick(l){if(!l||typeof l!=='object')return null;
   const L={id:typeof l.id==='string'&&l.id?l.id:newId(),name:typeof l.name==='string'&&l.name.trim()?l.name.slice(0,60):'Lick',
     root:isInt(l.root,0,11)?l.root:9,q:QUAL[l.q]?l.q:'m7',pos:isInt(l.pos,0,14)?l.pos:5,bpm:isInt(l.bpm,30,240)?l.bpm:70,
@@ -497,6 +570,8 @@ function fixLick(l){if(!l||typeof l!=='object')return null;
     tags:fixTags(l.tags),src:typeof l.src==='string'?l.src.slice(0,120):'',note:typeof l.note==='string'?l.note.slice(0,1000):'',
     status:STATS.includes(l.status)?l.status:'new',last:Number.isFinite(+l.last)&&+l.last>0?+l.last:0,keys:isInt(l.keys,0,4095)?l.keys:0,
     parent:typeof l.parent==='string'?l.parent.slice(0,40):''};
+  L.harm=fixHarm(l.harm,L.root,L.q);L.root=L.harm[0].root;L.q=L.harm[0].q;
+  L.ko=Array.isArray(l.ko)&&l.ko.length===12&&l.ko.every(v=>isInt(v,-2,2))?l.ko.slice():Array(12).fill(0);
   if(Array.isArray(l.notes))L.notes=l.notes.filter(n=>n&&isInt(n.t,-16,999)&&isInt(n.s,0,5)&&isInt(n.f,0,MAXF))
     .map(n=>({t:n.t,d:isInt(n.d,1,64)?n.d:1,s:n.s,f:n.f,lock:!!n.lock})).sort((a,b)=>a.t-b.t)
     .filter((n,i,a)=>!i||a[i-1].t!==n.t);
@@ -514,7 +589,9 @@ function hydrate(o){const st={v:1,licks:[],cur:'',set:JSON.parse(JSON.stringify(
     st.set.ptempo=clamp(Math.round(st.set.ptempo)||80,30,240);st.set.lat=clamp(+st.set.lat||0,-.1,.5);
     st.set.neckW=clamp(Math.round(st.set.neckW)||100,60,100);
     if(!['lib','lick'].includes(st.set.view))st.set.view='lib';if(!SORTS.some(s=>s[0]===st.set.lsort))st.set.lsort='new';
-    if(!STATS.includes(st.set.lstat))st.set.lstat='';st.set.ltag=st.set.ltag.slice(0,24);}
+    if(!STATS.includes(st.set.lstat))st.set.lstat='';st.set.ltag=st.set.ltag.slice(0,24);
+    if(!['own','prog'].includes(st.set.hmode))st.set.hmode='own';if(!KORD.some(o=>o[0]===st.set.korder))st.set.korder='fourths';
+    if(!['lp','p'].includes(st.set.kplay))st.set.kplay='lp';st.set.kreps=clamp(Math.round(st.set.kreps)||1,1,4);}
   st.cur=typeof o.cur==='string'?o.cur:'';return st;}
 let ST;{const raw=(()=>{try{return localStorage.getItem(KEY);}catch(e){return null;}})();
   try{ST=hydrate(raw?JSON.parse(raw):null);}catch(e){try{localStorage.setItem(KEY+'.bad',raw);}catch(x){}ST=hydrate(null);}}   /* onleesbare data niet stil overschrijven */
@@ -593,6 +670,63 @@ function place(L,c){const fam=QUAL[c.q].fam,auto=mod(RULE[fam]-RULE[QUAL[L.q].fa
   ok.sort((a,b)=>a-b);let bi=0;ok.forEach((d,j)=>{const a=Math.abs(d),b=Math.abs(ok[bi]);if(a<b||(a===b&&d>ok[bi]))bi=j;});
   const j=clamp(bi+(c.oct||0),0,ok.length-1);
   return{d:ok[j],x,auto,fit,canDn:j>0,canUp:j<ok.length-1};}
+
+/* ── eigen akkoorden (harm) en toonsoorten ──
+   Akkoordrij lezen: "Dm7 G7 | Cmaj7" → [{root,q,b}] (b = tellen). | = maatstreep: akkoorden in één maat delen hem (2 = 2+2,
+   3 = 2+1+1, 4 = elk een tel, meer past niet); zonder | krijgt elk akkoord een maat. bad = woorden die geen akkoord zijn. */
+function parseHarm(txt){const out=[],bad=[],t=String(txt).trim(),bars=/\|/.test(t)?t.split('|'):t.split(/[\s,]+/);
+  bars.forEach(bt=>{const toks=bt.split(/[\s,]+/).filter(Boolean),cs=[];
+    toks.forEach(k=>{const c=parseChord(k);if(!c)bad.push(k);else if(cs.length>=4)bad.push(k);else cs.push(c);});
+    const B=[[4],[2,2],[2,1,1],[1,1,1,1]][cs.length-1];if(B)cs.forEach((c,i)=>out.push({root:c.root,q:c.q,b:B[i]}));});
+  if(out.length>16)bad.push('(more than 16 chords)');return{harm:out.slice(0,16),bad};}
+const trC=(c,n)=>({root:mod(c.root+n,12),q:c.q,b:c.b});
+const cName=(c,flat)=>nn(c.root,flat)+QUAL[c.q].lbl;
+/* de toonsoort van de akkoordrij: t = grondtoon (0–11), min = mineur, form = ii–V–I enz., one = het ene akkoord als er maar één is.
+   Eindigt de rij op I (of i) met de V ervoor (en eventueel de ii), dan is dat de toonsoort; eindigt hij op ii–V, dan die van de V;
+   anders het laatste akkoord. */
+function keyOf(L){const h=L.harm,cs=h.filter((c,i)=>!i||c.root!==h[i-1].root||c.q!==h[i-1].q),k=cs.length,Z=cs[k-1],fz=QUAL[Z.q].fam;
+  if(cs.every(c=>c.root===Z.root&&c.q===Z.q))return{t:Z.root,min:['min','hd','dim'].includes(fz),one:Z};
+  const V=cs[k-2],fv=QUAL[V.q].fam,II=cs[k-3],fii=II&&QUAL[II.q].fam;
+  if((fz==='maj'||fz==='min')&&fv==='dom'&&mod(V.root-Z.root,12)===7){const min=fz==='min',ii=!!II&&mod(II.root-Z.root,12)===2&&(fii==='min'||fii==='hd');
+    return{t:Z.root,min,form:ii?(min?'ii–V–i':'ii–V–I'):(min?'V–i':'V–I')};}
+  if((fz==='dom'||fz==='sus')&&(fv==='min'||fv==='hd')&&mod(Z.root-V.root,12)===5)return{t:mod(Z.root+5,12),min:fv==='hd',form:'ii–V'};
+  return{t:Z.root,min:['min','hd'].includes(fz)};}
+/* mollen of kruisen in de toonsoort n halve tonen hoger (één akkoord: zoals dat akkoord, anders zoals de toonsoort); anders dan
+   flatFor hoort G♭ hier bij de mollen (D♭7, E♭m, ii–V–I in G♭: zo schrijven jazzboeken het) */
+function keyFlat(L,n){const k=keyOf(L),c=k.one?trC(k.one,n):{root:mod(k.t+n,12),q:k.min?'m7':'maj7'};
+  return flatFor(c)||isGb(c);}
+/* hoort dit akkoord bij G♭ majeur (dezelfde rekensom als flatFor) */
+const isGb=c=>{const f=QUAL[c.q].fam;return mod(c.root+(f==='min'?3:f==='hd'?1:f==='dom'||f==='sus'?5:f==='dim'?1:0),12)===6;};
+const keyPc=(L,n)=>mod(keyOf(L).t+n,12);
+/* naam van de toonsoort: "ii–V–I in F", "ii–V–i in A minor", "over A♭7", "in E♭" */
+function keyName(L,n){const k=keyOf(L),f=keyFlat(L,n);if(k.one)return 'over '+cName(trC(k.one,n),f);
+  const t=nn(k.t+n,f)+(k.min?' minor':'');return k.form?k.form+' in '+t:'in '+t;}
+/* knopje van de toonsoort met grondtoon pc: "F", "B♭m" */
+function keyLabel(L,pc){const k=keyOf(L),n=mod(pc-k.t,12);return nn(pc,keyFlat(L,n))+(k.min&&!k.one?'m':'');}
+/* akkoordrij als tekst, per maat: "Dm7 G7 | Cmaj7" (één akkoord zonder |) */
+function harmText(h,flat){if(h.length<2)return h.length?cName(h[0],flat):'';const bars=[];let cur=[],o=0;
+  h.forEach(c=>{cur.push(cName(c,flat));o+=c.b;if(o%4===0){bars.push(cur.join(' '));cur=[];}});if(cur.length)bars.push(cur.join(' '));
+  return bars.join(' | ');}
+/* een lick met één akkoord (ook "Am7 | Am7") kan over een progressie; met eigen akkoorden alleen in een toonsoort */
+const oneChord=L=>L.harm.every(c=>c.root===L.harm[0].root&&c.q===L.harm[0].q);
+const hmode=L=>S.hmode==='prog'&&oneChord(L)?'prog':'own';
+const harmBeats=L=>L.harm.reduce((a,c)=>a+c.b,0);
+/* lengte in maten met de eigen akkoorden: de lick, of de akkoordrij als die langer is */
+const segBars=L=>Math.max(lickBars(L),Math.ceil(harmBeats(L)/4));
+/* akkoorden op de tijdlijn (o = begin in tellen vanaf tel 1), n halve tonen hoger; het laatste akkoord loopt door tot het eind */
+function timeline(L,n){const tot=segBars(L)*4;let o=0;const tl=L.harm.map(c=>{const x=Object.assign(trC(c,n),{o});o+=c.b;return x;});
+  const z=tl[tl.length-1];z.b=Math.max(z.b,tot-z.o);return tl;}
+const chordOn=(tl,beat)=>tl.find(c=>beat<c.o+c.b)||tl[tl.length-1];   /* opmaat (beat < 0) = het eerste akkoord */
+/* toonsoort die nu te zien is: n halve tonen boven de opgenomen toonsoort (per lick, niet bewaard) */
+const KV={};
+const keyN=L=>KV[L.id]||0;
+/* waar ligt de lick in toonsoort n: dezelfde vorm, zo dicht mogelijk bij de opgenomen plek, of de bewaarde octaafkeuze (ko) */
+function placeKey(L,n){n=mod(n,12);if(!n)return{d:0,x:0,auto:0,fit:true,canDn:false,canUp:false,ref:true};
+  return place(L,{root:mod(L.root+n,12),q:L.q,from:null,oct:L.ko[keyPc(L,n)]});}
+/* wat de weergave Lick nu laat zien: own = eigen akkoorden in toonsoort n; anders de lick over akkoord S.sel (Martino).
+   d = verschuiving in frets, at(t) = het akkoord bij rasterstap t, flat = spelling, bars = lengte */
+function viewOf(L){if(hmode(L)==='prog'){const c=chordAt(S.sel),P=place(L,c);return{own:false,c,P,d:P.d,at:()=>c,flat:flatFor(c),bars:lickBars(L)};}
+  const n=keyN(L),P=placeKey(L,n),tl=timeline(L,n);return{own:true,n,P,d:P.d,tl,at:t=>chordOn(tl,t/L.sub),flat:keyFlat(L,n),bars:segBars(L)};}
 
 /* ═══════════ 5. SCHIL (shared/rail.js + shared/look.js) ═══════════
    Daglicht, geen thema-knop; de hals is palissander (of de kaartstijl uit menu S), niet meer de houtsoort van Home. */
@@ -802,20 +936,27 @@ const IN=(function(){
 let REC=null;
 async function recStart(into){if(REC){recStop();return;}stopPlay();if(CAL)return;
   if(!IN.on&&!(await IN.connect()))return;
+  /* band tijdens het opnemen: de eigen akkoorden van de lick (opgenomen toonsoort), met de schakelaars Chords en Bass */
+  const withBand=S.recBand&&(S.snd.piano||S.snd.bass);
+  if(withBand&&!SND&&window.BACKING_SOUNDS&&audio()){$('#recL').textContent='Loading sounds…';await loadSounds();if(REC||PL||CAL)return;}
   let L=lick(),created=null;
-  if(!into&&L.notes.length){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now(),tags:[],src:'',note:'',status:'new',last:0,keys:0,parent:''}));
+  if(!into&&L.notes.length){const N=fixLick(Object.assign({},L,{id:newId(),name:nextName(),notes:[],raw:null,made:Date.now(),tags:[],src:'',note:'',status:'new',last:0,keys:0,ko:null,parent:''}));
     created={id:N.id,prev:L.id};ST.licks.push(N);ST.cur=N.id;L=N;}
   const a=audio(),spb=60/L.bpm,t0=a.currentTime+.15+4*spb;
-  REC={id:L.id,into:!!into,created,t0,spb,end:L.bars?t0+L.bars*4*spb:t0+16*4*spb,beat:-4,ev:[],raf:0,
+  REC={id:L.id,into:!!into,created,t0,spb,end:L.bars?t0+L.bars*4*spb:t0+16*4*spb,beat:-4,ev:[],raf:0,mix:withBand?chain():null,hb:t0,
     off:IN.onNote(ev=>{if(REC&&ev.at>REC.t0-4*REC.spb-.05){REC.ev.push(ev);streamAdd(ev.m);}})};
   IN.resetMissed();REC.iv=setInterval(recTick,25);recTick();$('#stream').innerHTML='';sel=null;S.sel=-1;renderAll();recUI();}
 function recTick(){const R=REC;if(!R)return;const now=actx.currentTime;
   while(R.t0+R.beat*R.spb<Math.min(now+.15,R.end-.01)){click(R.t0+R.beat*R.spb,mod(R.beat,4)===0,R.beat<0);R.beat++;}
+  const L=R.mix&&ST.licks.find(l=>l.id===R.id);
+  while(L&&R.hb<Math.min(now+.4,R.end-.01)){const bars=segBars(L);band(R.mix,timeline(L,0),R.hb,R.spb,bars,false);R.hb+=bars*4*R.spb;}
   if(now>R.end+.35)recFinish();}
+/* een mengpaneel laten wegsterven en loskoppelen (stoppen) */
+function fadeMix(mix){try{const g=mix.out.gain;g.cancelScheduledValues(actx.currentTime);g.setTargetAtTime(0,actx.currentTime,.03);setTimeout(()=>{try{mix.out.disconnect();}catch(e){}},300);}catch(e){}}
 /* stoppen: tijdens het aftellen = annuleren, daarna = houden wat er is (de laatste noot krijgt nog even de tijd) */
 function recStop(){const R=REC;if(!R)return;const now=actx.currentTime;
   if(now<R.t0-.05){recEnd(R);toast('Recording cancelled.');return;}R.end=Math.min(R.end,now);setTimeout(()=>{if(REC===R)recFinish();},350);}
-function recEnd(R){REC=null;clearInterval(R.iv);R.off();cancelAnimationFrame(R.raf);
+function recEnd(R){REC=null;clearInterval(R.iv);R.off();cancelAnimationFrame(R.raf);if(R.mix)fadeMix(R.mix);
   if(R.created){const L=ST.licks.find(l=>l.id===R.created.id);if(L&&!L.notes.length){ST.licks.splice(ST.licks.indexOf(L),1);ST.cur=R.created.prev;}}
   recUI();save();renderAll();}
 function recFinish(){const R=REC;if(!R)return;
@@ -856,52 +997,101 @@ async function calibrate(){if(CAL||REC)return;stopPlay();if(!IN.on&&!(await IN.c
 
 /* ═══════════ 9. AFSPELEN EN OEFENEN ═══════════ */
 let PL=null;
-/* mode: 'prog' = de progressie, 'one' = het gekozen akkoord (beide met band, tellen als oefenen: L.last),
+/* mode: 'prog' = de progressie, 'one' = het gekozen akkoord (Martino; beide met band, tellen als oefenen: L.last),
+   'key' = eigen akkoorden in de toonsoort die te zien is, 'k12' = 12 toonsoorten (per toonsoort luisteren, dan zelf),
    'pre' = ▶ in de Library: lick L één keer in zijn eigen tempo, alleen de gitaar, zonder aftellen */
-function playStart(mode,L){L=L||lick();const pre=mode==='pre';
+function playStart(mode,L){L=L||lick();const pre=mode==='pre',own=mode==='key'||mode==='k12';
   if(PL){const same=PL.mode===mode&&(!pre||PL.L===L);stopPlay();if(same)return;}if(REC||CAL)return;if(!audio())return;
   if(!L.notes.length){toast(pre?'“'+L.name+'” has no notes yet.':'This lick has no notes yet. Record one first.');return;}
-  const go=()=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i),list=pre?[-1]:mode==='one'?[S.sel]:cs.length?cs:[-1];
+  if(mode==='k12'&&!k12List(L).length){toast('All 12 keys are done. Pick another order, or Reset keys (side panel, 12 keys).');return;}
+  const go=()=>{const cs=progChords().filter(c=>!c.bad).map(c=>c.i);
+    const list=pre?[-1]:mode==='one'?[S.sel]:mode==='key'?[{live:true}]:mode==='k12'?k12List(L):cs.length?cs:[-1];
     const bpm=pre?L.bpm:clamp(S.ptempo,30,240),spb=60/bpm,t0=actx.currentTime+.12,mix=chain();
     if(!pre){for(let b=0;b<4;b++)click(t0+b*spb,b===0,true,mix.click);L.last=Date.now();save();}
-    PL={mode,L:pre?L:null,mix,list,k:0,t:pre?t0-tOf(minT(L),L.sub,spb):t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false};
+    PL={mode,own,L:pre?L:null,mix,list,k:0,t:pre?t0-tOf(minT(L),L.sub,spb):t0+4*spb,bpm,round:1,vis:[{at:t0,kind:'count'}],iv:0,raf:0,cur:null,done:false};
+    if(mode==='k12')showKNx(PL,list[0],true);
     sched();PL.iv=setInterval(sched,40);PL.raf=requestAnimationFrame(visLoop);syncTransport();syncPre();};
   if(pre||SND||!window.BACKING_SOUNDS)go();else{PL={loading:true,mode};syncTransport();loadSounds().then(()=>{if(PL&&PL.loading){PL=null;go();}});}}
+/* 12 toonsoorten: de grondtonen in de gekozen volgorde, beginnend bij de toonsoort die nu te zien is ("not done yet" = in kwarten,
+   zonder de toonsoorten die al aan staan); per toonsoort S.kreps rondes van luisteren (lick + band) en zelf spelen (alleen de band) */
+function keyOrder(L,start){const cur=start??keyPc(L,keyN(L));let ks=Array.from({length:12},(_,i)=>mod(cur+(S.korder==='chrom'?i:5*i),12));
+  if(S.korder==='random')for(let i=11;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ks[i],ks[j]]=[ks[j],ks[i]];}
+  if(S.korder==='todo')ks=ks.filter(pc=>!(L.keys>>pc&1));return ks;}
+function k12List(L,start){const t=keyOf(L).t,out=[],ks=keyOrder(L,start);
+  ks.forEach((pc,ki)=>{const n=mod(pc-t,12);for(let r=0;r<S.kreps;r++){const o={n,key:pc,r,ki,kn:ks.length};
+    if(S.kplay==='lp')out.push(Object.assign({lick:true,ph:'listen'},o));out.push(Object.assign({lick:false,ph:'play',done:r===S.kreps-1},o));}});
+  return out;}
 function sched(){const p=PL;if(!p||p.loading)return;const L=p.L||lick();
-  while(!p.done){const spb=60/p.bpm,dur=lickBars(L)*4*spb,lead=-tOf(minT(L),L.sub,spb)+.05;
+  while(!p.done){const spb=60/p.bpm,dur=(p.own?segBars(L):lickBars(L))*4*spb,lead=-tOf(minT(L),L.sub,spb)+.05;
     if(p.t-lead>actx.currentTime+.4)break;
-    segment(p,L,p.list[p.k],p.t,spb);p.t+=dur;p.k++;
-    if(p.k>=p.list.length){if(!S.loop||p.mode==='pre'){p.done=true;p.vis.push({at:p.t+(p.mode==='pre'?.5:.2),kind:'end'});break;}
-      p.k=0;p.round++;if(S.ladder){p.bpm=Math.min(240,p.bpm+S.ladder);}p.vis.push({at:p.t,kind:'round',round:p.round,bpm:p.bpm});}}}
+    if(p.own)segOwn(p,L,p.list[p.k],p.t,spb);else segment(p,L,p.list[p.k],p.t,spb);p.t+=dur;p.k++;
+    /* 12 toonsoorten: elke nieuwe toonsoort een paar BPM sneller (Each round) */
+    if(p.mode==='k12'&&p.k<p.list.length&&p.list[p.k].key!==p.list[p.k-1].key&&S.ladder){p.bpm=Math.min(240,p.bpm+S.ladder);p.vis.push({at:p.t,kind:'round',round:p.round,bpm:p.bpm});}
+    /* einde van de rij; 12 toonsoorten met Loop: opnieuw vanaf dezelfde toonsoort (random: nieuwe volgorde; "not done yet": klaar) */
+    if(p.k>=p.list.length){const nx=p.mode==='k12'&&S.loop&&S.korder!=='todo'?k12List(L,p.list[0].key):null;
+      if(!S.loop||p.mode==='pre'||(p.mode==='k12'&&!nx)){p.done=true;p.vis.push({at:p.t+(p.mode==='pre'?.5:.2),kind:'end'});break;}
+      if(nx)p.list=nx;p.k=0;p.round++;if(S.ladder){p.bpm=Math.min(240,p.bpm+S.ladder);}p.vis.push({at:p.t,kind:'round',round:p.round,bpm:p.bpm});}}}
+/* Martino: de lick over akkoord ci van de progressie (of het opgenomen akkoord), met band */
 function segment(p,L,ci,T,spb){const pre=p.mode==='pre',c=ci<0?refChord(L):chordAt(ci),P=place(L,c),mx=p.mix,bars=lickBars(L);
   p.vis.push({at:T,kind:'seg',ci});
   L.notes.forEach((n,j)=>{const at=T+tOf(n.t,L.sub,spb),len=tOf(n.t+n.d,L.sub,spb)-tOf(n.t,L.sub,spb),f=n.f+P.d;
     if((S.snd.lick||pre)&&f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,mx.gtr);p.vis.push({at,kind:'note',ci,j});});
   if(pre)return;   /* beluisteren: geen band */
-  const V=voicing(c),sw=S.swing?SWING:.5;let bassRef=36;
-  for(let b=0;b<bars;b++){const B=T+b*4*spb;
-    if(S.snd.piano){if(GTR_BUS(mx.piano)){GTR.chord(actx,mx.piano,V,B,{strum:.012,len:1.4*spb,vel:72});GTR.chord(actx,mx.piano,V,B+(1+sw)*spb,{strum:.012,len:1.1*spb,vel:62});}
-      else V.forEach((m,k)=>{pianoNote(m,B+k*.012,1.4*spb,72,mx.piano);pianoNote(m,B+(1+sw)*spb+k*.012,1.1*spb,62,mx.piano);});}
-    if(S.snd.bass){const r=nearBass(c.root,bassRef),f5=nearBass(mod(c.root+QUAL[c.q].iv[2],12),r);bassRef=r;
-      bassPlay(r,B,2*spb*.95,110,mx.bass);bassPlay(f5,B+2*spb,2*spb*.95,98,mx.bass);}
-    if(S.snd.click)for(let q=0;q<4;q++)click(B+q*spb,q===0,false,mx.click);}}
+  band(mx,[Object.assign({o:0,b:bars*4},c)],T,spb,bars,true);}
+/* eigen akkoorden: één keer de lick (of alleen de band) in toonsoort it.n; it.live = de toonsoort die nu te zien is (▶ This key) */
+function segOwn(p,L,it,T,spb){if(it.live)it={n:keyN(L),lick:S.snd.lick,ph:'key',live:true};
+  const P=placeKey(L,it.n),bars=segBars(L);p.vis.push({at:T,kind:'seg',it,bpm:p.bpm});
+  if(it.lick)L.notes.forEach((n,j)=>{const at=T+tOf(n.t,L.sub,spb),len=tOf(n.t+n.d,L.sub,spb)-tOf(n.t,L.sub,spb),f=n.f+P.d;
+    if(f>=0&&f<=MAXF)guitarNote(OPEN[n.s]+f,at,len*.92,p.mix.gtr);p.vis.push({at,kind:'note',it,j});});
+  band(p.mix,timeline(L,it.n),T,spb,bars,true);
+  if(it.done)p.vis.push({at:T+bars*4*spb-.05,kind:'kdone',key:it.key});}
+/* de band over akkoorden op een tijdlijn ({root,q,o,b} in tellen): per stuk akkoord binnen een maat een aanslag op zijn eerste tel en,
+   vanaf 2 tellen, een op de "en" daarna (swing); bas: de grondtoon, bij een hele maat op tel 3 de kwint; klik op elke tel (clk) */
+function band(mx,tl,T,spb,bars,clk){const sw=S.swing?SWING:.5;let bassRef=36;
+  tl.forEach(c=>{const V=voicing(c),end=c.o+c.b;let o=c.o;
+    while(o<end-1e-6){const b=Math.min(end,(Math.floor(o/4)+1)*4)-o,B=T+o*spb;
+      if(S.snd.piano){const hit=(at,len,vel)=>{if(GTR_BUS(mx.piano))GTR.chord(actx,mx.piano,V,at,{strum:.012,len,vel});else V.forEach((m,k)=>pianoNote(m,at+k*.012,len,vel,mx.piano));};
+        hit(B,Math.min(1.4,b)*spb,72);if(b>=2)hit(B+(1+sw)*spb,1.1*spb,62);}
+      if(S.snd.bass){const r=nearBass(c.root,bassRef);bassRef=r;
+        if(b>=4){bassPlay(r,B,2*spb*.95,110,mx.bass);bassPlay(nearBass(mod(c.root+QUAL[c.q].iv[2],12),r),B+2*spb,2*spb*.95,98,mx.bass);}
+        else bassPlay(r,B,b*spb*.95,110,mx.bass);}
+      o+=b;}});
+  if(clk&&S.snd.click)for(let q=0;q<bars*4;q++)click(T+q*spb,q%4===0,false,mx.click);}
 function visLoop(){const p=PL;if(!p||p.loading)return;p.raf=requestAnimationFrame(visLoop);
   const now=actx.currentTime-(actx.outputLatency||0);p.vis.sort((a,b)=>a.at-b.at);
   while(p.vis.length&&p.vis[0].at<=now){const e=p.vis.shift();
     if(p.mode==='pre'){if(e.kind==='end'){stopPlay();return;}continue;}   /* beluisteren in de lijst: niets op de hals tonen */
     if(e.kind==='count')$('#pNow').textContent='Count-in…';
+    else if(e.kind==='seg'&&e.it){p.cur=e.it;p.shown=e.bpm;followKey(e.it);showKNx(p,e.it);if(!e.it.lick)$$('.pl').forEach(x=>x.classList.remove('pl'));}
     else if(e.kind==='seg'){p.cur=e.ci;follow(e.ci);markNow(e.ci);$('#pNow').textContent=chordAt(e.ci).label+' · round '+p.round+' · '+p.bpm+' BPM';}
+    else if(e.kind==='note'&&e.it){if(keyN(lick())===e.it.n)hiNote(e.j);}
     else if(e.kind==='note'){follow(e.ci);if(S.sel===e.ci)hiNote(e.j);}
+    else if(e.kind==='kdone'){const L=lick();L.keys|=1<<e.key;L.last=Date.now();save();renderKeys();}
     else if(e.kind==='round'){p.round=e.round;}
     else if(e.kind==='end'){stopPlay();return;}}}
+/* eigen akkoorden: de hals volgt de toonsoort die speelt (Neck follows the chord) */
+function followKey(it){const L=lick();if(!S.follow||keyN(L)===it.n)return;KV[L.id]=it.n;sel=null;renderKeys();renderView();}
+/* op de transportplank: welke toonsoort nu (luisteren of jij), welke daarna, hoever */
+function showKNx(p,it,count){const L=lick(),el=$('#kNx');
+  if(p.mode!=='k12'){el.hidden=true;$('#pNow').textContent=keyName(L,it.n)+' · round '+p.round+' · '+(p.shown||p.bpm)+' BPM';return;}
+  const i=p.list.indexOf(it),nx=p.list.slice(i+1).find(x=>x.key!==it.key);   /* na een nieuwe ronde (Loop) is it niet meer in de lijst: dan de eerste */
+  const ph=count?'<em>get ready</em>':it.ph==='listen'?'<em>listen</em>':'<em class="you">your turn</em>';
+  el.innerHTML='<span><small>Now</small><b class="mus">'+esc(keyLabel(L,it.key))+'</b>'+ph+(S.kreps>1?'<span class="kc">'+(it.r+1)+'/'+S.kreps+'</span>':'')+'</span>'
+    +'<span class="knext"><small>Next</small><b class="mus">'+(nx?esc(keyLabel(L,nx.key)):'–')+'</b></span><span class="kc">key '+(it.ki+1)+' of '+it.kn+'</span>';
+  el.hidden=false;$('#pNow').textContent='round '+p.round+' · '+(p.shown||p.bpm)+' BPM';
+  $$('#keySeg [data-k]').forEach(b=>{b.classList.toggle('now',+b.dataset.k===it.key);b.classList.toggle('nx',!!nx&&+b.dataset.k===nx.key);});
+  $$('#kRing .kd').forEach(g=>{g.classList.toggle('now',+g.dataset.k===it.key);g.classList.toggle('nx',!!nx&&+g.dataset.k===nx.key);});}
 function follow(ci){if(S.follow&&PL&&PL.mode==='prog'&&S.sel!==ci){S.sel=ci;sel=null;renderChips();renderView();}}
-function stopPlay(){const p=PL;PL=null;if(p&&!p.loading){clearInterval(p.iv);cancelAnimationFrame(p.raf);
-    try{const g=p.mix.out.gain;g.cancelScheduledValues(actx.currentTime);g.setTargetAtTime(0,actx.currentTime,.03);setTimeout(()=>{try{p.mix.out.disconnect();}catch(e){}},300);}catch(e){}}
-  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';syncTransport();syncPre();}
+function stopPlay(){const p=PL;PL=null;if(p&&!p.loading){clearInterval(p.iv);cancelAnimationFrame(p.raf);fadeMix(p.mix);}
+  $$('.pl').forEach(e=>e.classList.remove('pl'));markNow(null);$('#pNow').textContent='';$('#kNx').hidden=true;
+  $$('#keySeg .now,#keySeg .nx,#kRing .now,#kRing .nx').forEach(e=>e.classList.remove('now','nx'));syncTransport();syncPre();}
 function stopAll(){stopPlay();if(REC)recStop();}
-function syncTransport(){const m=PL&&PL.mode;
-  $('#btnProg').textContent=m==='prog'?(PL.loading?'Loading sounds…':'■ Stop'):'▶ Play progression';
-  $('#btnOne').textContent=m==='one'?(PL.loading?'Loading sounds…':'■ Stop'):'▶ This chord';}
+/* knoppen op de plank: Own chords = ▶ 12 keys (spatie) en ▶ This key; over een progressie = ▶ Play progression en ▶ This chord */
+function syncTransport(){const m=PL&&PL.mode,own=hmode(lick())==='own',lab=(k,t)=>m===k?(PL.loading?'Loading sounds…':'■ Stop'):t;
+  $('#btnProg').textContent=own?lab('k12','▶ 12 keys'):lab('prog','▶ Play progression');
+  $('#btnOne').textContent=own?lab('key','▶ This key'):lab('one','▶ This chord');
+  $('#btnProg').title=own?'Space · every key: listen, then your turn':'Space';$('#keySave').disabled=!!(REC||PL);}
+const playMain=()=>playStart(hmode(lick())==='own'?'k12':'prog'),playOne=()=>playStart(hmode(lick())==='own'?'key':'one');
 function hiNote(j){$$('.pl').forEach(e=>e.classList.remove('pl'));
   const t=$('#tab .nt[data-i="'+j+'"]');if(t)t.classList.add('pl');$$('#board .dot').forEach(d=>{if((' '+d.dataset.js+' ').includes(' '+j+' '))d.classList.add('pl');});}
 function markNow(ci){$$('#chips .chip').forEach(b=>b.classList.toggle('now',ci!=null&&+b.dataset.ci===ci));}
@@ -913,7 +1103,7 @@ let toastT=0;
 function toast(t,err,act){const el=$('#toast');el.textContent=t;
   if(act){const b=document.createElement('button');b.type='button';b.className='lnk tact';b.textContent=act.l;b.onclick=()=>{el.className='toast';act.fn();};el.append(b);}
   el.className='toast on'+(err?' err':'')+(act?' act':'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',act?7000:err?5200:3400);}
-function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderChips();renderView();renderPractice();syncUndo();}
+function renderAll(){renderHead();if(S.view==='lib')renderList();renderSetup();renderKeys();renderChips();renderView();renderPractice();syncUndo();}
 /* kop van de weergave Lick: naam, "variant of …", status, vorige/volgende; daarna de details in de kolom */
 function renderHead(){const L=lick(),par=L.parent&&ST.licks.find(x=>x.id===L.parent);
   if(document.activeElement!==$('#lkName'))$('#lkName').value=L.name;
@@ -936,31 +1126,49 @@ function ago(ts){if(!ts)return 'never';const a=new Date(),b=new Date(ts);a.setHo
   return n<=0?'today':n===1?'yesterday':n<14?n+' days ago':n<60?Math.round(n/7)+' weeks ago':dShort(ts);}
 function allTags(){const m=new Map();ST.licks.forEach(l=>l.tags.forEach(t=>{const k=t.toLowerCase();if(!m.has(k))m.set(k,{t,n:0});m.get(k).n++;}));
   return[...m.values()].sort((a,b)=>b.n-a.n||a.t.localeCompare(b.t));}
-const hay=l=>(l.name+' '+l.tags.join(' ')+' '+l.src+' '+l.note+' '+chordName(l)+' '+chordName(l).replace(/♭/g,'b').replace(/♯/g,'#')).toLowerCase();
+/* zoeken in naam, tags, bron, notities, de akkoorden (ook als Bb/F#, °/dim) en de naam van de toonsoort ("ii–V–I in F") */
+const hay=l=>{const h=harmText(l.harm,keyFlat(l,0))+' '+keyName(l,0)+' '+chordName(l);
+  return(l.name+' '+l.tags.join(' ')+' '+l.src+' '+l.note+' '+h+' '+h.replace(/♭/g,'b').replace(/♯/g,'#').replace(/°/g,'dim').replace(/–/g,'-')).toLowerCase();};
+const nKeys=l=>{let n=0;for(let k=0;k<12;k++)n+=l.keys>>k&1;return n;};
 function libList(){const q=LQ.toLowerCase().split(/\s+/).filter(Boolean),tg=S.ltag.toLowerCase();
   const by={new:(x,y)=>y.made-x.made,name:(x,y)=>x.name.localeCompare(y.name,undefined,{numeric:true,sensitivity:'base'}),
-    last:(x,y)=>y.last-x.last||y.made-x.made,least:(x,y)=>x.last-y.last||x.made-y.made}[S.lsort];
+    last:(x,y)=>y.last-x.last||y.made-x.made,least:(x,y)=>x.last-y.last||x.made-y.made,keys:(x,y)=>nKeys(x)-nKeys(y)||x.last-y.last||x.made-y.made}[S.lsort];
   return ST.licks.filter(l=>(!S.lstat||l.status===S.lstat)&&(!tg||l.tags.some(t=>t.toLowerCase()===tg))&&(!q.length||q.every(w=>hay(l).includes(w)))).sort(by);}
 /* vorige/volgende lick: in de volgorde van de lijst zoals je hem laatst zag (anders alle licks) */
 function navList(){const a=libList();return a.includes(lick())?a:ST.licks;}
 /* klein lijntje van de lick voor de lijst: toonhoogte over de tijd, maatstrepen, grondtonen van het akkoord in amber */
 function miniSVG(L){if(!L.notes.length)return '<span class="cap">empty</span>';
-  const W=160,H=36,sub=L.sub,bar=4*sub,t0=Math.min(0,Math.floor(L.notes[0].t/sub)*sub),t1=lickBars(L)*bar,ms=L.notes.map(midiOf);
+  const W=160,H=36,sub=L.sub,bar=4*sub,t0=Math.min(0,Math.floor(L.notes[0].t/sub)*sub),t1=lickBars(L)*bar,ms=L.notes.map(midiOf),tl=timeline(L,0);
   const lo=Math.min(...ms),hi=Math.max(...ms),sp=Math.max(hi-lo,7),pad=(sp-(hi-lo))/2;
   const x=t=>(3+(t-t0)/(t1-t0)*(W-6)).toFixed(1),y=m=>(H-5-(m-lo+pad)/sp*(H-10)).toFixed(1);
   let o='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true">';
   for(let t=Math.floor(t0/bar)*bar+bar;t<t1;t+=bar)o+='<line class="mbl" x1="'+x(t)+'" y1="4" x2="'+x(t)+'" y2="'+(H-4)+'"/>';
   o+='<polyline class="mcl" points="'+L.notes.map((n,i)=>x(n.t+.5)+','+y(ms[i])).join(' ')+'"/>';
-  L.notes.forEach((n,i)=>{const r=mod(ms[i]-L.root,12)===0;o+='<circle class="mcd'+(r?' rt':'')+'" cx="'+x(n.t+.5)+'" cy="'+y(ms[i])+'" r="'+(r?2.7:1.9)+'"/>';});
+  L.notes.forEach((n,i)=>{const r=mod(ms[i]-chordOn(tl,n.t/sub).root,12)===0;o+='<circle class="mcd'+(r?' rt':'')+'" cx="'+x(n.t+.5)+'" cy="'+y(ms[i])+'" r="'+(r?2.7:1.9)+'"/>';});
   return o+'</svg>';}
-/* één rij. Harmonie: nu het akkoord van de opname; later (fase 2) past hier een eigen akkoordrij als losse .hc-blokjes */
+/* kring van de 12 toonsoorten in kwarten (C bovenaan, dan F, B♭ …): groen = geoefend. Groot (Lick, klikbaar, met letters,
+   cur = de toonsoort die te zien is) of klein (Library, alleen stippen) */
+const FOURTHS=Array.from({length:12},(_,i)=>mod(5*i,12));
+function ringSVG(L,big,cur){const R=big?38:10.5,r=big?10:2.8,C=R+r+1.5,W=2*C;
+  let o='<svg width="'+W+'" height="'+W+'" viewBox="0 0 '+W+' '+W+'" role="'+(big?'group':'img')+'" aria-label="'+nKeys(L)+' of 12 keys practised">';
+  FOURTHS.forEach((pc,i)=>{const a=i/12*2*Math.PI,x=(C+R*Math.sin(a)).toFixed(1),y=(C-R*Math.cos(a)).toFixed(1),dn=L.keys>>pc&1;
+    o+='<g class="kd'+(dn?' done':'')+(big&&pc===cur?' cur':'')+'" data-k="'+pc+'"'+(big?' role="button" tabindex="0" aria-pressed="'+!!dn+'" aria-label="'+esc(keyLabel(L,pc))+'"':'')+'>'
+      +(big?'<title>'+esc(keyLabel(L,pc))+(dn?' · done (click: not done)':' · click: done')+'</title>':'')+'<circle cx="'+x+'" cy="'+y+'" r="'+r+'"/>'
+      +(big?'<text x="'+x+'" y="'+(+y+3)+'" text-anchor="middle">'+esc(keyLabel(L,pc).replace('m',''))+'</text>':'')+'</g>';});
+  if(big)o+='<text class="rc" x="'+C+'" y="'+(C+3)+'" text-anchor="middle">'+nKeys(L)+'</text><text class="rs" x="'+C+'" y="'+(C+13)+'" text-anchor="middle">of 12</text>';
+  return o+'</svg>';}
+/* de akkoordrij in de lijst: één blokje per maat (hoogstens 4, daarna …), titel = de toonsoort */
+function harmHTML(l){const f=keyFlat(l,0),bars=harmText(l.harm,f).split(' | ');
+  return bars.slice(0,4).map(b=>'<span class="hc mus">'+esc(b)+'</span>').join('')+(bars.length>4?'<span class="hm">…</span>':'');}
+/* één rij */
 function rowHTML(l){const par=l.parent&&ST.licks.find(x=>x.id===l.parent),on=l.id===lsel;
   const sub=[l.src?esc(l.src):'',par?'variant of '+esc(par.name):''].filter(Boolean).join(' · ');
   return '<div class="lr'+(on?' on':'')+'" role="option" id="lr-'+esc(l.id)+'" data-id="'+esc(l.id)+'" aria-selected="'+on+'">'
     +'<button type="button" class="ib lplay" data-act="play" title="Listen (Space)" aria-label="Listen to '+esc(l.name)+'">▶</button>'
     +'<div class="lname"><b>'+esc(l.name)+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>'
     +'<div class="lmini">'+miniSVG(l)+'</div>'
-    +'<div class="lhar"><span class="hc mus">'+esc(chordName(l))+'</span></div>'
+    +'<div class="lhar" title="'+esc(keyName(l,0))+'">'+harmHTML(l)+'</div>'
+    +'<div class="lring" title="'+nKeys(l)+' of 12 keys practised">'+ringSVG(l,false)+'</div>'
     +'<div class="ltg">'+l.tags.map(t=>'<button type="button" data-tag="'+esc(t)+'" title="Show only this tag">'+esc(t)+'</button>').join('')+'</div>'
     +'<div><button type="button" class="lst" data-act="stat" data-s="'+l.status+'" title="Click to change the status"><i></i>'+STATN[l.status]+'</button></div>'
     +'<div class="ln">'+(l.notes.length?lickBars(l):'–')+'</div>'
@@ -994,9 +1202,9 @@ function setView(v,init){v=v==='lick'?'lick':'lib';if(!init)stopAll();
   libMenu(false);rowMenu(null);if(hasROOM)ROOM.open(v==='lick'&&S.colOpen,true);
   if(v==='lib')lsel=ST.cur;renderAll();$('#scroll').scrollTop=0;if(v==='lib')markSel(true);}
 function openLick(id){if(!ST.licks.some(l=>l.id===id))return;stopAll();if(ST.cur!==id){ST.cur=id;sel=null;S.sel=-1;}lsel=id;setView('lick');}
-function newLick(){stopAll();const L=lick(),N=fixLick({name:nextName(),root:L.root,q:L.q,pos:L.pos,bpm:L.bpm,sub:L.sub,bars:L.bars,notes:[]});
+function newLick(){stopAll();const L=lick(),N=fixLick({name:nextName(),root:L.root,q:L.q,harm:L.harm,pos:L.pos,bpm:L.bpm,sub:L.sub,bars:L.bars,notes:[]});
   pushUndo(N,{added:N.id,prev:L.id});ST.licks.push(N);ST.cur=N.id;lsel=N.id;sel=null;S.sel=-1;save();setView('lick');
-  $('#btnRec').focus();toast('New empty lick. Name it at the top, set up the chord and position, then press Record.');}
+  $('#btnRec').focus();toast('New empty lick. Name it at the top, set up the harmony and position, then press Record.');}
 /* variant: kopie met parent = de bron, eigen datum, status new, nog nooit geoefend */
 function dupLick(id,open){stopAll();const L=ST.licks.find(l=>l.id===id);if(!L)return;
   const N=fixLick(Object.assign(JSON.parse(JSON.stringify(L)),{id:newId(),name:(L.name+' (variant)').slice(0,60),parent:L.id,made:Date.now(),last:0,status:'new',keys:0}));
@@ -1020,37 +1228,56 @@ function rowMenu(L,btn){const m=$('#rowMenu');rmL=L;if(!L||!btn){m.hidden=true;r
   const r=btn.getBoundingClientRect(),w=m.offsetWidth,h=m.offsetHeight;
   m.style.left=clamp(r.right-w,8,innerWidth-w-8)+'px';m.style.top=(r.bottom+6+h>innerHeight-8?r.top-h-6:r.bottom+6)+'px';m.querySelector('button').focus();}
 function renderSetup(){const L=lick(),busy=!!(REC||CAL);
-  $('#rRoot').value=L.root;$('#rQual').value=L.q;
+  if(document.activeElement!==$('#hText')){$('#hText').value=harmText(L.harm,keyFlat(L,0));$('#hText').classList.remove('bad');$('#hText').title='The lick’s own chords · '+keyName(L,0);}
   $('#rPos').value=L.pos;const br=boxRange(L.pos);$('#rPosV').textContent=L.pos===0?'Open · 0–4':'Frets '+br[0]+'–'+br[1];
   $('#rPosV').title=L.pos===0?'Open position, frets 0–4':'Index finger on fret '+br[0]+', frets '+br[0]+'–'+br[1];
   $('#rBpm').value=L.bpm;
   $('#rSub').innerHTML=[[2,'8ths'],[3,'Triplets'],[4,'16ths']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.sub===v)+'">'+l+'</button>').join('');
   $('#rBars').innerHTML=[[1,'1 bar'],[2,'2 bars'],[4,'4 bars'],[0,'Until I stop']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(L.bars===v)+'">'+l+'</button>').join('');
   if(!CAL)$('#latV').textContent=S.latCal?'Offset '+Math.round(S.lat*1000)+' ms (measured)':'Offset '+Math.round(S.lat*1000)+' ms (estimate: calibrate once)';
-  ['#rRoot','#rQual','#rPos','#rBpm','#btnCal'].forEach(s=>$(s).disabled=busy);$$('#rSub button,#rBars button').forEach(b=>b.disabled=busy);
+  ['#hText','#rPos','#rBpm','#btnCal'].forEach(s=>$(s).disabled=busy);$$('#rSub button,#rBars button').forEach(b=>b.disabled=busy);
   $('#btnReRec').hidden=!L.notes.length||!!REC;$('#btnReRec').disabled=busy;
   if(!REC){$('#btnRec').textContent=L.notes.length?'● Record new lick':'● Record';$('#btnRec').classList.remove('on');}}
+/* soort harmonie (Own chords · Over a progression), toonsoortkeuze, Save in this key, kring van geoefende toonsoorten */
+function renderKeys(){const L=lick(),own=hmode(L)==='own',one=oneChord(L),n=keyN(L),cur=keyPc(L,n),k=keyOf(L);
+  $$('#hMode [data-v]').forEach(b=>{b.setAttribute('aria-pressed',(b.dataset.v==='own')===own);
+    if(b.dataset.v==='prog'){b.disabled=!one;b.title=one?'Play the lick over the chords of a progression (Pat Martino’s minor conversion)':'Only for licks over one chord. This lick has its own chords: practise it in other keys.';}});
+  $('#keyBox').hidden=!own;$('#progBox').hidden=own;
+  $('#keySeg').innerHTML=[...Array(12).keys()].map(pc=>{const dn=L.keys>>pc&1;return '<button type="button" class="mus'+(dn?' dn':'')+'" data-k="'+pc+'" aria-pressed="'+(pc===cur)+'" title="'
+    +esc(keyName(L,mod(pc-k.t,12)))+(pc===k.t?' (recorded)':'')+(dn?' · practised':'')+'">'+esc(keyLabel(L,pc))+'</button>';}).join('');
+  $('#keySave').hidden=!own||!n;
+  const nk=nKeys(L);$('#keyDone').textContent=own?nk+' of 12 keys done':'';$('#keyDone').hidden=!own;
+  $('#kRing').innerHTML=ringSVG(L,true,cur);$('#kRingT').textContent=nk===12?'All 12 keys done':(12-nk)+' key'+(nk===11?'':'s')+' to go';
+  if(PL&&PL.mode==='k12'&&PL.cur&&PL.cur.key!=null)showKNx(PL,PL.cur);
+  syncTransport();}
 function renderChips(){const L=lick(),cs=progChords();if(S.sel>=cs.length||(S.sel>=0&&cs[S.sel].bad))S.sel=-1;
   const one=(c,lab,sm)=>'<button type="button" class="chip'+(c.bad?' bad':'')+'" data-ci="'+c.i+'" aria-pressed="'+(S.sel===c.i)+'"'+(c.bad?' disabled title="Unknown chord"':'')+'>'+esc(lab)+(sm?'<small>'+esc(sm)+'</small>':'')+'</button>';
   $('#chips').innerHTML=one({i:-1},chordName(L),'recorded')+cs.map(c=>one(c,c.label,c.bad?'?':c.from!=null?'from '+deg(c.from,QUAL[c.q].fam):'')).join('');
   if(PL&&PL.cur!=null)markNow(PL.cur);}
-function renderView(){const L=lick(),c=chordAt(S.sel),P=place(L,c),fam=QUAL[c.q].fam,flat=flatFor(c),lr=mod(c.root+P.x,12);
+function renderView(){const L=lick(),V=viewOf(L),P=V.P,flat=V.flat,br=boxRange(L.pos);
   if(sel!=null&&!L.notes[sel])sel=null;
+  let info;
+  const where=(L.pos?'position '+br[0]+' (frets '+br[0]+'–'+br[1]+')':'open position')+' · '+L.notes.length+' notes · '+lickBars(L)+' bar'+(lickBars(L)===1?'':'s')+(L.sub===2&&S.swing?' · swing':'');
+  if(V.own){const nm='<b class="mus">'+esc(keyName(L,V.n))+'</b>';
+    if(!L.notes.length)info=nm+'. No notes yet. Set up the harmony and position above and press <b>Record</b>, or switch on <b>Add notes</b> and click the neck.';
+    else if(!V.n)info=nm+' (as recorded) · '+where+'.';
+    else{info=nm+' · recorded '+esc(keyOf(L).one?keyName(L,0):'in '+keyName(L,0).split(' in ')[1])+' · same fingering, '+(P.d>0?'+':'−')+Math.abs(P.d)+' fret'+(Math.abs(P.d)===1?'':'s')+'.';
+      if(!P.fit)info+=' <span class="warn">It doesn’t fit on the neck (frets 0–'+MAXF+') in this key; notes off the neck are left out.</span>';}}
+  else{const c=V.c,fam=QUAL[c.q].fam,lr=mod(c.root+P.x,12);
   /* akkoordinstellingen */
   const fr=$('#fromRow');fr.hidden=!!c.ref;
   if(!c.ref){$('#fromSel').innerHTML='<option value="auto">Auto · the '+deg(P.auto,fam)+' ('+nn(c.root+P.auto,flat)+')</option>'
       +Array.from({length:12},(_,o)=>'<option value="'+o+'">the '+deg(o,fam)+' ('+nn(c.root+o,flat)+')</option>').join('');
     $('#fromSel').value=c.from==null?'auto':String(c.from);}
   /* uitleg */
-  const lickName=chordName(L),dTxt=P.d===0?'same frets':(P.d>0?'+':'−')+Math.abs(P.d)+' fret'+(Math.abs(P.d)===1?'':'s'),br=boxRange(L.pos);
-  let info;
-  if(!L.notes.length)info='No notes yet. Set up the chord and position above and press <b>Record</b>, or switch on <b>Add notes</b> and click the neck.';
-  else if(c.ref)info='Recorded over <b>'+esc(lickName)+'</b> · '+(L.pos?'position '+br[0]+' (frets '+br[0]+'–'+br[1]+')':'open position')+' · '+L.notes.length+' notes · '+lickBars(L)+' bar'+(lickBars(L)===1?'':'s')+(L.sub===2&&S.swing?' · swing':'')+'.';
+  const lickName=chordName(L),dTxt=P.d===0?'same frets':(P.d>0?'+':'−')+Math.abs(P.d)+' fret'+(Math.abs(P.d)===1?'':'s');
+  if(!L.notes.length)info='No notes yet. Set up the harmony and position above and press <b>Record</b>, or switch on <b>Add notes</b> and click the neck.';
+  else if(c.ref)info='Recorded over <b>'+esc(lickName)+'</b> · '+where+'.';
   else{const w=deg(P.x,fam),as=L.q==='m7'||QUAL[L.q].fam==='min'?nn(lr,flat)+'m':nn(lr,flat)+QUAL[L.q].lbl;
     info='Over <b>'+esc(c.label)+'</b>: play your '+esc(lickName)+' lick as <b>'+esc(as)+'</b>, starting from '+esc(nn(lr,flat))+(P.x===0?', the root':', the '+esc(w))+' of '+esc(c.label)+'. Same fingering, '+dTxt+'.';
-    if(!P.fit)info+=' <span class="warn">It doesn’t fit on the neck (frets 0–'+MAXF+') here; notes off the neck are left out.</span>';}
+    if(!P.fit)info+=' <span class="warn">It doesn’t fit on the neck (frets 0–'+MAXF+') here; notes off the neck are left out.</span>';}}
   $('#viewInfo').innerHTML=info;
-  $('#tab').innerHTML=tabSVG(L,c,P);$('#board').innerHTML=boardSVG(L,c,P);
+  $('#tab').innerHTML=tabSVG(L,V);$('#board').innerHTML=boardSVG(L,V);
   /* smal scherm: het fretbord naar de vorm scrollen */
   {const sc=$('#board').parentNode,svg=$('#board svg');if(sc.scrollWidth>sc.clientWidth+4&&svg){const fs=L.notes.map(n=>n.f+P.d),br=boxRange(L.pos),
     a=fs.length?Math.min(...fs):br[0]+P.d,z=fs.length?Math.max(...fs):br[1]+P.d,k=svg.clientWidth/(28+MAXF*44+8),mid=(28+((a+z)/2-.5)*44)*k;
@@ -1060,8 +1287,9 @@ function renderView(){const L=lick(),c=chordAt(S.sel),P=place(L,c),fam=QUAL[c.q]
   $('#selWhat').innerHTML=n?'<b>Note '+(sel+1)+' of '+L.notes.length+'</b> · '+esc(nOct(midiOf(n)+P.d,flat))+' · '+SLONG[n.s]+' string, fret '+(n.f+P.d)+(n.lock?' · fixed':''):(L.notes.length?'Click a note to edit it.':'');
   ['#eLeft','#eRight','#eStr','#eDel'].forEach(s=>$(s).disabled=!n||!!REC);
   [['#mvDn',-1,0],['#mvUp',1,0]].forEach(([s,ds])=>$(s).disabled=!!REC||!shapeMove(L,ds,0));
-  /* octaaf: bij de opname schuift de lick zelf, over een akkoord alleen de plek van de lick op dat akkoord */
-  $('#mvOctDn').disabled=!!REC||(c.ref?!shapeMove(L,0,-1):!P.canDn);$('#mvOctUp').disabled=!!REC||(c.ref?!shapeMove(L,0,1):!P.canUp);
+  /* octaaf: bij de opname schuift de lick zelf, in een andere toonsoort of over een akkoord alleen de plek van de lick daar */
+  const atRec=P.ref||(!V.own&&V.c.ref);
+  $('#mvOctDn').disabled=!!REC||(atRec?!shapeMove(L,0,-1):!P.canDn);$('#mvOctUp').disabled=!!REC||(atRec?!shapeMove(L,0,1):!P.canUp);
   $('#eAdd').checked=!!S.add;$('#board').classList.toggle('board-add',!!S.add);
   $('#vLab').innerHTML=[['deg','Degree'],['ord','Order'],['note','Note']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.labels===v)+'">'+l+'</button>').join('');
   $('#btnOne').disabled=!L.notes.length;}
@@ -1070,6 +1298,9 @@ function renderPractice(){if(document.activeElement!==$('#pText'))$('#pText').va
   $('#pLad').value=String(S.ladder);
   $('#pSwing').checked=!!S.swing;$('#pLoop').checked=!!S.loop;$('#pFollow').checked=!!S.follow;
   $('#pSnd').innerHTML=[['lick','Lick (guitar)'],['piano','Chords'],['bass','Bass'],['click','Click']].map(([k,l])=>'<div class="row"><span>'+l+'</span><label class="tg"><input type="checkbox" role="switch" data-k="'+k+'" aria-label="'+l+'"'+(S.snd[k]?' checked':'')+'><i></i></label></div>').join('');
+  $('#kOrd').value=S.korder;$('#rBand').checked=!!S.recBand;
+  $('#kPh').innerHTML=[['lp','Listen + play'],['p','Play only']].map(([v,l])=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.kplay===v)+'">'+l+'</button>').join('');
+  $('#kRep').innerHTML=[1,2,3,4].map(v=>'<button type="button" data-v="'+v+'" aria-pressed="'+(S.kreps===v)+'">'+v+'</button>').join('');
   syncTransport();}
 const PRESETS=[
   ['ii–V–I in C','Dm7 G7 Cmaj7 Cmaj7'],
@@ -1104,19 +1335,20 @@ function fillPre(){STP=stProgs();
     +'<optgroup label="Examples">'+PRESETS.map((p,i)=>'<option value="e'+i+'">'+esc(p[0])+'</option>').join('')+'</optgroup>'
     +(STP.length?'<optgroup label="From Scale Trainer">'+STP.map((p,i)=>'<option value="s'+i+'">'+esc(p.name)+' · '+p.toks.length+'</option>').join('')+'</optgroup>':'');}
 
-/* ── tab met ritmestreepjes en de trappen boven de noten ── */
-function tabSVG(L,c,P){const sub=L.sub,bar=4*sub,ns=L.notes,fam=QUAL[c.q].fam,flat=flatFor(c);
-  const t0=Math.min(0,ns.length?Math.floor(ns[0].t/sub)*sub:0),t1=lickBars(L)*bar,cw=sub===4?22:sub===3?27:32,X0=30;
-  const W=X0+(t1-t0)*cw+10,yD=14,y0=34,gs=15,yS=y0+5*gs,st0=yS+12,st1=st0+22,H=st1+22;
+/* ── tab met ritmestreepjes en de trappen boven de noten; met eigen akkoorden de akkoordnamen erboven, op hun tel ── */
+function tabSVG(L,V){const sub=L.sub,bar=4*sub,ns=L.notes,flat=V.flat,P=V;
+  const t0=Math.min(0,ns.length?Math.floor(ns[0].t/sub)*sub:0),t1=V.bars*bar,cw=sub===4?22:sub===3?27:32,X0=30;
+  const yC=14,yD=V.own?32:14,y0=yD+20,gs=15,yS=y0+5*gs,st0=yS+12,st1=st0+22,H=st1+22,W=X0+(t1-t0)*cw+10;
   const xs=t=>X0+(t-t0+.5)*cw,ys=s=>y0+(5-s)*gs;
-  let o='<svg class="tabsvg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tab of the lick over '+esc(c.label)+'">';
+  let o='<svg class="tabsvg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tab of the lick '+esc(V.own?keyName(L,V.n):'over '+V.c.label)+'">';
+  if(V.own)V.tl.forEach(c=>{const x=X0+(c.o*sub-t0)*cw;o+='<line class="tchl" x1="'+x+'" y1="'+(yC+4)+'" x2="'+x+'" y2="'+(yC-10)+'"/><text class="tch" x="'+(x+4)+'" y="'+yC+'">'+esc(cName(c,flat))+'</text>';});
   for(let t=t0;t<t1;t++)if(mod(t,sub)===0&&mod(t,bar)!==0)o+='<line class="tbeat" x1="'+(X0+(t-t0)*cw)+'" y1="'+y0+'" x2="'+(X0+(t-t0)*cw)+'" y2="'+yS+'"/>';
   for(let s=0;s<6;s++)o+='<line class="tl" x1="'+X0+'" y1="'+ys(s)+'" x2="'+(X0+(t1-t0)*cw)+'" y2="'+ys(s)+'"/><text class="tsn" x="12" y="'+(ys(s)+4)+'" text-anchor="middle">'+SNAME[s]+'</text>';
   for(let t=Math.ceil(t0/bar)*bar;t<=t1;t+=bar){const x=X0+(t-t0)*cw;o+='<line class="tbar" x1="'+x+'" y1="'+y0+'" x2="'+x+'" y2="'+yS+'"/>';
     if(t<t1)o+='<text class="tbn" x="'+(x+3)+'" y="'+(y0-6)+'">'+(t/bar+1)+'</text>';}
   if(t0<0)o+='<line class="tbar" x1="'+X0+'" y1="'+y0+'" x2="'+X0+'" y2="'+yS+'" style="opacity:.25"/>';
   o+='<line class="tbar" x1="'+(X0+(t1-t0)*cw-3)+'" y1="'+y0+'" x2="'+(X0+(t1-t0)*cw-3)+'" y2="'+yS+'"/>';
-  ns.forEach((n,j)=>{const x=xs(n.t),y=ys(n.s),f=n.f+P.d,iv=mod(midiOf(n)+P.d-c.root,12),dg=deg(iv,fam),off=f<0||f>MAXF;
+  ns.forEach((n,j)=>{const c=V.at(n.t),fam=QUAL[c.q].fam,x=xs(n.t),y=ys(n.s),f=n.f+P.d,iv=mod(midiOf(n)+P.d-c.root,12),dg=deg(iv,fam),off=f<0||f>MAXF;
     const lab=S.labels==='note'?nn(midiOf(n)+P.d,flat):S.labels==='ord'?String(j+1):dg;
     o+='<text class="dg'+(iv===0?' rt':QUAL[c.q].iv.includes(iv)?' ct':'')+'" x="'+x+'" y="'+yD+'" text-anchor="middle">'+esc(lab)+'</text>';
     o+='<g class="nt'+(sel===j?' sel':'')+'" data-i="'+j+'"><rect x="'+(x-cw/2+1)+'" y="'+(y-8)+'" width="'+(cw-2)+'" height="16" rx="4"/><text x="'+x+'" y="'+(y+4.5)+'" text-anchor="middle">'+(off?'×':f)+'</text></g>';});
@@ -1133,7 +1365,7 @@ function tabSVG(L,c,P){const sub=L.sub,bar=4*sub,ns=L.notes,fam=QUAL[c.q].fam,fl
   return o+'</svg>';}
 
 /* ── fretbord: de vorm op de hals, het vak van je positie, klikbare vakjes ── */
-function boardSVG(L,c,P){const FW=44,NUT=28,SHh=26,TOP=6,W=NUT+MAXF*FW+8,yB=TOP+6*SHh,H=yB+20,fam=QUAL[c.q].fam,flat=flatFor(c),ivs=QUAL[c.q].iv;
+function boardSVG(L,V){const FW=44,NUT=28,SHh=26,TOP=6,W=NUT+MAXF*FW+8,yB=TOP+6*SHh,H=yB+20,flat=V.flat,P=V;
   const fx=f=>f===0?NUT/2:NUT+(f-.5)*FW,sy=s=>TOP+(5-s)*SHh+SHh/2;
   let o='<svg class="nkb" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="The lick on the neck">';
   o+='<rect class="wd" x="'+NUT+'" y="'+TOP+'" width="'+(MAXF*FW)+'" height="'+(6*SHh)+'" rx="3"/>';
@@ -1149,9 +1381,10 @@ function boardSVG(L,c,P){const FW=44,NUT=28,SHh=26,TOP=6,W=NUT+MAXF*FW+8,yB=TOP+
     o+='<rect class="box" x="'+x0+'" y="'+(TOP+1)+'" width="'+(x1-x0)+'" height="'+(6*SHh-2)+'" rx="6"/>';}
   for(let f=0;f<=MAXF;f++)if([0,3,5,7,9,12,15,17,19].includes(f))o+='<text class="fnum'+(f>=b0&&f<=b1?' inbox':'')+'" x="'+fx(f)+'" y="'+(yB+15)+'" text-anchor="middle">'+f+'</text>';
   for(let s=0;s<6;s++)for(let f=0;f<=MAXF;f++)o+='<rect class="cell" data-s="'+s+'" data-f="'+f+'" x="'+(f===0?0:NUT+(f-1)*FW)+'" y="'+(TOP+(5-s)*SHh)+'" width="'+(f===0?NUT:FW)+'" height="'+SHh+'"/>';
-  /* noten: één stip per plek, met alle noten die daar vallen; kleur = functie in het akkoord (grondtoon, terts, kwint, septiem/sext, rest) */
-  const spots=new Map();L.notes.forEach((n,j)=>{const f=n.f+P.d;if(f<0||f>MAXF)return;const k=n.s+':'+f;if(!spots.has(k))spots.set(k,{s:n.s,f,js:[]});spots.get(k).js.push(j);});
-  spots.forEach(sp=>{const m=OPEN[sp.s]+sp.f,iv=mod(m-c.root,12),k=ivs.indexOf(iv),cls=['rt','i3','i5','i7'][k]||'nc';
+  /* noten: één stip per plek, met alle noten die daar vallen; kleur = functie in het akkoord (grondtoon, terts, kwint, septiem/sext, rest);
+     met eigen akkoorden het akkoord bij de eerste noot op die plek */
+  const spots=new Map();L.notes.forEach((n,j)=>{const f=n.f+P.d;if(f<0||f>MAXF)return;const k=n.s+':'+f;if(!spots.has(k))spots.set(k,{s:n.s,f,js:[],c:V.at(n.t)});spots.get(k).js.push(j);});
+  spots.forEach(sp=>{const c=sp.c,fam=QUAL[c.q].fam,m=OPEN[sp.s]+sp.f,iv=mod(m-c.root,12),k=QUAL[c.q].iv.indexOf(iv),cls=['rt','i3','i5','i7'][k]||'nc';
     const lab=S.labels==='note'?nn(m,flat):S.labels==='ord'?sp.js.map(j=>j+1).join(' '):deg(iv,fam),r=lab.length>3?13:11;
     o+='<g class="dot'+(sp.js.includes(sel)?' sel':'')+'" data-js="'+sp.js.join(' ')+'" data-s="'+sp.s+'" data-f="'+sp.f+'"><circle class="'+cls+'" cx="'+fx(sp.f)+'" cy="'+sy(sp.s)+'" r="'+r+'"/>'
       +'<text x="'+fx(sp.f)+'" y="'+(sy(sp.s)+4)+'" text-anchor="middle" style="font-size:'+(lab.length>3?9:11)+'px">'+esc(lab)+'</text></g>';});
@@ -1160,12 +1393,12 @@ function boardSVG(L,c,P){const FW=44,NUT=28,SHh=26,TOP=6,W=NUT+MAXF*FW+8,yB=TOP+
 /* ═══════════ 11. BEWERKEN ═══════════ */
 function edit(fn){const L=lick();pushUndo(L);fn(L);save();renderAll();}
 function selectNote(j,play){const L=lick();if(!L.notes[j])return;sel=j;renderView();
-  if(play){const P=place(L,chordAt(S.sel));previewNote(midiOf(L.notes[j])+P.d);}}
+  if(play){const P=viewOf(L);previewNote(midiOf(L.notes[j])+P.d);}}
 function moveNote(dir){const L=lick();if(sel==null)return;const n=L.notes[sel],t=n.t+dir;if(t<-4*L.sub)return;
   edit(L=>{const nb=L.notes.find(x=>x.t===t);if(nb)nb.t=n.t;n.t=t;fixDur(L);sel=L.notes.indexOf(n);});}
 function otherString(){const L=lick();if(sel==null)return;const n=L.notes[sel],cs=cands(midiOf(n),L.pos);if(cs.length<2){toast('This note fits on only one string.');return;}
   const i=cs.findIndex(c=>c.s===n.s),nx=cs[(i+1)%cs.length];edit(()=>{n.s=nx.s;n.f=nx.f;n.lock=true;});
-  const P=place(L,chordAt(S.sel));toast(SLONG[nx.s]+' string, fret '+(nx.f+P.d)+(boxCost(nx.f,L.pos)?' (outside your position)':''));}
+  const P=viewOf(L);toast(SLONG[nx.s]+' string, fret '+(nx.f+P.d)+(boxCost(nx.f,L.pos)?' (outside your position)':''));}
 /* de hele vorm een snaar opschuiven (ds = ±1) of een octaaf (ds = 0, ko = ±1). Bij een andere snaar blijven de noten
    gelijk of gaan ze allemaal een octaaf omhoog/omlaag: we nemen de variant die op de hals past en het dichtst bij de
    huidige plek ligt, maar liever geen losse snaren als de lick die nu niet heeft (dan is het niet meer dezelfde vorm).
@@ -1183,7 +1416,7 @@ function moveShape(ds,ko){const L=lick(),mv=shapeMove(L,ds,ko);
   const fr=(mv.d>0?'+':'−')+Math.abs(mv.d)+' fret'+(Math.abs(mv.d)===1?'':'s');
   toast(ds?'One string '+(ds<0?'lower':'higher')+(mv.k?', an octave '+(mv.k>0?'higher':'lower'):', same notes')+' · '+fr+'.':'An octave '+(ko<0?'lower':'higher')+' · '+fr+'.');}
 function delNote(){const L=lick();if(sel==null)return;edit(L=>{L.notes.splice(sel,1);fixDur(L);if(sel>=L.notes.length)sel=L.notes.length?L.notes.length-1:null;});}
-function addAt(s,fShown){const L=lick(),P=place(L,chordAt(S.sel)),f=fShown-P.d;
+function addAt(s,fShown){const L=lick(),P=viewOf(L),f=fShown-P.d;
   if(f<0||f>MAXF){toast('That spot is off the neck for the recorded lick.');return;}
   edit(L=>{const t=sel!=null&&L.notes[sel]?L.notes[sel].t+1:L.notes.length?L.notes[L.notes.length-1].t+1:0,ex=L.notes.find(n=>n.t===t);
     let n;if(ex){ex.s=s;ex.f=f;ex.lock=true;n=ex;}else{n={t,d:L.sub,s,f,lock:true};L.notes.push(n);}fixDur(L);sel=L.notes.indexOf(n);
@@ -1259,8 +1492,25 @@ $('#rowMenu').addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='Ar
   const bs=$$('#rowMenu button'),i=bs.indexOf(document.activeElement);bs[mod(i+(e.key==='ArrowDown'?1:-1),bs.length)].focus();});
 $('#scroll').addEventListener('scroll',()=>{if(!$('#rowMenu').hidden)rowMenu(null);},{passive:true});
 
-$('#rRoot').addEventListener('change',e=>{const L=lick();L.root=+e.target.value;save();renderAll();});
-$('#rQual').addEventListener('change',e=>{const L=lick();L.q=e.target.value;save();renderAll();});
+$('#hText').addEventListener('input',e=>harmInput(e.target));
+$('#hText').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
+$('#hText').addEventListener('blur',e=>{delete e.target.dataset.u;renderSetup();});
+/* eigen akkoorden of over een progressie; toonsoort kiezen; opslaan in deze toonsoort; kring: geoefend aan/uit, alles uit */
+$('#hMode').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b||b.disabled||S.hmode===b.dataset.v&&hmode(lick())===b.dataset.v)return;
+  stopPlay();S.hmode=b.dataset.v;sel=null;save();renderKeys();renderChips();renderView();});
+$('#keySeg').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;const L=lick(),n=mod(+b.dataset.k-keyOf(L).t,12);
+  if(PL&&PL.mode==='k12')stopPlay();KV[L.id]=n;save();renderKeys();renderView();});
+$('#keySave').addEventListener('click',saveKey);
+function toggleKey(pc){const L=lick();L.keys^=1<<pc;save();renderKeys();}
+$('#kRing').addEventListener('click',e=>{const g=e.target.closest('[data-k]');if(g)toggleKey(+g.dataset.k);});
+$('#kRing').addEventListener('keydown',e=>{const g=e.target.closest('[data-k]');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();toggleKey(+g.dataset.k);$('#kRing [data-k="'+g.dataset.k+'"]').focus();}});
+$('#kReset').addEventListener('click',()=>{const L=lick(),was=L.keys;if(!was){toast('No keys done yet.');return;}L.keys=0;save();renderKeys();
+  toast('All keys reset.',false,{l:'Undo',fn:()=>{const M=ST.licks.find(x=>x.id===L.id);if(M){M.keys=was;save();renderKeys();}}});});
+$('#kOrd').innerHTML=KORD.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
+$('#kOrd').addEventListener('change',e=>{S.korder=e.target.value;save();});
+$('#kPh').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.kplay=b.dataset.v;save();renderPractice();});
+$('#kRep').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.kreps=+b.dataset.v;save();renderPractice();});
+$('#rBand').addEventListener('change',e=>{S.recBand=e.target.checked;save();});
 $('#rPos').addEventListener('input',e=>{const L=lick(),v=+e.target.value;if(L.pos===v)return;
   if(L.notes.length){if(!$('#rPos').dataset.u){pushUndo(L);$('#rPos').dataset.u='1';}L.pos=v;refinger(L);}else L.pos=v;save();renderSetup();renderView();});
 $('#rPos').addEventListener('change',()=>{delete $('#rPos').dataset.u;renderAll();});
@@ -1284,14 +1534,31 @@ $('#eLeft').addEventListener('click',()=>moveNote(-1));
 $('#eRight').addEventListener('click',()=>moveNote(1));
 $('#eStr').addEventListener('click',otherString);
 $('#mvDn').addEventListener('click',()=>moveShape(-1,0));$('#mvUp').addEventListener('click',()=>moveShape(1,0));
-function octave(dir){const c=chordAt(S.sel);if(c.ref){moveShape(0,dir);return;}
-  const P=place(lick(),c);if(dir<0?!P.canDn:!P.canUp)return;setOver(S.sel,{oct:(c.oct||0)+dir});renderView();}
+function octave(dir){const L=lick();
+  /* eigen akkoorden in een andere toonsoort: alleen daar een octaaf anders (bewaard in ko, per toonsoort) */
+  if(hmode(L)==='own'){const n=keyN(L);if(!n){moveShape(0,dir);return;}const P=placeKey(L,n),pc=keyPc(L,n);if(dir<0?!P.canDn:!P.canUp)return;
+    L.ko[pc]=clamp(L.ko[pc]+dir,-2,2);save();renderView();toast('In '+keyLabel(L,pc)+' only: an octave '+(dir<0?'lower':'higher')+'.');return;}
+  const c=chordAt(S.sel);if(c.ref){moveShape(0,dir);return;}
+  const P=place(L,c);if(dir<0?!P.canDn:!P.canUp)return;setOver(S.sel,{oct:(c.oct||0)+dir});renderView();}
+/* de toonsoort die te zien is wordt de opgenomen toonsoort: noten (dezelfde vorm, d frets verder), akkoorden en positie schuiven mee */
+function saveKey(){const L=lick(),n=keyN(L);if(!n||REC)return;const P=placeKey(L,n);
+  if(!P.fit){toast('The lick doesn’t fit on the neck in this key: try Octave ↓ / ↑ first.',true);return;}
+  stopPlay();const from=keyName(L,0);KV[L.id]=0;
+  edit(L=>{L.notes.forEach(x=>{x.f+=P.d;});L.pos=clamp(L.pos+P.d,0,14);L.harm=L.harm.map(c=>trC(c,n));L.root=L.harm[0].root;L.q=L.harm[0].q;
+    if(L.raw)L.raw.forEach(r=>{r.m+=P.d;});L.ko=Array(12).fill(0);});
+  toast('Saved '+keyName(lick(),0)+' (was '+from+'). Undo brings back the old key.');}
+/* eigen akkoorden typen: geldig = meteen opslaan (één Undo-stap per keer bewerken), anders rood met de foute woorden */
+function harmInput(el){const L=lick(),r=parseHarm(el.value);el.classList.toggle('bad',!!r.bad.length||!r.harm.length);
+  el.title=r.bad.length?'Not a chord: '+r.bad.join(', '):!r.harm.length?'Type at least one chord':'The lick’s own chords';
+  if(r.bad.length||!r.harm.length||JSON.stringify(r.harm)===JSON.stringify(L.harm))return;
+  if(!el.dataset.u){pushUndo(L);el.dataset.u='1';}if(PL)stopPlay();
+  L.harm=r.harm;L.root=r.harm[0].root;L.q=r.harm[0].q;save();renderHead();renderKeys();renderChips();renderView();}
 $('#mvOctDn').addEventListener('click',()=>octave(-1));$('#mvOctUp').addEventListener('click',()=>octave(1));
 $('#eDel').addEventListener('click',delNote);
 $('#eAdd').addEventListener('change',e=>{S.add=e.target.checked;save();renderView();});
 $('#vLab').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;S.labels=b.dataset.v;save();renderView();});
-$('#btnOne').addEventListener('click',()=>playStart('one'));
-$('#btnProg').addEventListener('click',()=>playStart('prog'));
+$('#btnOne').addEventListener('click',playOne);
+$('#btnProg').addEventListener('click',playMain);
 
 $('#pText').addEventListener('input',e=>{S.prog=e.target.value;save();renderChips();renderView();});
 $('#pText').addEventListener('change',()=>{if(PL&&PL.mode==='prog'){stopPlay();toast('Progression changed: press Play again.');}});
@@ -1337,7 +1604,7 @@ document.addEventListener('keydown',e=>{const lib=S.view==='lib',field=e.target.
   if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='z'){e.preventDefault();undo();return;}
   if(e.ctrlKey||e.metaKey||e.altKey)return;
   const L=lick();
-  if(k===' '){if(e.target.closest&&e.target.closest('button,summary,label'))return;e.preventDefault();if(PL)stopPlay();else if(!REC)playStart('prog');}
+  if(k===' '){if(e.target.closest&&e.target.closest('button,summary,label'))return;e.preventDefault();if(PL)stopPlay();else if(!REC)playMain();}
   else if(k==='r'||k==='R'){e.preventDefault();recStart(false);}
   else if(k==='ArrowLeft'||k==='ArrowRight'){if(!L.notes.length)return;e.preventDefault();const dir=k==='ArrowLeft'?-1:1;
     if(e.shiftKey)moveNote(dir);else selectNote(sel==null?(dir>0?0:L.notes.length-1):clamp(sel+dir,0,L.notes.length-1),true);}
@@ -1346,8 +1613,6 @@ document.addEventListener('keydown',e=>{const lib=S.view==='lib',field=e.target.
   else if(k==='a'||k==='A'){S.add=!S.add;save();renderView();}});
 
 /* keuzelijsten die niet veranderen: één keer opbouwen */
-$('#rRoot').innerHTML=ROOTN.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
-$('#rQual').innerHTML=QORDER.map(q=>'<option value="'+q+'">'+QUAL[q].lbl+'</option>').join('');
 fillPre();
 $('#pLad').innerHTML=[0,1,2,4,5,10].map(v=>'<option value="'+v+'">'+(v?'+'+v+' BPM each round':'Same tempo')+'</option>').join('');
 applyNeck();
@@ -1383,6 +1648,7 @@ addEventListener('pagehide',logSave);document.addEventListener('visibilitychange
 if(hasROOM&&ROOM.status)ROOM.status({log:LOGKEY,rec:()=>!!REC||!!(PL&&!PL.loading),time:()=>logSecs(LOG[dayKey()])});
 /* testhaakje */
 window.LICKLAB={get store(){return ST;},lick,place,chordAt,progChords,quantizeRaw,finger,parseChord,IN,render:renderAll,setView,openLick,libList,fixLick,
+  parseHarm,harmText,keyOf,keyName,timeline,viewOf,placeKey,k12List,KV,
   get rec(){return REC;},get play(){return PL;},audio};
 })();
 </script>
